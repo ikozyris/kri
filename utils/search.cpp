@@ -5,30 +5,87 @@ void find(const char *str)
 	unsigned short tmp_len = strlen(str);
 	if (tmp_len == 0)
 		return;
-	vector<unsigned> matches = search(*it, str, tmp_len);
-	tmp_len -= mbcnt(str, tmp_len); // get displayed characters
-	snprintf(lnbuf, lnbf_cpt, "%lu matches     ", matches.size());
-	print2header(lnbuf, 1);
-	curs_set(0);
-	unsigned dx = 0, previ = 0, prevpr = 0;
-	for (unsigned i = 0; i < matches.size(); ++i) { // highlight all
-		calc_offset_act(matches[i], previ, *it);
-		previ = matches[i];
-		dx += flag;
-		if (dx >= maxx - 1 + prevpr) {
-			int key = wgetch(text_win); // quit
-			if (key == 'q' || key == 27)
-				goto clr_high;
-			prevpr = previ - previ % (maxx - 1);
-			mvprint_line(y, 0, *it, prevpr, 0);
-		}
-		wmove(text_win, y, dx % (maxx - 1));
-		wchgat(text_win, tmp_len, A_STANDOUT, 0, 0);
+	vector<vector<unsigned>> matches;
+	unsigned total = 0;
+	list<gap_buf>::iterator tmp_it = it;
+	for (unsigned i = 0; i <= curnum; ++i) {
+		vector<unsigned> tmp = search(*tmp_it, str, tmp_len);
+		total += tmp.size();
+		matches.push_back(tmp);
+		++tmp_it;
 	}
-	wgetch(text_win); // give time to view results
-clr_high:
-	mvprint_line(y, 0, *it, 0, 0);
+	tmp_len -= mbcnt(str, tmp_len); // get displayed characters
+
+	snprintf(lnbuf, lnbf_cpt, "%u matches     ", total);
+	print2header(lnbuf, 1);
+
+	// displayed x, previous byte, previous print byte
+	vector<unsigned> dix(maxy), previ(maxy), prevpr(maxy), prevx(maxy);
+	int ch = 0;
+	curs_set(0);
+	do {
+		switch (ch) {
+		case KEY_RIGHT:
+			tmp_it = it;
+			for (unsigned i = 0; i < maxy; ++i, ++tmp_it)
+				if (prevpr[i] != 0 && previ[i] != matches[ofy + i].back()) // more occurences remaining
+					mvprint_line(i, 0, *tmp_it, prevpr[i], 0);
+			break;
+
+		case 0:
+		case KEY_LEFT:
+			tmp_it = it;
+			for (unsigned i = 0; i < maxy; ++i, ++tmp_it) {
+				mvprint_line(i, 0, *tmp_it, 0, 0);
+				dix[i] = previ[i] = prevpr[i] = prevx[i] = 0;
+			}
+			break;
+
+		case KEY_DOWN:
+			for (unsigned i = 0; i < maxy; ++i)
+				dix[i] = previ[i] = prevpr[i] = prevx[i] = 0;
+			if (ofy + maxy > curnum)
+				break;
+			++ofy;
+			++it;
+			print_text(0);
+			break;
+
+		case KEY_UP:
+			for (unsigned i = 0; i < maxy; ++i)
+				dix[i] = previ[i] = prevpr[i] = prevx[i] = 0;
+			if (ofy <= 0)
+				break;
+			--ofy;
+			--it;
+			print_text(0);
+			break;
+
+		case 27:
+		case 'q':
+		default:
+			goto exit;
+		}
+
+		tmp_it = it;
+		for (unsigned i = 0; i < min(maxy, curnum + 1); ++i, ++tmp_it) { // line
+			for (unsigned j = prevx[i]; j < matches[ofy + i].size(); ++j) { // occurrence
+				calc_offset_act(matches[ofy + i][j], previ[i], *tmp_it);
+				prevx[i] = j;
+				if (dix[i] + flag >= maxx - 1 + prevpr[i]) {
+					prevpr[i] = matches[ofy + i][j] - matches[ofy + i][j] % (maxx - 1);
+					break;
+				}
+				previ[i] = matches[ofy + i][j];
+				dix[i] += flag;
+				wmove(text_win, i, dix[i] % (maxx - 1));
+				wchgat(text_win, tmp_len, A_STANDOUT, 0, 0);
+			}
+		}
+	} while ((ch = wgetch(text_win)));
+exit:
 	curs_set(1);
+	reset_view();
 }
 
 unsigned *_badchar(const char *str, unsigned short len)
