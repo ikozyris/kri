@@ -4,6 +4,7 @@
 #include <locale.h>	// for setting locale
 #include <list>
 #include <vector>
+#include <deque>
 #include <thread>
 #include <algorithm>
 #include <execution>

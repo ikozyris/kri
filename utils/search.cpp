@@ -2,17 +2,17 @@
 
 void find(const char *str)
 {
-	unsigned short tmp_len = strlen(str);
-	if (tmp_len == 0)
+	unsigned short str_len = strlen(str);
+	if (str_len == 0)
 		return;
-	vector<vector<unsigned>> matches(curnum + 1);
+	deque<vector<unsigned>> matches(min(maxy, curnum) + 1);
 	unsigned total = 0;
 	list<gap_buf>::iterator tmp_it = it;
-	for (unsigned i = 0; i <= curnum; ++i, ++tmp_it) {
-		matches[i] = search(*tmp_it, str, tmp_len);
+	for (unsigned i = 0; i <= min(maxy, curnum); ++i, ++tmp_it) {
+		matches[i] = search(*tmp_it, str, str_len);
 		total += matches[i].size();
 	}
-	tmp_len -= mbcnt(str, tmp_len); // get displayed characters
+	str_len -= mbcnt(str, str_len); // get displayed characters
 
 	snprintf(lnbuf, lnbf_cpt, "%u matches     ", total);
 	print2header(lnbuf, 1);
@@ -26,7 +26,7 @@ void find(const char *str)
 		case KEY_RIGHT:
 			tmp_it = it;
 			for (unsigned i = 0; i < maxy; ++i, ++tmp_it)
-				if (prevpr[i] != 0 && previ[i] != matches[ofy + i].back()) // more occurences remaining
+				if (prevpr[i] != 0 && previ[i] != matches[ofy + i].back()) // more occurrences remaining
 					mvprint_line(i, 0, *tmp_it, prevpr[i], 0);
 			break;
 
@@ -47,6 +47,8 @@ void find(const char *str)
 			++ofy;
 			++it;
 			print_text(0);
+			++tmp_it;
+			matches.emplace_back(search(*tmp_it, str, str_len));
 			break;
 
 		case KEY_UP:
@@ -77,7 +79,7 @@ void find(const char *str)
 				previ[i] = matches[ofy + i][j];
 				dix[i] += flag;
 				wmove(text_win, i, dix[i] % (maxx - 1));
-				wchgat(text_win, tmp_len, A_STANDOUT, 0, 0);
+				wchgat(text_win, str_len, A_STANDOUT, 0, 0);
 			}
 		}
 	} while ((ch = wgetch(text_win)));
@@ -125,7 +127,7 @@ unsigned *_goodsuffix(const char *str, unsigned short len)
 	return gs;
 }
 
-vector<unsigned> bm_search(const gap_buf &buf, const char *str, unsigned short len)
+const vector<unsigned> bm_search(const gap_buf &buf, const char *str, unsigned short len)
 {
 	vector<unsigned> matches;
 	// heuristics
@@ -150,7 +152,7 @@ vector<unsigned> bm_search(const gap_buf &buf, const char *str, unsigned short l
 }
 
 // merge the sorted results of each thread (this is the bottleneck)
-vector<unsigned> mergei(const vector<vector<unsigned>> &indices)
+const vector<unsigned> mergei(const vector<vector<unsigned>> &indices)
 {
 	vector<unsigned> matches;
 	matches.reserve(indices[0].size());
@@ -168,7 +170,7 @@ void searchch(const gap_buf &buf, char ch, unsigned st, unsigned end, vector<uns
 }
 
 // wrapper for searchch() to launch with multi-threaded
-vector<unsigned> mt_search(const gap_buf &buf, char ch)
+const vector<unsigned> mt_search(const gap_buf &buf, char ch)
 {
 	unsigned nthreads = thread::hardware_concurrency();
 	if (nthreads == 0 || buf.len < 1e6)
@@ -195,7 +197,7 @@ vector<unsigned> mt_search(const gap_buf &buf, char ch)
 }
 
 // search for str in buf, return <pos, color(pos;s)>
-vector<unsigned> search(const gap_buf &buf, const char *str, unsigned short len)
+const vector<unsigned> search(const gap_buf &buf, const char *str, unsigned short len)
 {
 	vector<unsigned> matches;
 	if (len == 1)
