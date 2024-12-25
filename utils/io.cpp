@@ -98,7 +98,7 @@ void save()
 
 void read_fgets(FILE *fi)
 {
-	char tmp[SZ];
+	char *tmp = (char*)malloc(SZ);
 	while ((fgets_unlocked(tmp, SZ, fi))) {
 		apnd_s(*it, tmp);
 		if (it->buffer[it->len - 1] == '\n') { [[unlikely]]
@@ -107,11 +107,12 @@ void read_fgets(FILE *fi)
 			++it;
 		}
 	}
+	free(tmp);
 }
 
 void read_fread(FILE *fi)
 {
-	char tmp[SZ + 1];
+	char *tmp = (char*)malloc(SZ + 1);
 	unsigned a, j = 0, res;
 	while ((a = fread(tmp, sizeof(tmp[0]), SZ, fi))) {
 		tmp[a] = 0;
@@ -126,4 +127,5 @@ void read_fread(FILE *fi)
 		apnd_s(*it, tmp + j, a - j);
 		j = 0;
 	}
+	free(tmp);
 }

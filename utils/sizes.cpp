@@ -20,13 +20,14 @@ char hrsize(size_t bytes, char *dest, unsigned short dest_cpt)
 unsigned memusg()
 {
 	unsigned memusg = 0, tmp;
-	char buffer[1024];
+	char *buffer = (char*)malloc(1024);
 	FILE *file = fopen("/proc/self/smaps", "r");
 	while (fscanf(file, " %1023s", buffer) == 1)
 		if (strcmp(buffer, "Pss:") == 0) {
 			fscanf(file, " %u", &tmp);
 			memusg += tmp;
 		}
+	free(buffer);
 	fclose(file);
 	return memusg;
 }

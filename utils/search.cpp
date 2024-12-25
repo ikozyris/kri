@@ -5,21 +5,19 @@ void find(const char *str)
 	unsigned short tmp_len = strlen(str);
 	if (tmp_len == 0)
 		return;
-	vector<vector<unsigned>> matches;
+	vector<vector<unsigned>> matches(curnum + 1);
 	unsigned total = 0;
 	list<gap_buf>::iterator tmp_it = it;
-	for (unsigned i = 0; i <= curnum; ++i) {
-		vector<unsigned> tmp = search(*tmp_it, str, tmp_len);
-		total += tmp.size();
-		matches.push_back(tmp);
-		++tmp_it;
+	for (unsigned i = 0; i <= curnum; ++i, ++tmp_it) {
+		matches[i] = search(*tmp_it, str, tmp_len);
+		total += matches[i].size();
 	}
 	tmp_len -= mbcnt(str, tmp_len); // get displayed characters
 
 	snprintf(lnbuf, lnbf_cpt, "%u matches     ", total);
 	print2header(lnbuf, 1);
 
-	// displayed x, previous byte, previous print byte
+	// displayed x, previous byte, previous print byte, previous iterated occurrence
 	vector<unsigned> dix(maxy), previ(maxy), prevpr(maxy), prevx(maxy);
 	int ch = 0;
 	curs_set(0);
@@ -173,8 +171,8 @@ void searchch(const gap_buf &buf, char ch, unsigned st, unsigned end, vector<uns
 vector<unsigned> mt_search(const gap_buf &buf, char ch)
 {
 	unsigned nthreads = thread::hardware_concurrency();
-	if (nthreads == 0)
-		nthreads = 2;
+	if (nthreads == 0 || buf.len < 1e6)
+		nthreads = 1;
 	unsigned chunk = buf.len / nthreads;
 	vector<thread> threads(nthreads);
 	vector<vector<unsigned>> indices(nthreads); // each thread's result
