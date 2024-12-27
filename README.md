@@ -5,6 +5,15 @@ More information is available on the [wiki](https://github.com/ikozyris/kri/wiki
 
 ![A C++ file in kri](https://github.com/ikozyris/kri/assets/80053394/8fa12952-272f-41e0-9535-0a77f3652286)
 
+## Installation
+
+### Arch Linux
+[kri](https://aur.archlinux.org/packages/kri/) is available as an AUR package.
+You can install it using an AUR helper (e.g. paru):
+```sh
+paru -S kri
+```
+
 ## Build
 ```sh
 make build
