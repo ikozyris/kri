@@ -1,6 +1,6 @@
 # kri
 <!--[![C/C++ CI](https://github.com/ikozyris/kri/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/ikozyris/kri/actions/workflows/c-cpp.yml)-->
-A simple, compact and *fast* text editor using ncurses and a gap buffer, written in C++, in ~1.3k lines of code.
+A simple, compact and *fast* text editor using ncurses and a gap buffer, written in C++, in ~1.5k lines of code.
 More information is available on the [wiki](https://github.com/ikozyris/kri/wiki).
 
 ![A C++ file in kri](https://github.com/ikozyris/kri/assets/80053394/8fa12952-272f-41e0-9535-0a77f3652286)
@@ -31,9 +31,13 @@ kri # ask for filename on save file operation
 * Go to previous/next word: Shift + Left/Right arrow
 * Enter built-in terminal: Alt-C
 * Show info: Alt-I (also command _stats_ in built-in terminal)
+* Search: command _find_ in builtin terminal, example:
+	- find_all_shw token  -  search for token in all lines, highlight the occurences and show total count
+	- find token  -  same as above
+	- find_thi_cnt  -  only show count in the current line
 
 ### How fast is it?
-kri is several times faster than any other text editor at reading files and other operations.
+kri is several times faster than any other text editor at reading files, searching other operations.
 See the [benchmarks](https://github.com/ikozyris/kri/wiki/Performance-&-Benchmarks) for more.
 
 ### License

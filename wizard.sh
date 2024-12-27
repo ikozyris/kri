@@ -153,7 +153,7 @@ config_dialog() {
 				elif command -v dnf &> /dev/null; then
 					dnf install ncurses-devel gcc make dialog
 				elif command -v pacman &> /dev/null; then
-					pacman -S ncurses gcc make dialog
+					pacman -S --needed ncurses gcc make dialog
 				fi
 			fi
 			sleep 1
@@ -206,7 +206,7 @@ while true; do
 		config_dialog "Configuration Options"
 		;;
 	2 )
-		if make build 2>&1 >/dev/null | grep -q Error; then
+		if make build -j$(nproc) 2>&1 >/dev/null | grep -q Error; then
 			display_result "Failed to build kri" "Make sure to report the output of make at: https://github.com/ikozyris/kri/issues"
 	    	else
 			display_result "Succesfully built kri" "Now you can install!"
