@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
 		puts("A simple, compact and fast text editor.\n"
 		"Source code: https://github.com/ikozyris/kri\n"
 		"Wiki: https://github.com/ikozyris/kri/wiki\n"
-		"License: GNU GPL v3\n");
+		"License: GNU GPL v3+\n");
 		puts("Usage:\n"
 		"	--help, -h	Show this help\n"
 		"<file>			Open file and allow edits\n"
