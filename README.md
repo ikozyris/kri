@@ -5,14 +5,10 @@ More information is available on the [wiki](https://github.com/ikozyris/kri/wiki
 
 ![A C++ file in kri](https://github.com/ikozyris/kri/assets/80053394/8fa12952-272f-41e0-9535-0a77f3652286)
 
-## Installation
-
-### Arch Linux
-[kri](https://aur.archlinux.org/packages/kri/) is available as an AUR package.
-You can install it using an AUR helper (e.g. paru):
-```sh
-paru -S kri
-```
+## Install
+The 0.8 release has been packaged for:
+ - Arch Linux: [AUR package](https://aur.archlinux.org/packages/kri/).
+ - Debian/Ubuntu: [deb package](https://github.com/ikozyris/kri/releases/download/v0.8/kri_0.8_x64-v2.deb)
 
 ## Build
 ```sh
@@ -46,7 +42,7 @@ kri # ask for filename on save file operation
 	- find_thi_cnt  -  only show count in the current line
 
 ### How fast is it?
-kri is several times faster than any other text editor at reading files, searching other operations.
+kri is several times faster than any other text editor at reading files, searching, and other operations.
 See the [benchmarks](https://github.com/ikozyris/kri/wiki/Performance-&-Benchmarks) for more.
 
 ### License
@@ -56,7 +52,7 @@ Copyright (C) 2022-2024  ikozyris
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
