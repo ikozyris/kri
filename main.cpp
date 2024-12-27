@@ -16,29 +16,32 @@ int main(int argc, char *argv[])
 	if (argc > 1 && (strcmp(argv[1], "-h") == 0 ||
 	strcmp(argv[1], "--help") == 0)) {
 		puts(name);
-		puts("kri: a simple, compact and fast text editor.\n"
+		puts("A simple, compact and fast text editor.\n"
 		"Source code: https://github.com/ikozyris/kri\n"
 		"Wiki: https://github.com/ikozyris/kri/wiki\n"
 		"License: GNU GPL v3\n");
 		puts("Usage:\n"
-		"       --help, -h          Show this help\n"
-		"<file>                     Open file and allow edits\n"
-		"-                          Ask for file name on save\n\n"
+		"	--help, -h	Show this help\n"
+		"<file>			Open file and allow edits\n"
+		"-			Ask for file name on save\n\n"
 		"Keybindings:\n"
-		"Save:                      Ctrl-S\n"
-		"Exit:                      Ctrl-C\n"
-		"Go to start of line:       Ctrl-A\n"
-		"Go to end of line:         Ctrl-E\n"
-		"Enter built-in terminal:   Alt-C\n"
-		"Open other file:	    Alt-R\n"
-		"Previous/Next word         Shift + Left/Right arrow\n"
-		"Show debbuging info:       Alt-I (also command stats in built-in terminal)\n\n"
+		"Save:			Ctrl-S\n"
+		"Exit:			Ctrl-X\n"
+		"Go to start of line:	Ctrl-A\n"
+		"Go to end of line:	Ctrl-E\n"
+		"Built-in terminal:	Alt-C\n"
+		"Open other file:	Alt-R\n"
+		"Previous/Next word	Shift + Left/Right arrow\n"
+		"Show debbuging info:	Alt-I (also command stats in built-in terminal)\n\n"
 		"Built-in terminal commands:\n"
-		"scroll                     Scroll to line\n"
-		"usage                      Show RAM usage and PID of kri\n"
-		"run                        Execute a command\n"
-		"help                       List commands\n"
-		"fixgap                     Benchmark move gap to end and back");
+		"scroll			Scroll to line\n"
+		"usage			Show RAM usage and PID of kri\n"
+		"run			Execute a command\n"
+		"find			Find string, takes 2 parameters, can be combined\n"
+		"			  find_all_shw string -> all lines, highlight results\n"
+		"			  find string -> same as above\n"
+		"			  find_thi_cnt -> current line, only count\n"
+		"help			List commands");
 		return 0;
 	}
 	it = text.begin();
