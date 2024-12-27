@@ -93,8 +93,17 @@ void command()
 			print_text(0);
 			advance(it, ofy - ry);
 		}
-	} else if (strncmp(tmp, "find", 4) == 0) {
-		find((const char*)tmp + 5);
+	} else if (strncmp(tmp, "find", 4) == 0) { // example: find_all_shw abc
+		unsigned char mode = 0;
+		if (strncmp(tmp + 5, "all", 3) == 0)
+			mode = 2;
+		if (strncmp(tmp + 9, "shw", 3) == 0)
+			mode += 1;
+
+		if (tmp[4] == ' ')
+			find((const char*)tmp + 5, 3);
+		else
+			find((const char*)tmp + 13, mode);
 	} else
 		print2header("command not found", 3);
 	free(tmp);
