@@ -4,11 +4,13 @@
 list<gap_buf> text(2);
 list<gap_buf>::iterator it;
 vector<pair<unsigned, unsigned>> cut;
+vector<bool> overflows;
 WINDOW *header_win, *ln_win, *text_win;
 wchar_t s[4];
 char s2[4], *filename;
-unsigned flag, ry, rx, maxy, maxx, curnum;
-unsigned short y, x, len;
+cchar_t mark;
+unsigned flag, ry, rx, curnum;
+unsigned y, x, maxy, maxx, len;
 long ofy;
 
 int main(int argc, char *argv[])
@@ -53,11 +55,12 @@ int main(int argc, char *argv[])
 	init_header();
 	init_lines();
 	init_text();
+	setcchar(&mark, L">", A_STANDOUT, COLOR_BLACK, nullptr);
 
 	getmaxyx(text_win, maxy, maxx);
 	wnoutrefresh(ln_win);
 	wnoutrefresh(header_win);
-	doupdate();
+	overflows.resize(maxy, 0);
 
 read:
 	if (argc > 1) {
@@ -84,7 +87,7 @@ loop:
 	while (1) {
 		getyx(text_win, y, x);
 		ry = y + ofy;
-		// if out of bounds: move (to avoid bugs) & TODO: simplify
+		// if out of bounds: move (to avoid bugs)
 		if (x > min(it->len - 1 - ofx, maxx))
 			wmove(text_win, y, x = min(it->len - ofx - 1, maxx));
 		rx = x + ofx;
@@ -160,16 +163,16 @@ loop:
 		case BACKSPACE:
 			if (x > 0) {
 				eras(*it);
-				if (it->buffer[it->gps] == '\t') {
-					wmove(text_win, y, x - 1);
+				if (it->buffer[it->gps] == '\t') { // deleted a tab
 					ofx += prevdchar();
 					x = getcurx(text_win);
-					wmove(text_win, y, 0);
-					print_line(*it, 0, 0);
+					mvprint_line(y, 0, *it, 0, 0);
 					wclrtoeol(text_win);
-					wmove(text_win, y, x);
-				} else
-					mvwdelch(text_win, y, x - 1);
+				} else {
+					mvwdelch(text_win, y, --x);
+					print_new_mark();
+				}
+				wmove(text_win, y, x);
 			} else if (!cut.empty()) {
 				eras(*it);
 				left();
@@ -206,8 +209,13 @@ loop:
 				unsigned len = it->buffer[it->gpe + 1] < 0 ? 2 : 1;
 				mveras(*it, rx + len);
 				ofx += len - 1;
-				wclrtoeol(text_win);
-				mvprint_line(y, x, *it, rx, 0);
+				if (it->buffer[it->gps] == '\t') {
+					wclrtoeol(text_win);
+					mvprint_line(y, x, *it, rx, 0);
+				} else {
+					wdelch(text_win);
+					print_new_mark();
+				}
 				wmove(text_win, y, x);
 			}
 			break;
@@ -303,10 +311,10 @@ loop:
 			goto stop;
 
 		case KEY_TAB:
-			winsnstr(text_win, "        ", 8 - x % 8);
-			wmove(text_win, y, x + 8 - x % 8);
 			insert_c(*it, rx, '\t');
+			mvprint_line(y, x, *it, rx, 0);
 			ofx -= 7 - x % 8;
+			wmove(text_win, y, x + 8 - x % 8);
 			break;
 
 		default:
@@ -316,13 +324,13 @@ loop:
 				cut.push_back({maxx - 1, ofx});
 				clearline;
 				ofx += maxx - 1;
-				print_line(*it, ofx, 0);
-				wmove(text_win, y, x = 0);
+				print_line(*it, ofx, 0, y);
+				wmove(text_win, y, 0);
 				wrefresh(text_win);
-				rx = x + ofx;
-			} if (it->buffer[it->gpe + 1] == '\t') { // next character is newline
+				rx = ofx;
+			} if (it->buffer[it->gpe + 1] == '\t') { // next character is a tab
 				waddnwstr(text_win, s, 1);
-				if (x % 8 >= 7)
+				if (x % 8 >= 7) // filled the empty tab space; reprint tab
 					winsch(text_win, '\t');
 			} else {
 				wins_nwstr(text_win, s, 1);
