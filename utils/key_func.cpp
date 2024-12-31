@@ -158,11 +158,12 @@ void eol()
 			ofx += flag;
 			bytes = nbytes;
 		}
-		clearline;
-		print_line(*it, bytes, it->len);
-		x = getcurx(text_win);
+		mvprint_line(y, 0, *it, bytes, it->len);
+		clean_mark(y); // TODO: actualy fix this, remove this hack
+		x = flag - 1;
 		if (x + ofx > it->len - 1) 
 			ofx -= x + ofx - it->len + 1;
+		wmove(text_win, y, x);
 	}
 }
 
@@ -170,8 +171,7 @@ void eol()
 void sol()
 {
 	if (!cut.empty()) { // line has been cut
-		clearline;
-		print_line(*it, 0, 0);
+		mvprint_line(y, 0, *it, 0, 0);
 		highlight(y);
 	}
 	cut.clear();
@@ -221,7 +221,7 @@ unsigned short left()
 		clearline;
 		ofx -= cut.back().dchar;
 		cut.pop_back();
-		print_line(*it, cut.empty() ? 0 : cut.back().byte, 0);
+		print_line(*it, cut.empty() ? 0 : cut.back().byte, 0, y);
 		highlight(y);
 		wmove(text_win, y, flag + 1);
 		return CUT;
@@ -259,7 +259,7 @@ unsigned short right() {
 cut_line:
 		clearline;
 		ofx += x;
-		cut.push_back({x, (cut.empty() ? 0 : cut.back().byte) + print_line(*it, ofx, 0)});
+		cut.push_back({x, (cut.empty() ? 0 : cut.back().byte) + print_line(*it, ofx, 0, y)});
 		wmove(text_win, y, 0);
 		return CUT;
 	} else { // go right

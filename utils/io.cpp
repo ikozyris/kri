@@ -35,8 +35,8 @@ char *input_header(const char *q)
 	return tmp;
 }
 
-// prints substring of buffer, if (to == 0) print until maxx
-unsigned print_line(const gap_buf &buffer, unsigned from, unsigned to)
+// prints substring of buffer from: (curr x + 'from' bytes), if (to == 0) print until maxx
+unsigned print_line(const gap_buf &buffer, unsigned from, unsigned to, unsigned y)
 {
 	// only newline or emulated newline ('\0') is in buffer
 	if (buffer.len <= 1)
@@ -46,18 +46,18 @@ unsigned print_line(const gap_buf &buffer, unsigned from, unsigned to)
 		unsigned prop = dchar2bytes(maxx - 1 - prevx, from, buffer);
 		if (prop < buffer.len - 1) {
 			to = prop;
-			cchar_t tmp;
-			setcchar(&tmp, L">", A_STANDOUT, COLOR_BLACK, nullptr);
-			mvwins_wch(text_win, getcury(text_win), maxx - 1, &tmp);
-			wmove(text_win, getcury(text_win), prevx);
-		} else
+			overflows[y] = true;
+		} else {
 			to = buffer.len;
+			overflows[y] = false;
+		}
 	}
 	unsigned rlen = data(buffer, from, to);
 	if (lnbuf[rlen - 1] == '\n' || lnbuf[rlen - 1] == '\t')
 		--rlen;
 	waddnstr(text_win, lnbuf, rlen);
 	wclrtoeol(text_win);
+	print_del_mark(y);
 	return rlen;
 }
 
@@ -72,6 +72,28 @@ void print_text(unsigned line)
 	for (unsigned ty = line; ty < min(curnum + ofy + 1, maxy) && iter != text.end(); ++iter, ++ty) {
 		mvprint_line(ty, 0, *iter, 0, 0);
 		highlight(ty);
+	}
+}
+
+// deleted a char; the mark moved left | invalidates 
+void print_new_mark()
+{
+	unsigned char_pos = dchar2bytes(maxx - 2, 0, *it);
+	if (flag < maxx - 2) { // after deleting a char, new len could be < maxx
+		overflows[y] = false;
+		clean_mark(y);
+		return;
+	}
+	print_del_mark(y);
+	char chp = at(*it, char_pos);
+	if (chp == '\t')
+		clean_mark(y);
+	else if (chp > 0)
+		mvwaddch(text_win, y, maxx - 2, chp);
+	else if (chp < 0) { // 2 bytes to print
+		char chp2 = at(*it, char_pos + 1);
+		const char tmp[2] = {chp, chp2};
+		mvwaddnstr(text_win, y, maxx -2, tmp, 2);
 	}
 }
 
