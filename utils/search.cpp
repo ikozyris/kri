@@ -143,7 +143,7 @@ unsigned *_goodsuffix(const char *str, unsigned short len)
 	return gs;
 }
 
-vector<unsigned> bm_search(const gap_buf &buf, const char *str, unsigned short len, bool append)
+vector<unsigned> bm_search(gap_buf &buf, const char *str, unsigned short len, bool append)
 {
 	vector<unsigned> matches;
 	unsigned count = 0;
@@ -151,7 +151,7 @@ vector<unsigned> bm_search(const gap_buf &buf, const char *str, unsigned short l
 	unsigned *badchar = _badchar(str, len);
 	unsigned *goodsuffix = _goodsuffix(str, len);
 
-	for (unsigned i = 0; i < buf.len - len;) {
+	for (unsigned i = 0; i < buf.len() - len;) {
 		unsigned j;
 
 		// check from end of str
@@ -190,7 +190,7 @@ vector<unsigned> mergei(const vector<vector<unsigned>> &indices, const bool appe
 }
 
 // each thread searches with this
-void searchch_a(const gap_buf &buf, char ch, unsigned st, unsigned end, vector<unsigned> &matches)
+void searchch_a(gap_buf &buf, char ch, unsigned st, unsigned end, vector<unsigned> &matches)
 {
 	for (unsigned i = st; i < end; ++i)
 		if (at(buf, i) == ch)
@@ -198,7 +198,7 @@ void searchch_a(const gap_buf &buf, char ch, unsigned st, unsigned end, vector<u
 }
 
 // each thread searches with this
-void searchch_c(const gap_buf &buf, char ch, unsigned st, unsigned end, unsigned &count)
+void searchch_c(gap_buf &buf, char ch, unsigned st, unsigned end, unsigned &count)
 {
 	for (unsigned i = st; i < end; ++i)
 		if (at(buf, i) == ch)
@@ -206,18 +206,18 @@ void searchch_c(const gap_buf &buf, char ch, unsigned st, unsigned end, unsigned
 }
 
 // wrapper for searchch() to launch with multi-threaded
-vector<unsigned> mt_search(const gap_buf &buf, char ch, const bool append)
+vector<unsigned> mt_search(gap_buf &buf, char ch, const bool append)
 {
 	unsigned nthreads = thread::hardware_concurrency();
-	if (nthreads == 0 || buf.len < 1e6)
+	if (nthreads == 0 || buf.len() < 1e6)
 		nthreads = 1;
-	unsigned chunk = buf.len / nthreads;
+	unsigned chunk = buf.len() / nthreads;
 	vector<thread> threads(nthreads);
 	vector<vector<unsigned>> indices(nthreads); // each thread's result
 
 	for (unsigned i = 0; i < nthreads; ++i) {
 		unsigned st = i * chunk;
-		unsigned end = min((i + 1) * chunk, buf.len);
+		unsigned end = min((i + 1) * chunk, buf.len());
 
 		if (append)
 			threads.emplace_back(searchch_a, ref(buf), ch, st, end, ref(indices[i]));
@@ -237,7 +237,7 @@ vector<unsigned> mt_search(const gap_buf &buf, char ch, const bool append)
 }
 
 // search for str in buf, return <pos, color(pos;s)>
-vector<unsigned> search_a(const gap_buf &buf, const char *str, unsigned short len)
+vector<unsigned> search_a(gap_buf &buf, const char *str, unsigned short len)
 {
 	vector<unsigned> matches;
 	if (len == 1)
@@ -249,7 +249,7 @@ vector<unsigned> search_a(const gap_buf &buf, const char *str, unsigned short le
 	return matches;
 }
 
-unsigned search_c(const gap_buf &buf, const char *str, unsigned short len)
+unsigned search_c(gap_buf &buf, const char *str, unsigned short len)
 {
 	vector<unsigned> matches;
 	if (len == 1)

@@ -6,18 +6,18 @@ void stats()
 	char *_tmp = (char*)malloc(256);
 	unsigned sumlen = 0;
 	for (auto &i : text)
-		sumlen += i.len;
+		sumlen += i.len();
 #ifndef RELEASE
 	unsigned cutd = 0, cutb = 0;
 	if (!cut.empty()) {
 		cutb = cut.back().byte;
 		cutd = cut.back().dchar;
 	}
-	snprintf(_tmp, min(maxx, 256), "maxx %u len %u gs %u ge %u cpt %u cut[d%u,b%u] x: %u ofx: %ld ry: %u     ",
-		maxx, it->len, it->gps, it->gpe, it->cpt, cutd, cutb, x, ofx, ry);
+	snprintf(_tmp, min(maxx, 256), "maxx %u len %lu gs %lu ge %lu cpt %lu cut[d%u,b%u] x: %u ofx: %ld ry: %u     ",
+		maxx, it->len(), it->gps(), it->gpe(), it->cpt(), cutd, cutb, x, ofx, ry);
 #else	
-	snprintf(_tmp, min(maxx, 256), "len %u  cpt %u  y %u  x %u  sum len %u  lines %u  cut %lu  ofx %ld  ", 
-		it->len, it->cpt, ry, x, sumlen, curnum, cut.size(), ofx);
+	snprintf(_tmp, min(maxx, 256), "len %lu  cpt %lu  y %u  x %u  sum len %u  lines %u  cut %lu  ofx %ld  ", 
+		it->len(), it->cpt(), ry, x, sumlen, curnum, cut.size(), ofx);
 #endif
 	print2header(_tmp, 1);
 	free(_tmp);
@@ -119,10 +119,10 @@ void enter()
 	 * so the last character (newline or emulated) will be copied over
 	 * Otherwise, (x != EOL) copy the remaining bytes
 	 */
-	data(*it, rx + 1, it->len + 1);
-	apnd_s(*t, lnbuf, it->len - rx - 1);
-	it->len = it->gps = rx + 1;
-	it->gpe = it->cpt - 1;
+	data(*it, rx + 1, it->len() + 1);
+	apnd_s(*t, lnbuf, it->len() - rx - 1);
+	it->set_gps(rx + 1);
+	it->set_gpe(it->cpt() - 1);
 
 	++it; // insert is on previous than current it
 	++curnum;
@@ -144,25 +144,25 @@ void enter()
 // go to end-of-line, if necessary cut line
 void eol()
 {
-	ofx = calc_offset_act(it->len, 0, *it);
-	if (it->len - ofx <= maxx) // line fits in screen
-		wmove(text_win, y, it->len - ofx - 1);
+	ofx = calc_offset_act(it->len(), 0, *it);
+	if (it->len() - ofx <= maxx) // line fits in screen
+		wmove(text_win, y, it->len() - ofx - 1);
 	else { // cut line
 		cut.clear();
 		unsigned bytes = 0, nbytes = 0;
-		while (bytes < it->len) {
+		while (bytes < it->len()) {
 			nbytes = dchar2bytes(maxx - 1, bytes, *it);
-			if (nbytes >= it->len - 1)
+			if (nbytes >= it->len() - 1)
 				break;
 			cut.push_back({flag, nbytes}); // flag was changed by dchar2bytes
 			ofx += flag;
 			bytes = nbytes;
 		}
-		mvprint_line(y, 0, *it, bytes, it->len);
+		mvprint_line(y, 0, *it, bytes, it->len());
 		clean_mark(y); // TODO: actualy fix this, remove this hack
 		x = flag - 1;
-		if (x + ofx > it->len - 1) 
-			ofx -= x + ofx - it->len + 1;
+		if (x + ofx > it->len() - 1) 
+			ofx -= x + ofx - it->len() + 1;
 		wmove(text_win, y, x);
 	}
 }
@@ -228,9 +228,9 @@ unsigned short left()
 	} else if (x > 0) { // go left
 		wmove(text_win, y, x - 1);
 		// handle special characters causing offsets
-		if (it->buffer[it->gps - 1] == '\t')
+		if (it->buffer()[it->gps() - 1] == '\t')
 			ofx += prevdchar();
-		else if (it->buffer[it->gps - 1] < 0)
+		else if (it->buffer()[it->gps() - 1] < 0)
 			--ofx;
 		return NORMAL;
 	} else if (y > 0) { // x = 0
@@ -244,7 +244,7 @@ unsigned short left()
 
 // right arrow
 unsigned short right() {
-	if (rx >= it->len - 1 && ry < curnum) { // go to next line
+	if (rx >= it->len() - 1 && ry < curnum) { // go to next line
 		if (y == maxy - 1) {
 			scrolldown();
 			return SCROLL;
@@ -264,12 +264,12 @@ cut_line:
 		return CUT;
 	} else { // go right
 		wmove(text_win, y, x + 1);
-		if (it->buffer[it->gpe + 1] == '\t') {
+		if (it->buffer()[it->gpe() + 1] == '\t') {
 			if (x >= maxx - 7)
 				goto cut_line;
 			ofx -= 8 - x % 8 - 1;
 			wmove(text_win, y, x + 8 - x % 8);
-		} else if (it->buffer[it->gpe + 1] < 0)
+		} else if (it->buffer()[it->gpe() + 1] < 0)
 			++ofx;
 		return NORMAL;
 	}

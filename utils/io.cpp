@@ -36,19 +36,19 @@ char *input_header(const char *q)
 }
 
 // prints substring of buffer from: (curr x + 'from' bytes), if (to == 0) print until maxx
-unsigned print_line(const gap_buf &buffer, unsigned from, unsigned to, unsigned y)
+unsigned print_line(gap_buf &buffer, unsigned from, unsigned to, unsigned y)
 {
 	// only newline or emulated newline ('\0') is in buffer
-	if (buffer.len <= 1)
+	if (buffer.len() <= 1)
 		return 0;
 	if (to == 0) {
 		unsigned prevx = getcurx(text_win); // in case x != 0 (mvprint_line)
 		unsigned prop = dchar2bytes(maxx - 1 - prevx, from, buffer);
-		if (prop < buffer.len - 1) {
+		if (prop < buffer.len() - 1) {
 			to = prop;
 			overflows[y] = true;
 		} else {
-			to = buffer.len;
+			to = buffer.len();
 			overflows[y] = false;
 		}
 	}
@@ -105,7 +105,7 @@ void save()
 	FILE *fo = fopen(filename, "w");
 	list<gap_buf>::iterator iter = text.begin();
 	for (unsigned i = 0; iter != text.end() && i <= curnum; ++iter, ++i) {
-		data(*iter, 0, iter->len);
+		data(*iter, 0, iter->len());
 		fputs(lnbuf, fo);
 	}
 	fclose(fo);
@@ -123,7 +123,7 @@ void read_fgets(FILE *fi)
 	char *tmp = (char*)malloc(SZ);
 	while ((fgets_unlocked(tmp, SZ, fi))) {
 		apnd_s(*it, tmp);
-		if (it->buffer[it->len - 1] == '\n') { [[unlikely]]
+		if (it->buffer()[it->len() - 1] == '\n') { [[unlikely]]
 			if (++curnum >= text.size()) [[unlikely]]
 				text.resize(text.size() * 2);
 			++it;
