@@ -2,11 +2,12 @@
 
 bool eligible; // is syntax highlighting enabled
 const char *types[] = {"int", "char", "float", "double", "unsigned", "void", "const", 
-	"size_t", "bool", "signed", "long", "enum", "static", "short", "extern"};
+	"size_t", "bool", "signed", "long", "enum", "static", "short", "extern", "uint64_t", 
+	"uint32_t", "uint16t", "uint8t", "int64_t", "int32_t", "int16_t", "int8_t"};
 const char *defs[]  = {"if", "else", "while", "for", "do", "return", "sizeof", "switch",
 	"goto", "case", "break", "struct", "default", "continue", "true", "false"};
 const char oper[]  = {'=', '+', '-', '*', '/', '&', '|', '^', '~', '<', '>', '[', ']'};
-unsigned char types_len[] = {3, 4, 5, 6, 8, 4, 5, 6, 4, 6, 4, 4, 6, 5, 6};
+unsigned char types_len[] = {3, 4, 5, 6, 8, 4, 5, 6, 4, 6, 4, 4, 6, 5, 6, 8, 8, 8, 7, 7, 7, 7, 6};
 unsigned char defs_len[] = {2, 4, 5, 3, 2, 6, 6, 6, 4, 4, 5, 6, 7, 8, 4, 5};
 
 #define DEFINC	COLOR_CYAN

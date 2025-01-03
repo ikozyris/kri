@@ -38,10 +38,11 @@ struct gap_buf {
 	uint64_t cpt() { return pow2((mem >> 118) & CPT_MASK); } // always power of 2, 1-based
 	uint64_t len() { return cpt() - gaplen(*this); } // indirectly calculated, 1-based
 
-	// write
+	// zero all bits outside of mask and then apply those who are in the mask
 	void set_buf(char *buf) { mem = (mem & ~PTR_MASK) | ((uint64_t)buf); }
 	void set_gps(uint64_t st) { mem = ((mem & ~(GPx_MASK << 48)) | ((__uint128_t)st << 48)); }
 	void set_gpe(uint64_t en) { mem = ((mem & ~(GPx_MASK << 83)) | ((__uint128_t)en << 83)); }
+	// capacity is always power of 2, only the exponent is stored
 	void set_cpt(uint64_t cpt) { mem = ((mem & ~(CPT_MASK << 118)) | ((__uint128_t)(log2(cpt)) << 118)); }
 
 	gap_buf() {
