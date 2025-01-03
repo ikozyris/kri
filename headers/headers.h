@@ -6,4 +6,5 @@
 #include <vector>
 #include <thread>
 #include <bit>	// for __bit_ceil (cntlz)
+#include <stdint.h>
 using namespace std;

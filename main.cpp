@@ -79,7 +79,7 @@ read:
 	}
 loop:
 	// all functions think there is a newline at EOL, emulate it
-	if (at(*it, it->len) != '\n')
+	if (at(*it, it->len()) != '\n')
 		apnd_c(*it, 0);
 	print_text(0);
 	wmove(text_win, 0, 0);
@@ -88,8 +88,8 @@ loop:
 		getyx(text_win, y, x);
 		ry = y + ofy;
 		// if out of bounds: move (to avoid bugs)
-		if (x > min(it->len - 1 - ofx, maxx))
-			wmove(text_win, y, x = min(it->len - ofx - 1, maxx));
+		if (x > min(it->len() - 1 - ofx, maxx))
+			wmove(text_win, y, x = min(it->len() - ofx - 1, maxx));
 		rx = x + ofx;
 		mv_curs(*it, rx);
 
@@ -163,7 +163,7 @@ loop:
 		case BACKSPACE:
 			if (x > 0) {
 				eras(*it);
-				if (it->buffer[it->gps] == '\t') { // deleted a tab
+				if (it->buffer()[it->gps()] == '\t') { // deleted a tab
 					ofx += prevdchar();
 					x = getcurx(text_win);
 					mvprint_line(y, 0, *it, 0, 0);
@@ -179,11 +179,11 @@ loop:
 			} else if (y != 0) { // x = 0 && cut.empty(); merge lines
 				list<gap_buf>::iterator curln = it;
 				--it;
-				mv_curs(*it, it->len); // delete \n
-				it->gpe = it->cpt - 1;
-				unsigned tmp = --(it->len);
-				data(*curln, 0, curln->len);
-				apnd_s(*it, lnbuf, curln->len); // merge
+				mv_curs(*it, it->len()); // delete \n
+				it->set_gpe(it->cpt() - 1);
+				unsigned tmp = it->len() - 1;
+				data(*curln, 0, curln->len());
+				apnd_s(*it, lnbuf, curln->len()); // merge
 				text.erase(curln); // delete actual line
 				--curnum;
 				print_text(y - 1);
@@ -192,24 +192,23 @@ loop:
 			break;
 
 		case DELETE:
-			if (it->buffer[it->gpe + 1u] == '\n') { // similar to backspace
+			if (it->buffer()[it->gpe() + 1u] == '\n') { // similar to backspace
 				list<gap_buf>::iterator curln = it; // current line
-				curln->gpe = curln->cpt - 1; // delete newline
-				curln->len--;
+				curln->set_gpe(curln->cpt() - 1); // delete newline
 				++it; // next line
-				data(*it, 0, it->len);
-				apnd_s(*curln, lnbuf, it->len);
+				data(*it, 0, it->len());
+				apnd_s(*curln, lnbuf, it->len());
 				text.erase(it);
 				it = curln;
 				--curnum;
 				print_text(y);
 				wmove(text_win, y, x);
-			} else if (rx + 1 < it->len) {
+			} else if (rx + 1 < it->len()) {
 				// or mblen(it->buffer + it->gpe + 1, 3);
-				unsigned len = it->buffer[it->gpe + 1] < 0 ? 2 : 1;
+				unsigned len = it->buffer()[it->gpe() + 1] < 0 ? 2 : 1;
 				mveras(*it, rx + len);
 				ofx += len - 1;
-				if (it->buffer[it->gps] == '\t') {
+				if (it->buffer()[it->gps()] == '\t') {
 					wclrtoeol(text_win);
 					mvprint_line(y, x, *it, rx, 0);
 				} else {
@@ -229,8 +228,8 @@ loop:
 				print_text(y);
 				wmove(text_win, y, 0);
 			} else { // clear line buffer
-				it->gps = 0; it->gpe = it->cpt - 2;
-				it->len = 1; it->buffer[it->cpt - 1] = 0;
+				it->set_gps(0); it->set_gpe(it->cpt() - 2);
+				it->buffer()[it->cpt() - 1] = 0;
 				clearline;
 			}
 			break;
@@ -270,8 +269,8 @@ loop:
 				list<gap_buf>::iterator iter;
 				unsigned i;
 				for (iter = text.begin(), i = 0; iter != text.end() && i <= curnum; ++iter, ++i) {
-					iter->len = iter->gps = 0;
-					iter->gpe = iter->cpt;
+					iter->set_gps(0);
+					iter->set_gpe(iter->cpt());
 				}
 				curnum = 0;
 				it = text.begin();
@@ -328,7 +327,7 @@ loop:
 				wmove(text_win, y, 0);
 				wrefresh(text_win);
 				rx = ofx;
-			} if (it->buffer[it->gpe + 1] == '\t') { // next character is a tab
+			} if (it->buffer()[it->gpe() + 1] == '\t') { // next character is a tab
 				waddnwstr(text_win, s, 1);
 				if (x % 8 >= 7) // filled the empty tab space; reprint tab
 					winsch(text_win, '\t');

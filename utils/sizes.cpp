@@ -42,7 +42,7 @@ unsigned whereis(const char *str,  char ch)
 }
 
 // helper function for calc_offset_[dis|act](), dchar2bytes()
-void get_off(unsigned &x, unsigned &i, const gap_buf &buf)
+void get_off(unsigned &x, unsigned &i, gap_buf &buf)
 {
 	char ch = at(buf, i);
 	if (ch == '\t')
@@ -55,22 +55,22 @@ void get_off(unsigned &x, unsigned &i, const gap_buf &buf)
 
 // returns offset until displayed x from from bytes in buf (bytes - dx)
 // global flag becomes the dx where counting stopped at 
-long calc_offset_dis(unsigned dx, const gap_buf &buf)
+long calc_offset_dis(unsigned dx, gap_buf &buf)
 {
 	unsigned x = 0, i = 0;
-	while (x < dx && i < buf.len)
+	while (x < dx && i < buf.len())
 		get_off(x, i, buf);
 	flag = x;
 	return (long)i - (long)x;
 }
 
 // displayed characters dx to bytes, flag -> dx  where counting stopped at
-unsigned dchar2bytes(unsigned dx, unsigned from, const gap_buf &buf)
+unsigned dchar2bytes(unsigned dx, unsigned from, gap_buf &buf)
 {
 	unsigned x = 0, nx = 0, ni = from, i = from;
-	while (x < dx && i < buf.len) {
+	while (x < dx && i < buf.len()) {
 		get_off(nx, ni, buf);
-		if (nx <= dx && ni <= buf.len) {
+		if (nx <= dx && ni <= buf.len()) {
 			flag = x = nx;
 			i = ni;
 		} else {
@@ -92,7 +92,7 @@ unsigned mbcnt(const char *str, unsigned len)
 }
 
 // offset until pos bytes from i bytes in buf
-long calc_offset_act(unsigned pos, unsigned i, const gap_buf &buf)
+long calc_offset_act(unsigned pos, unsigned i, gap_buf &buf)
 {
 	unsigned x = 0;
 	while (i < pos)
