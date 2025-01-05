@@ -24,7 +24,7 @@ void stats()
 	wmove(text_win, y, x);
 }
 
-// prompt for command
+// choose command
 void command()
 {
 	char *tmp = input_header("Enter command: ");
@@ -82,7 +82,7 @@ void command()
 		getch();
 		reset_view();
 	} else if (strcmp(tmp, "help")  == 0)
-		print2header("resetheader, shrink, usage, stats, run [cmd], scroll [line], find [token]", 1);
+		print2header("resetheader, shrink, usage, stats, run, scroll, find, replace", 1);
 	else if (strncmp(tmp, "scroll", 6) == 0) {
 		unsigned a;
 		sscanf(tmp + 7, "%u", &a);
@@ -104,6 +104,38 @@ void command()
 			find((const char*)tmp + 5, 3);
 		else
 			find((const char*)tmp + 13, mode);
+	} else if (strncmp(tmp, "replace", 7) == 0) {
+		unsigned from = 0, to = curnum;
+		if (strncmp(tmp + 7, "_thi", 4) == 0)
+			to = from = ry;
+		else
+			sscanf(tmp + 8, "%u%u", &from, &to);
+		free(tmp);
+
+		tmp = input_header("replace: ");
+		char *newst = input_header("with: ");
+		unsigned short tmp_len = strlen(tmp), newst_len = strlen(newst);
+		long offset = 0;
+		unsigned count = 0;
+
+		list<gap_buf>::iterator iter = text.begin();
+		advance(iter, from);
+		for (unsigned i = from; i <= to; ++i, ++iter) {
+			vector<unsigned> matches = search_a(*iter, tmp, tmp_len);
+			count += matches.size();
+			for (unsigned j = 0; j < matches.size(); ++j) {
+				mv_curs(*iter, (long)matches[j] + offset);
+				iter->set_gpe(iter->gpe() + tmp_len);
+				insert_s(*iter, matches[j] + offset, newst, newst_len);
+				offset += (long)newst_len - (long)tmp_len;
+			}
+		}
+		char *tmp_buff = (char*)malloc(128);
+		sprintf(tmp_buff, "Replaced %u occurences of \"%s\" with \"%s\" from line %u to %u", count, tmp, newst, from, to);
+		print2header(tmp_buff, 1);
+		print_text(0);
+		free(newst);
+		free(tmp_buff);
 	} else
 		print2header("command not found", 3);
 	free(tmp);

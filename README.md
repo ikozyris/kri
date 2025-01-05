@@ -37,9 +37,13 @@ kri # ask for filename on save file operation
 * Enter built-in terminal: Alt-C
 * Show info: Alt-I (also command _stats_ in built-in terminal)
 * Search: command _find_ in builtin terminal, example:
-	- find_all_shw token  -  search for token in all lines, highlight the occurences and show total count
-	- find token  -  same as above
-	- find_thi_cnt  -  only show count in the current line
+	- find_all_shw token  -->  search for token in all lines, highlight the occurences and show total count
+	- find token  -->  same as above
+	- find_thi_cnt  -->  only show count in the current line
+* Replace: command _replace_ (parameters in seperate(\n) queries):
+	- replace (\n) str1 (\n) str2  -->  replace all str1 with str2
+	- replace 0 20 (\n) str1 (\n) str2 (\n)  -->  in range [0,20]
+	- replace_thi (\n) str1 (\n) str  -->  only in current line
 
 ### How fast is it?
 kri is several times faster than any other text editor at reading files, searching, and other operations.
