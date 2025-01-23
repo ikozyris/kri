@@ -83,10 +83,10 @@ void apply(unsigned line)
 	for (unsigned i = 0; i < len; ++i) {
 		wmove(text_win, line, i);
 		if (str[i] == '#') { // define / include
-			wchgat(text_win, -1, 0, DEFINC, 0);
+			wchgat(text_win, maxx - i - 1, 0, DEFINC, 0);
 			return;
 		} else if (str[i] == '/' && str[i + 1] == '/') { // comments
-			wchgat(text_win, -1, 0, COMMENT, 0);
+			wchgat(text_win, maxx - i - 1, 0, COMMENT, 0);
 			return;
 		} else if (str[i] == '/' && str[i + 1] == '*') {
 			previ = i;
