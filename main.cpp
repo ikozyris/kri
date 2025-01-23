@@ -330,8 +330,7 @@ loop:
 				clearline;
 				ofx += maxx - 1;
 				print_line(*it, ofx, 0, y);
-				wmove(text_win, y, 0);
-				wrefresh(text_win);
+				wmove(text_win, y, x = 0);
 				rx = ofx;
 			} if (it->buffer()[it->gpe() + 1] == '\t') { // next character is a tab
 				waddnwstr(text_win, s, 1);
