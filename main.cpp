@@ -185,8 +185,9 @@ loop:
 				list<gap_buf>::iterator curln = it;
 				--it;
 				mv_curs(*it, it->len()); // delete \n
-				it->set_gpe(it->cpt() - 1);
-				unsigned tmp = it->len() - 1;
+				it->set_gps(it->gps() - 1);
+
+				unsigned tmp = it->len();
 				data(*curln, 0, curln->len());
 				apnd_s(*it, lnbuf, curln->len()); // merge
 				text.erase(curln); // delete actual line
