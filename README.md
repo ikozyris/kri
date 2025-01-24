@@ -3,12 +3,13 @@
 A simple, compact and *fast* text editor using ncurses and a gap buffer, written in C++, in ~1.5k lines of code.
 More information is available on the [wiki](https://github.com/ikozyris/kri/wiki).
 
-![A C++ file in kri](https://github.com/ikozyris/kri/assets/80053394/8fa12952-272f-41e0-9535-0a77f3652286)
+![A C++ file in kri](https://github.com/user-attachments/assets/7d221564-da5e-41de-a63b-ba5e31c257d1)
+
 
 ## Install
-The 0.8 release has been packaged for:
+The 0.8.1 release has been packaged for:
  - Arch Linux: [AUR package](https://aur.archlinux.org/packages/kri/).
- - Debian/Ubuntu: [deb package](https://github.com/ikozyris/kri/releases/download/v0.8/kri_0.8_x64-v2.deb)
+ - Debian/Ubuntu: [deb package](https://github.com/ikozyris/kri/releases/download/v0.8.1/kri_0.8.1_x64-v2.deb)
 
 ## Build
 ```sh
@@ -51,7 +52,7 @@ See the [benchmarks](https://github.com/ikozyris/kri/wiki/Performance-&-Benchmar
 
 ### License
 
-Copyright (C) 2022-2025  ikozyris
+Copyright (C) 2025  ikozyris
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
