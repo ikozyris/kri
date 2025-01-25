@@ -53,6 +53,22 @@ int main(int argc, char *argv[])
 	}
 	it = text.begin();
 
+read:
+	if (argc > 1) {
+		filename = (char*)malloc(sizeof(char) * 128);
+		strcpy(filename, argv[1]);
+		FILE *fi = fopen(filename, "r");
+#ifdef HIGHLIGHT
+		eligible = isc(argv[1]); // syntax highlighting
+#endif
+		if (fi == NULL) {
+			print2header("New file", 1);
+			goto init;
+		}
+		read_fread(fi);
+		fclose(fi);
+	}
+init:
 	init_curses();
 	getmaxyx(stdscr, maxy, maxx);
 
@@ -66,27 +82,11 @@ int main(int argc, char *argv[])
 	wnoutrefresh(ln_win);
 	wnoutrefresh(header_win);
 	overflows.resize(maxy, 0);
-
-read:
-	if (argc > 1) {
-		filename = (char*)malloc(sizeof(char) * 128);
-		strcpy(filename, argv[1]);
-		FILE *fi = fopen(filename, "r");
-#ifdef HIGHLIGHT
-		eligible = isc(argv[1]); // syntax highlighting
-#endif
-		if (fi == NULL) {
-			print2header("New file", 1);
-			goto loop;
-		}
-		read_fread(fi);
-		fclose(fi);
-	}
-loop:
 	// all functions think there is a newline at EOL, emulate it
 	if (at(*it, it->len()) != '\n')
 		apnd_c(*it, 0);
 	print_text(0);
+//loop:
 	wmove(text_win, 0, 0);
 	it = text.begin();
 	while (1) {

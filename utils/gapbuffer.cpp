@@ -26,7 +26,7 @@ void resize(gap_buf &a, uint64_t size)
 	a.set_cpt(size);
 }
 
-void mv_curs(gap_buf &a, unsigned pos)
+void mv_curs(gap_buf &a, uint64_t pos)
 {
 	if (a.gps() >= a.gpe() + 1) [[unlikely]]
 		resize(a, __bit_ceil(a.cpt() + 1));
@@ -41,7 +41,7 @@ void mv_curs(gap_buf &a, unsigned pos)
 	a.set_gps(pos);
 }
 
-void insert_c(gap_buf &a, unsigned pos, char ch)
+void insert_c(gap_buf &a, uint64_t pos, char ch)
 {
 	if (a.gps() >= a.gpe()) [[unlikely]]
 		resize(a, __bit_ceil(a.cpt() + 1));
@@ -51,7 +51,7 @@ void insert_c(gap_buf &a, unsigned pos, char ch)
 	a.set_gps(a.gps() + 1);
 }
 
-void insert_s(gap_buf &a, unsigned pos, const char *str, unsigned len)
+void insert_s(gap_buf &a, uint64_t pos, const char *str, uint64_t len)
 {
 	// TODO: are both checks needed? (checked indirectly?)
 	if (a.gps() + len >= a.gpe() + 1) [[unlikely]]
@@ -70,7 +70,7 @@ void apnd_c(gap_buf &a, char ch)
 	a.set_gps(a.gps() + 1);
 }
 
-void apnd_s(gap_buf &a, const char *str, unsigned size)
+void apnd_s(gap_buf &a, const char *str, uint64_t size)
 {
 	if (a.gps() + size >= a.cpt()) [[unlikely]]
 		resize(a, __bit_ceil(a.len() + size + 2));
@@ -80,7 +80,7 @@ void apnd_s(gap_buf &a, const char *str, unsigned size)
 
 void apnd_s(gap_buf &a, const char *str)
 {
-	unsigned i = a.len();
+	uint64_t i = a.len();
 	while (str[i - a.len()] != 0) {
 		a[i] = str[i - a.len()];
 		if (++i == a.cpt())
@@ -116,7 +116,7 @@ void eras(gap_buf &a)
 // TODO: this is a mess
 // NOTE: destination buffer is lnbuf
 // extract data from src buffer, returns length extracted (to - from)
-unsigned data(gap_buf &src, unsigned from, unsigned to)
+uint64_t data(gap_buf &src, uint64_t from, uint64_t to)
 {
 	error_check;
 	// try some special cases where 1 copy is required
@@ -137,7 +137,7 @@ unsigned data(gap_buf &src, unsigned from, unsigned to)
 }
 
 // returns character at pos keeping in mind the gap
-char at(gap_buf &src, unsigned pos)
+char at(gap_buf &src, uint64_t pos)
 {
 	if (pos >= src.len())
 		return 0;
@@ -148,18 +148,18 @@ char at(gap_buf &src, unsigned pos)
 	return src[pos];
 }
 
-unsigned data2(gap_buf &src, unsigned from, unsigned to)
+uint64_t data2(gap_buf &src, uint64_t from, uint64_t to)
 {
 	error_check;
-	for (unsigned i = from; i < to; ++i)
+	for (uint64_t i = from; i < to; ++i)
 		lnbuf[i - from] = at(src, i);
 	return to - from;
 }
 
 // shrink buffers to just fit line (reduce RAM usage)
-unsigned shrink(gap_buf &a)
+uint64_t shrink(gap_buf &a)
 {
-	unsigned bytes = a.cpt();
+	uint64_t bytes = a.cpt();
 	mv_curs(a, a.len());
 	resize(a, a.len() + 2);
 	return bytes - a.cpt();
