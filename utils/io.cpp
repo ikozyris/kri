@@ -105,8 +105,9 @@ void save()
 	FILE *fo = fopen(filename, "w");
 	list<gap_buf>::iterator iter = text.begin();
 	for (uint i = 0; iter != text.end() && i <= curnum; ++iter, ++i) {
-		data(*iter, 0, iter->len());
-		fputs(lnbuf, fo);
+		iter->buffer()[iter->gps()] = 0; // null-terminate substring
+		fputs(iter->buffer(), fo); // print up to gps
+		fputs(iter->buffer() + iter->gpe() + 1, fo); // print remaining bytes
 	}
 	fclose(fo);
 
