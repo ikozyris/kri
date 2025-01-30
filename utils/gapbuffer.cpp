@@ -139,12 +139,8 @@ ulong data(gap_buf &src, ulong from, ulong to)
 // returns character at pos keeping in mind the gap
 char at(gap_buf &src, ulong pos)
 {
-	if (pos >= src.len())
-		return 0;
 	if (pos >= src.gps())
 		pos += gaplen(src);
-	if (pos >= src.cpt())
-		return 0;
 	return src[pos];
 }
 
