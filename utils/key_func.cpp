@@ -4,11 +4,11 @@
 void stats()
 {
 	char *_tmp = (char*)malloc(256);
-	unsigned sumlen = 0;
+	uint sumlen = 0;
 	for (auto &i : text)
 		sumlen += i.len();
 #ifndef RELEASE
-	unsigned cutd = 0, cutb = 0;
+	uint cutd = 0, cutb = 0;
 	if (!cut.empty()) {
 		cutb = cut.back().byte;
 		cutd = cut.back().dchar;
@@ -84,7 +84,7 @@ void command()
 	} else if (strcmp(tmp, "help")  == 0)
 		print2header("resetheader, shrink, usage, stats, run, scroll, find, replace", 1);
 	else if (strncmp(tmp, "scroll", 6) == 0) {
-		unsigned a;
+		uint a;
 		sscanf(tmp + 7, "%u", &a);
 		if (a <= curnum) {
 			ofy = a - 1;
@@ -94,7 +94,7 @@ void command()
 			advance(it, ofy - ry);
 		}
 	} else if (strncmp(tmp, "find", 4) == 0) { // example: find_all_shw abc
-		unsigned char mode = 0;
+		uchar mode = 0;
 		if (strncmp(tmp + 5, "all", 3) == 0)
 			mode = 2;
 		if (strncmp(tmp + 9, "shw", 3) == 0)
@@ -105,7 +105,7 @@ void command()
 		else
 			find((const char*)tmp + 13, mode);
 	} else if (strncmp(tmp, "replace", 7) == 0) {
-		unsigned from = 0, to = curnum;
+		uint from = 0, to = curnum;
 		if (strncmp(tmp + 7, "_thi", 4) == 0)
 			to = from = ry;
 		else
@@ -114,16 +114,16 @@ void command()
 
 		tmp = input_header("replace: ");
 		char *newst = input_header("with: ");
-		unsigned short tmp_len = strlen(tmp), newst_len = strlen(newst);
+		ushort tmp_len = strlen(tmp), newst_len = strlen(newst);
 		long offset = 0;
-		unsigned count = 0;
+		uint count = 0;
 
 		list<gap_buf>::iterator iter = text.begin();
 		advance(iter, from);
-		for (unsigned i = from; i <= to; ++i, ++iter) {
-			vector<unsigned> matches = search_a(*iter, tmp, tmp_len);
+		for (uint i = from; i <= to; ++i, ++iter) {
+			vector<uint> matches = search_a(*iter, tmp, tmp_len);
 			count += matches.size();
-			for (unsigned j = 0; j < matches.size(); ++j) {
+			for (uint j = 0; j < matches.size(); ++j) {
 				mv_curs(*iter, (long)matches[j] + offset);
 				iter->set_gpe(iter->gpe() + tmp_len);
 				insert_s(*iter, matches[j] + offset, newst, newst_len);
@@ -181,7 +181,7 @@ void eol()
 		wmove(text_win, y, it->len() - ofx - 1);
 	else { // cut line
 		cut.clear();
-		unsigned bytes = 0, nbytes = 0;
+		uint bytes = 0, nbytes = 0;
 		while (bytes < it->len()) {
 			nbytes = dchar2bytes(maxx - 1, bytes, *it);
 			if (nbytes >= it->len() - 1)
@@ -243,7 +243,7 @@ void scrollup()
 }
 
 // left arrow
-unsigned short left()
+ushort left()
 {
 	if (x == 0 && ofx == 0 && ofy > 0 && y == 0) {
 		scrollup();
@@ -275,7 +275,7 @@ unsigned short left()
 }
 
 // right arrow
-unsigned short right() {
+ushort right() {
 	if (rx >= it->len() - 1 && ry < curnum) { // go to next line
 		if (y == maxy - 1) {
 			scrolldown();
@@ -309,9 +309,9 @@ cut_line:
 }
 
 // go to end/start of previous word (call like (prnxt_word(left)))
-void prnxt_word(unsigned short func(void))
+void prnxt_word(ushort func(void))
 {
-	unsigned short status;
+	ushort status;
 	do {
 		status = func();
 		x = getcurx(text_win);

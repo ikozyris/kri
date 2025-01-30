@@ -1,14 +1,14 @@
 #include "headers/io.h"
 
 // pos: (1 left) (3 right) (else center)
-void print2header(const char *msg, unsigned char pos)
+void print2header(const char *msg, uchar pos)
 {
 	if (pos == 3)
 		mvwprintw(header_win, 0, maxx - strlen(msg), "%s", msg);
 	else if (pos == 1)
 		mvwprintw(header_win, 0, 0, "%s", msg);
 	else {
-		unsigned char hmx = maxx / 2;
+		uchar hmx = maxx / 2;
 		// 20-width spaces + 0
 		mvwprintw(header_win, 0, hmx - 10, "                    ");
 		mvwprintw(header_win, 0, hmx - strlen(msg) / 2, "%s", msg);
@@ -36,14 +36,14 @@ char *input_header(const char *q)
 }
 
 // prints substring of buffer from: (curr x + 'from' bytes), if (to == 0) print until maxx
-unsigned print_line(gap_buf &buffer, unsigned from, unsigned to, unsigned y)
+uint print_line(gap_buf &buffer, uint from, uint to, uint y)
 {
 	// only newline or emulated newline ('\0') is in buffer
 	if (buffer.len() <= 1)
 		return 0;
 	if (to == 0) {
-		unsigned prevx = getcurx(text_win); // in case x != 0 (mvprint_line)
-		unsigned prop = dchar2bytes(maxx - 1 - prevx, from, buffer);
+		uint prevx = getcurx(text_win); // in case x != 0 (mvprint_line)
+		uint prop = dchar2bytes(maxx - 1 - prevx, from, buffer);
 		if (prop < buffer.len() - 1) {
 			to = prop;
 			overflows[y] = true;
@@ -52,7 +52,7 @@ unsigned print_line(gap_buf &buffer, unsigned from, unsigned to, unsigned y)
 			overflows[y] = false;
 		}
 	}
-	unsigned rlen = data(buffer, from, to);
+	uint rlen = data(buffer, from, to);
 	if (lnbuf[rlen - 1] == '\n' || lnbuf[rlen - 1] == '\t')
 		--rlen;
 	waddnstr(text_win, lnbuf, rlen);
@@ -62,14 +62,14 @@ unsigned print_line(gap_buf &buffer, unsigned from, unsigned to, unsigned y)
 }
 
 // print text starting from line
-void print_text(unsigned line)
+void print_text(uint line)
 {
 	list<gap_buf>::iterator iter = text.begin();
 	advance(iter, ofy + line);
 	wmove(text_win, line, 0);
 	wclrtobot(text_win);
 	wmove(text_win, line, 0);
-	for (unsigned ty = line; ty < min(curnum + ofy + 1, maxy) && iter != text.end(); ++iter, ++ty) {
+	for (uint ty = line; ty < min(curnum + ofy + 1, maxy) && iter != text.end(); ++iter, ++ty) {
 		mvprint_line(ty, 0, *iter, 0, 0);
 		highlight(ty);
 	}
@@ -78,7 +78,7 @@ void print_text(unsigned line)
 // deleted a char; the mark moved left | invalidates 
 void print_new_mark()
 {
-	unsigned char_pos = dchar2bytes(maxx - 2, 0, *it);
+	uint char_pos = dchar2bytes(maxx - 2, 0, *it);
 	if (flag < maxx - 2) { // after deleting a char, new len could be < maxx
 		overflows[y] = false;
 		clean_mark(y);
@@ -104,7 +104,7 @@ void save()
 		filename = (char*)input_header("Enter filename: ");
 	FILE *fo = fopen(filename, "w");
 	list<gap_buf>::iterator iter = text.begin();
-	for (unsigned i = 0; iter != text.end() && i <= curnum; ++iter, ++i) {
+	for (uint i = 0; iter != text.end() && i <= curnum; ++iter, ++i) {
 		data(*iter, 0, iter->len());
 		fputs(lnbuf, fo);
 	}
@@ -135,7 +135,7 @@ void read_fgets(FILE *fi)
 void read_fread(FILE *fi)
 {
 	char *tmp = (char*)malloc(SZ + 1);
-	unsigned a, j = 0, res;
+	uint a, j = 0, res;
 	while ((a = fread(tmp, sizeof(tmp[0]), SZ, fi))) {
 		tmp[a] = 0;
 		while ((res = whereis(tmp + j, '\n')) > 0) {

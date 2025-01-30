@@ -3,14 +3,14 @@
 
 list<gap_buf> text(2);
 list<gap_buf>::iterator it;
-vector<pair<unsigned, unsigned>> cut;
+vector<pair<uint, uint>> cut;
 vector<bool> overflows;
 WINDOW *header_win, *ln_win, *text_win;
 wchar_t s[4];
 char s2[4], *filename;
 cchar_t mark;
-unsigned flag, ry, rx, curnum;
-unsigned y, x, maxy, maxx, len;
+uint flag, ry, rx, curnum;
+uint y, x, maxy, maxx, len;
 long ofy;
 
 int main(int argc, char *argv[])
@@ -187,7 +187,7 @@ init:
 				mv_curs(*it, it->len()); // delete \n
 				it->set_gps(it->gps() - 1);
 
-				unsigned tmp = it->len();
+				uint tmp = it->len();
 				data(*curln, 0, curln->len());
 				apnd_s(*it, lnbuf, curln->len()); // merge
 				text.erase(curln); // delete actual line
@@ -211,7 +211,7 @@ init:
 				wmove(text_win, y, x);
 			} else if (rx + 1 < it->len()) {
 				// or mblen(it->buffer + it->gpe + 1, 3);
-				unsigned len = it->buffer()[it->gpe() + 1] < 0 ? 2 : 1;
+				uint len = it->buffer()[it->gpe() + 1] < 0 ? 2 : 1;
 				mveras(*it, rx + len);
 				ofx += len - 1;
 				if (it->buffer()[it->gps()] == '\t') {
@@ -273,7 +273,7 @@ init:
 				argc = 2;
 				argv[1] = input_header("File to open: ");
 				list<gap_buf>::iterator iter;
-				unsigned i;
+				uint i;
 				for (iter = text.begin(), i = 0; iter != text.end() && i <= curnum; ++iter, ++i) {
 					iter->set_gps(0);
 					iter->set_gpe(iter->cpt());

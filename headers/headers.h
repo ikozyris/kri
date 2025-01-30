@@ -6,5 +6,8 @@
 #include <vector>
 #include <thread>
 #include <bit>	// for __bit_ceil (cntlz)
-#include <stdint.h>
+typedef unsigned long ulong;
+typedef unsigned int uint;
+typedef unsigned short ushort;
+typedef unsigned char uchar;
 using namespace std;

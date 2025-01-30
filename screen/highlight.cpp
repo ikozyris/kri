@@ -7,8 +7,8 @@ const char *types[] = {"int", "char", "float", "double", "unsigned", "void", "co
 const char *defs[]  = {"if", "else", "while", "for", "do", "return", "sizeof", "switch",
 	"goto", "case", "break", "struct", "default", "continue", "true", "false"};
 const char oper[]  = {'=', '+', '-', '*', '/', '&', '|', '^', '~', '<', '>', '[', ']'};
-unsigned char types_len[] = {3, 4, 5, 6, 8, 4, 5, 6, 4, 6, 4, 4, 6, 5, 6, 8, 8, 8, 7, 7, 7, 7, 6};
-unsigned char defs_len[] = {2, 4, 5, 3, 2, 6, 6, 6, 4, 4, 5, 6, 7, 8, 4, 5};
+uchar types_len[] = {3, 4, 5, 6, 8, 4, 5, 6, 4, 6, 4, 4, 6, 5, 6, 8, 8, 8, 7, 7, 7, 7, 6};
+uchar defs_len[] = {2, 4, 5, 3, 2, 6, 6, 6, 4, 4, 5, 6, 7, 8, 4, 5};
 
 #define DEFINC	COLOR_CYAN
 #define COMMENT	COLOR_GREEN
@@ -27,7 +27,7 @@ char str[256];
 // checks if file is C source code
 bool isc(const char *str)
 {
-	unsigned res = whereis(str, '.');
+	uint res = whereis(str, '.');
 	if (res == 0)
 		return false;
 	str += res;
@@ -38,7 +38,7 @@ bool isc(const char *str)
 }
 
 typedef struct res_s {
-	unsigned char len;
+	uchar len;
 	char type;
 } res_t;
 
@@ -49,19 +49,19 @@ res_t get_category(const char *line)
 	res.len = 0;
 	res.type = COLOR_WHITE;
 
-	for (unsigned i = 0; i < nelems(types); ++i)
+	for (uint i = 0; i < nelems(types); ++i)
 		if (strncmp(types[i], line, types_len[i]) == 0) {
 			res.len = types_len[i];
 			res.type = TYPES;
 			return res;
 		}
-	for (unsigned i = 0; i < nelems(defs); ++i)
+	for (uint i = 0; i < nelems(defs); ++i)
 		if (strncmp(defs[i], line, defs_len[i]) == 0) {
 			res.len = defs_len[i];
 			res.type = DEFS;
 			return res;
 		}
-	for (unsigned i = 0; i < nelems(oper); ++i)
+	for (uint i = 0; i < nelems(oper); ++i)
 		if (oper[i] == line[0]) {
 			res.len = 1;
 			res.type = OPER;
@@ -71,16 +71,16 @@ res_t get_category(const char *line)
 }
 
 // highight line if eligible = true
-void apply(unsigned line)
+void apply(uint line)
 {
 	if (!eligible)
 		return;
 	wmove(text_win, line, 0);
 	winwstr(text_win, tmp);
-	unsigned len = wcstombs(str, tmp, min(256, maxx - 2));
-	unsigned previ = 0;
+	uint len = wcstombs(str, tmp, min(256, maxx - 2));
+	uint previ = 0;
 
-	for (unsigned i = 0; i < len; ++i) {
+	for (uint i = 0; i < len; ++i) {
 		wmove(text_win, line, i);
 		if (str[i] == '#') { // define / include
 			wchgat(text_win, maxx - i - 1, 0, DEFINC, 0);
@@ -119,7 +119,7 @@ void apply(unsigned line)
 }
 
 // wrapper for apply()
-void highlight(unsigned y)
+void highlight(uint y)
 {
 #ifdef HIGHLIGHT
 	apply(y);
