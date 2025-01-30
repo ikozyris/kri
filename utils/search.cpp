@@ -1,25 +1,25 @@
 #include "headers/search.h"
 
 // mode: thi-0/all-1 line | cnt-0/shw-1 results | (bits)
-void find(const char *str, unsigned char mode)
+void find(const char *str, uchar mode)
 {
-	unsigned short str_len = strlen(str);
+	ushort str_len = strlen(str);
 	if (str_len == 0)
 		return;
-	const unsigned first_batch = min(maxy, curnum + 1);
-	vector<vector<unsigned>> matches(first_batch + 1);
+	const uint first_batch = min(maxy, curnum + 1);
+	vector<vector<uint>> matches(first_batch + 1);
 	list<gap_buf>::iterator tmp_it = it;
-	unsigned total = 0;
+	uint total = 0;
 	if (mode & 2) { // all lines
 		if (mode & 1) // append
-			for (unsigned i = 0; i < first_batch; ++i, ++tmp_it) {
+			for (uint i = 0; i < first_batch; ++i, ++tmp_it) {
 				matches[i] = search_a(*tmp_it, str, str_len);
 				total += matches[i].size();
 			}
 		else // only count
-			for (unsigned i = 0; i < first_batch; ++i, ++tmp_it)
+			for (uint i = 0; i < first_batch; ++i, ++tmp_it)
 				total += search_c(*tmp_it, str, str_len);
-		for (unsigned i = first_batch; i <= curnum; ++i, ++tmp_it) // count the rest
+		for (uint i = first_batch; i <= curnum; ++i, ++tmp_it) // count the rest
 			total += search_c(*tmp_it, str, str_len);
 	} else { // this line
 		if (mode & 1) {// show results
@@ -35,14 +35,14 @@ void find(const char *str, unsigned char mode)
 	str_len -= mbcnt(str, str_len); // get displayed characters
 
 	// displayed x, previous byte, previous print byte, previous iterated occurrence
-	vector<unsigned> dix(first_batch), previ(first_batch), prevpr(first_batch), prevx(first_batch);
+	vector<uint> dix(first_batch), previ(first_batch), prevpr(first_batch), prevx(first_batch);
 	int ch = 0;
 	curs_set(0);
 	do {
 		switch (ch) {
 		case KEY_RIGHT:
 			tmp_it = it;
-			for (unsigned i = 0; i < first_batch; ++i, ++tmp_it)
+			for (uint i = 0; i < first_batch; ++i, ++tmp_it)
 				if (prevpr[i] != 0 && previ[i] != matches[ofy + i].back()) // more occurrences remaining
 					mvprint_line(i, 0, *tmp_it, prevpr[i], 0);
 			break;
@@ -50,14 +50,14 @@ void find(const char *str, unsigned char mode)
 		case 0:
 		case KEY_LEFT:
 			tmp_it = it;
-			for (unsigned i = 0; i < first_batch; ++i, ++tmp_it) {
+			for (uint i = 0; i < first_batch; ++i, ++tmp_it) {
 				mvprint_line(i, 0, *tmp_it, 0, 0);
 				dix[i] = previ[i] = prevpr[i] = prevx[i] = 0;
 			}
 			break;
 
 		case KEY_DOWN:
-			for (unsigned i = 0; i < first_batch; ++i)
+			for (uint i = 0; i < first_batch; ++i)
 				dix[i] = previ[i] = prevpr[i] = prevx[i] = 0;
 			if (ofy + maxy > curnum)
 				break;
@@ -69,7 +69,7 @@ void find(const char *str, unsigned char mode)
 			break;
 
 		case KEY_UP:
-			for (unsigned i = 0; i < first_batch; ++i)
+			for (uint i = 0; i < first_batch; ++i)
 				dix[i] = previ[i] = prevpr[i] = prevx[i] = 0;
 			if (ofy <= 0)
 				break;
@@ -85,8 +85,8 @@ void find(const char *str, unsigned char mode)
 		}
 
 		tmp_it = it;
-		for (unsigned i = 0; i < first_batch; ++i, ++tmp_it) { // line
-			for (unsigned j = prevx[i]; j < matches[ofy + i].size(); ++j) { // occurrence
+		for (uint i = 0; i < first_batch; ++i, ++tmp_it) { // line
+			for (uint j = prevx[i]; j < matches[ofy + i].size(); ++j) { // occurrence
 				calc_offset_act(matches[ofy + i][j], previ[i], *tmp_it);
 				prevx[i] = j;
 				if (dix[i] + flag >= maxx - 1 + prevpr[i]) {
@@ -105,24 +105,24 @@ exit:
 	reset_view();
 }
 
-unsigned *_badchar(const char *str, unsigned short len)
+uint *_badchar(const char *str, ushort len)
 {
-	unsigned *badchar = (unsigned*)malloc(256 * sizeof(unsigned));
-	for (unsigned i = 0; i < 256; ++i) // BMH table
+	uint *badchar = (uint*)malloc(256 * sizeof(uint));
+	for (uint i = 0; i < 256; ++i) // BMH table
 		badchar[i] = len;
-	for (unsigned i = 0; i < len; i++)
-		badchar[(unsigned char)str[i]] = len - i - 1;
+	for (uint i = 0; i < len; i++)
+		badchar[(uchar)str[i]] = len - i - 1;
 
 	return badchar;
 }
 
-unsigned *_goodsuffix(const char *str, unsigned short len)
+uint *_goodsuffix(const char *str, ushort len)
 {
-	unsigned *gs = (unsigned*)malloc(len * sizeof(unsigned));
+	uint *gs = (uint*)malloc(len * sizeof(uint));
 	int *pos = (int*)malloc(len * sizeof(int));
 	fill(pos, pos + len, -1);
 
-	for (unsigned i = 1; i < len; i++) {
+	for (uint i = 1; i < len; i++) {
 		int j = pos[i - 1];
 		while (j >= 0 && str[i] != str[j])
 			j = pos[j];
@@ -130,10 +130,10 @@ unsigned *_goodsuffix(const char *str, unsigned short len)
 	}
 
 	gs[0] = len;
-	for (unsigned i = 1; i < len; i++)
+	for (uint i = 1; i < len; i++)
 		gs[i] = len - pos[i];
 
-	for (unsigned i = len - 1; i > 0; i--) {
+	for (uint i = len - 1; i > 0; i--) {
 		if (str[i] != str[pos[i]])
 			gs[i] = len - i;
 		else
@@ -143,16 +143,16 @@ unsigned *_goodsuffix(const char *str, unsigned short len)
 	return gs;
 }
 
-vector<unsigned> bm_search(gap_buf &buf, const char *str, unsigned short len, bool append)
+vector<uint> bm_search(gap_buf &buf, const char *str, ushort len, bool append)
 {
-	vector<unsigned> matches;
-	unsigned count = 0;
+	vector<uint> matches;
+	uint count = 0;
 	// heuristics
-	unsigned *badchar = _badchar(str, len);
-	unsigned *goodsuffix = _goodsuffix(str, len);
+	uint *badchar = _badchar(str, len);
+	uint *goodsuffix = _goodsuffix(str, len);
 
-	for (unsigned i = 0; i < buf.len() - len;) {
-		unsigned j;
+	for (uint i = 0; i < buf.len() - len;) {
+		uint j;
 
 		// check from end of str
 		for (j = len - 1; j < len && str[j] == at(buf, i + j); --j);
@@ -164,7 +164,7 @@ vector<unsigned> bm_search(gap_buf &buf, const char *str, unsigned short len, bo
 				++count;
 			i += len; // no overlaps
 		} else
-			i += max(badchar[(unsigned char)at(buf, i + j)], goodsuffix[j]);
+			i += max(badchar[(uchar)at(buf, i + j)], goodsuffix[j]);
 	}
 	free(goodsuffix);
 	free(badchar);
@@ -174,9 +174,9 @@ vector<unsigned> bm_search(gap_buf &buf, const char *str, unsigned short len, bo
 }
 
 // merge the sorted results of each thread (this is the bottleneck)
-vector<unsigned> mergei(const vector<vector<unsigned>> &indices, const bool append)
+vector<uint> mergei(const vector<vector<uint>> &indices, const bool append)
 {
-	vector<unsigned> matches;
+	vector<uint> matches;
 	matches.reserve(indices[0].size());
 	if (append)
 		for (const auto &vec : indices)
@@ -190,34 +190,34 @@ vector<unsigned> mergei(const vector<vector<unsigned>> &indices, const bool appe
 }
 
 // each thread searches with this
-void searchch_a(gap_buf &buf, char ch, unsigned st, unsigned end, vector<unsigned> &matches)
+void searchch_a(gap_buf &buf, char ch, uint st, uint end, vector<uint> &matches)
 {
-	for (unsigned i = st; i < end; ++i)
+	for (uint i = st; i < end; ++i)
 		if (at(buf, i) == ch)
 			matches.push_back(i);
 }
 
 // each thread searches with this
-void searchch_c(gap_buf &buf, char ch, unsigned st, unsigned end, unsigned &count)
+void searchch_c(gap_buf &buf, char ch, uint st, uint end, uint &count)
 {
-	for (unsigned i = st; i < end; ++i)
+	for (uint i = st; i < end; ++i)
 		if (at(buf, i) == ch)
 			++count;
 }
 
 // wrapper for searchch() to launch with multi-threaded
-vector<unsigned> mt_search(gap_buf &buf, char ch, const bool append)
+vector<uint> mt_search(gap_buf &buf, char ch, const bool append)
 {
-	unsigned nthreads = thread::hardware_concurrency();
+	uint nthreads = thread::hardware_concurrency();
 	if (nthreads == 0 || buf.len() < 1e6)
 		nthreads = 1;
-	unsigned chunk = buf.len() / nthreads;
+	uint chunk = buf.len() / nthreads;
 	vector<thread> threads(nthreads);
-	vector<vector<unsigned>> indices(nthreads); // each thread's result
+	vector<vector<uint>> indices(nthreads); // each thread's result
 
-	for (unsigned i = 0; i < nthreads; ++i) {
-		unsigned st = i * chunk;
-		unsigned end = min((i + 1) * chunk, buf.len());
+	for (uint i = 0; i < nthreads; ++i) {
+		uint st = i * chunk;
+		uint end = min((i + 1) * chunk, buf.len());
 
 		if (append)
 			threads.emplace_back(searchch_a, ref(buf), ch, st, end, ref(indices[i]));
@@ -232,14 +232,14 @@ vector<unsigned> mt_search(gap_buf &buf, char ch, const bool append)
 		if (thread.joinable())
 			thread.join();
 
-	vector<unsigned> matches = mergei(indices, append);
+	vector<uint> matches = mergei(indices, append);
 	return matches;
 }
 
 // search for str in buf, return <pos, color(pos;s)>
-vector<unsigned> search_a(gap_buf &buf, const char *str, unsigned short len)
+vector<uint> search_a(gap_buf &buf, const char *str, ushort len)
 {
-	vector<unsigned> matches;
+	vector<uint> matches;
 	if (len == 1)
 		matches = mt_search(buf, str[0], 1);
 		//searchch(buf, str[0], 0, buf.len, matches);
@@ -249,9 +249,9 @@ vector<unsigned> search_a(gap_buf &buf, const char *str, unsigned short len)
 	return matches;
 }
 
-unsigned search_c(gap_buf &buf, const char *str, unsigned short len)
+uint search_c(gap_buf &buf, const char *str, ushort len)
 {
-	vector<unsigned> matches;
+	vector<uint> matches;
 	if (len == 1)
 		matches = mt_search(buf, str[0], 0);
 	else

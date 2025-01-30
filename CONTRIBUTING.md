@@ -1,9 +1,10 @@
-Follow the Linux Kernel coding style. <br>
+Follow the Linux Kernel coding style (mostly). <br>
 With the exception that the maximum lenght of line is 100
 
 The most important things are:
 - Use tabs (*not* spaces), for flexibility and reduced file size
 - Braces open in the same line as the if, while, switch... except functions
+- Prefer unsigned ints, they are defined as uint, ulong...
 
 example:
 ```c

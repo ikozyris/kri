@@ -1,14 +1,14 @@
 #include "headers/sizes.h"
 
 // convert bytes to base-10 (SI) human-readable string e.g 1000B = 1kB
-char hrsize(size_t bytes, char *dest, unsigned short dest_cpt)
+char hrsize(size_t bytes, char *dest, ushort dest_cpt)
 {
 	const char suffix[] = {0, 'k', 'M', 'G', 'T'};
-	unsigned char length = sizeof(suffix) / sizeof(suffix[0]);
+	uchar length = sizeof(suffix) / sizeof(suffix[0]);
 
 	double dblBytes = bytes;
 
-	unsigned char i;
+	uchar i;
 	for (i = 0; (bytes / 1000) > 0 && i < length - 1; ++i, bytes /= 1000)
 		dblBytes = bytes / 1000.0;
 
@@ -17,9 +17,9 @@ char hrsize(size_t bytes, char *dest, unsigned short dest_cpt)
 }
 
 // in kB
-unsigned memusg()
+uint memusg()
 {
-	unsigned memusg = 0, tmp;
+	uint memusg = 0, tmp;
 	char *buffer = (char*)malloc(1024);
 	FILE *file = fopen("/proc/self/smaps", "r");
 	while (fscanf(file, " %1023s", buffer) == 1)
@@ -33,7 +33,7 @@ unsigned memusg()
 }
 
 // locate character in string, -1 if not found
-unsigned whereis(const char *str,  char ch)
+uint whereis(const char *str, char ch)
 {
 	const char *end = strchr(str, ch);
 	if (end == 0)
@@ -42,7 +42,7 @@ unsigned whereis(const char *str,  char ch)
 }
 
 // helper function for calc_offset_[dis|act](), dchar2bytes()
-void get_off(unsigned &x, unsigned &i, gap_buf &buf)
+void get_off(uint &x, uint &i, gap_buf &buf)
 {
 	char ch = at(buf, i);
 	if (ch == '\t')
@@ -55,9 +55,9 @@ void get_off(unsigned &x, unsigned &i, gap_buf &buf)
 
 // returns offset until displayed x from from bytes in buf (bytes - dx)
 // global flag becomes the dx where counting stopped at 
-long calc_offset_dis(unsigned dx, gap_buf &buf)
+long calc_offset_dis(uint dx, gap_buf &buf)
 {
-	unsigned x = 0, i = 0;
+	uint x = 0, i = 0;
 	while (x < dx && i < buf.len())
 		get_off(x, i, buf);
 	flag = x;
@@ -65,9 +65,9 @@ long calc_offset_dis(unsigned dx, gap_buf &buf)
 }
 
 // displayed characters dx to bytes, flag -> dx  where counting stopped at
-unsigned dchar2bytes(unsigned dx, unsigned from, gap_buf &buf)
+uint dchar2bytes(uint dx, uint from, gap_buf &buf)
 {
-	unsigned x = 0, nx = 0, ni = from, i = from;
+	uint x = 0, nx = 0, ni = from, i = from;
 	while (x < dx && i < buf.len()) {
 		get_off(nx, ni, buf);
 		if (nx <= dx && ni <= buf.len()) {
@@ -82,19 +82,19 @@ unsigned dchar2bytes(unsigned dx, unsigned from, gap_buf &buf)
 }
 
 // count multi-byte characters in string
-unsigned mbcnt(const char *str, unsigned len)
+uint mbcnt(const char *str, uint len)
 {
-	unsigned count = 0; // multi-byte char
-	for (unsigned i = 0; i < len && str[i] != 0; ++i)
+	uint count = 0; // multi-byte char
+	for (uint i = 0; i < len && str[i] != 0; ++i)
 		if (str[i] < 0)
 			count++;
 	return count / 2; // only 2-byte multibyte chars are supported
 }
 
 // offset until pos bytes from i bytes in buf
-long calc_offset_act(unsigned pos, unsigned i, gap_buf &buf)
+long calc_offset_act(uint pos, uint i, gap_buf &buf)
 {
-	unsigned x = 0;
+	uint x = 0;
 	while (i < pos)
 		get_off(x, i, buf);
 	flag = x;
@@ -102,7 +102,7 @@ long calc_offset_act(unsigned pos, unsigned i, gap_buf &buf)
 }
 
 // currently on a tab; go to previous char
-unsigned prevdchar()
+uint prevdchar()
 {
 	long prev_ofx = calc_offset_dis(x - 8, *it);
 	long diff = prev_ofx - ofx;

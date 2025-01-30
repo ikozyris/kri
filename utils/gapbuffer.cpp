@@ -1,8 +1,8 @@
 #include "headers/gapbuffer.h"
 
-long signed ofx;
+long ofx;
 char *lnbuf;
-uint32_t lnbf_cpt;
+uint lnbf_cpt;
 
 void init(gap_buf &a)
 {
@@ -13,7 +13,7 @@ void init(gap_buf &a)
 	a.set_cpt(array_size);
 }
 
-void resize(gap_buf &a, uint64_t size)
+void resize(gap_buf &a, ulong size)
 {
 	char *buffer = a.buffer();
 	buffer = (char*)realloc(buffer, size);
@@ -26,7 +26,7 @@ void resize(gap_buf &a, uint64_t size)
 	a.set_cpt(size);
 }
 
-void mv_curs(gap_buf &a, uint64_t pos)
+void mv_curs(gap_buf &a, ulong pos)
 {
 	if (a.gps() >= a.gpe() + 1) [[unlikely]]
 		resize(a, __bit_ceil(a.cpt() + 1));
@@ -41,7 +41,7 @@ void mv_curs(gap_buf &a, uint64_t pos)
 	a.set_gps(pos);
 }
 
-void insert_c(gap_buf &a, uint64_t pos, char ch)
+void insert_c(gap_buf &a, ulong pos, char ch)
 {
 	if (a.gps() >= a.gpe()) [[unlikely]]
 		resize(a, __bit_ceil(a.cpt() + 1));
@@ -51,7 +51,7 @@ void insert_c(gap_buf &a, uint64_t pos, char ch)
 	a.set_gps(a.gps() + 1);
 }
 
-void insert_s(gap_buf &a, uint64_t pos, const char *str, uint64_t len)
+void insert_s(gap_buf &a, ulong pos, const char *str, ulong len)
 {
 	// TODO: are both checks needed? (checked indirectly?)
 	if (a.gps() + len >= a.gpe() + 1) [[unlikely]]
@@ -70,7 +70,7 @@ void apnd_c(gap_buf &a, char ch)
 	a.set_gps(a.gps() + 1);
 }
 
-void apnd_s(gap_buf &a, const char *str, uint64_t size)
+void apnd_s(gap_buf &a, const char *str, ulong size)
 {
 	if (a.gps() + size >= a.cpt()) [[unlikely]]
 		resize(a, __bit_ceil(a.len() + size + 2));
@@ -80,7 +80,7 @@ void apnd_s(gap_buf &a, const char *str, uint64_t size)
 
 void apnd_s(gap_buf &a, const char *str)
 {
-	uint64_t i = a.len();
+	ulong i = a.len();
 	while (str[i - a.len()] != 0) {
 		a[i] = str[i - a.len()];
 		if (++i == a.cpt())
@@ -116,7 +116,7 @@ void eras(gap_buf &a)
 // TODO: this is a mess
 // NOTE: destination buffer is lnbuf
 // extract data from src buffer, returns length extracted (to - from)
-uint64_t data(gap_buf &src, uint64_t from, uint64_t to)
+ulong data(gap_buf &src, ulong from, ulong to)
 {
 	error_check;
 	// try some special cases where 1 copy is required
@@ -137,7 +137,7 @@ uint64_t data(gap_buf &src, uint64_t from, uint64_t to)
 }
 
 // returns character at pos keeping in mind the gap
-char at(gap_buf &src, uint64_t pos)
+char at(gap_buf &src, ulong pos)
 {
 	if (pos >= src.len())
 		return 0;
@@ -148,18 +148,18 @@ char at(gap_buf &src, uint64_t pos)
 	return src[pos];
 }
 
-uint64_t data2(gap_buf &src, uint64_t from, uint64_t to)
+ulong data2(gap_buf &src, ulong from, ulong to)
 {
 	error_check;
-	for (uint64_t i = from; i < to; ++i)
+	for (ulong i = from; i < to; ++i)
 		lnbuf[i - from] = at(src, i);
 	return to - from;
 }
 
 // shrink buffers to just fit line (reduce RAM usage)
-uint64_t shrink(gap_buf &a)
+ulong shrink(gap_buf &a)
 {
-	uint64_t bytes = a.cpt();
+	ulong bytes = a.cpt();
 	mv_curs(a, a.len());
 	resize(a, a.len() + 2);
 	return bytes - a.cpt();
