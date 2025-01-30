@@ -13,8 +13,8 @@ void stats()
 		cutb = cut.back().byte;
 		cutd = cut.back().dchar;
 	}
-	snprintf(_tmp, min(maxx, 256), "maxx %u len %lu gs %lu ge %lu cpt %lu cut[d%u,b%u] x: %u ofx: %ld ry: %u     ",
-		maxx, it->len(), it->gps(), it->gpe(), it->cpt(), cutd, cutb, x, ofx, ry);
+	snprintf(_tmp, min(maxx, 256), "maxx %u len %lu gs %lu ge %lu cpt %lu cut%lu[d%u,b%u] x: %u ofx: %ld ry: %u     ",
+		maxx, it->len(), it->gps(), it->gpe(), it->cpt(), cut.size(), cutd, cutb, x, ofx, ry);
 #else	
 	snprintf(_tmp, min(maxx, 256), "len %lu  cpt %lu  y %u  x %u  sum len %u  lines %u  cut %lu  ofx %ld  ", 
 		it->len(), it->cpt(), ry, x, sumlen, curnum, cut.size(), ofx);
@@ -182,17 +182,27 @@ void eol()
 	else { // cut line
 		cut.clear();
 		uint bytes = 0, nbytes = 0;
-		while (bytes < it->len()) {
-			nbytes = dchar2bytes(maxx - 1, bytes, *it);
-			if (nbytes >= it->len() - 1)
-				break;
-			cut.push_back({flag, nbytes}); // flag was changed by dchar2bytes
-			ofx += flag;
-			bytes = nbytes;
+		if (ofx == 0) {
+			while (bytes + maxx < it->len()) {
+				bytes += maxx - 1;
+				cut.push_back({maxx - 1, bytes});
+				ofx += maxx - 1;
+			}
+			flag = it->len() % (maxx - 1);
+		} else {
+			while (1) {
+				nbytes = dchar2bytes(maxx - 1, bytes, *it);
+				if (nbytes >= it->len() - 1)
+					break;
+				cut.push_back({flag, nbytes}); // flag was changed by dchar2bytes
+				ofx += flag;
+				bytes = nbytes;
+			}
 		}
 		mvprint_line(y, 0, *it, bytes, it->len());
-		clean_mark(y); // TODO: actualy fix this, remove this hack
-		x = flag - 1;
+		clean_mark(y);
+		// TODO: fix this, remove hack
+		x = (flag == maxx - 1 ? flag : flag - 1);
 		if (x + ofx > it->len() - 1) 
 			ofx -= x + ofx - it->len() + 1;
 		wmove(text_win, y, x);
