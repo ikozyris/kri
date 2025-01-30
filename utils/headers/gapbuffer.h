@@ -29,14 +29,14 @@ const __uint128_t CPT_MASK = 0x3F;		// first 6-bits,  = 2^6  - 1
 struct gap_buf {
 	__uint128_t mem;
 
-	char *buffer() { return (char*)(mem & PTR_MASK); } // in userspace bit 47 = 0
+	char *buffer() const { return (char*)(mem & PTR_MASK); } // in userspace bit 47 = 0
 	char &operator[](ulong pos) const {
 		return ((char*)(mem & PTR_MASK))[pos];
 	}
-	ulong gps() { return (mem >> 48) & GPx_MASK; } // 0-based
-	ulong gpe() { return (mem >> 83) & GPx_MASK; } // 0-based
-	ulong cpt() { return pow2((mem >> 118) & CPT_MASK); } // always power of 2, 1-based
-	ulong len() { return cpt() - gaplen(*this); } // indirectly calculated, 1-based
+	ulong gps() const { return (mem >> 48) & GPx_MASK; } // 0-based
+	ulong gpe() const { return (mem >> 83) & GPx_MASK; } // 0-based
+	ulong cpt() const { return pow2((mem >> 118) & CPT_MASK); } // always power of 2, 1-based
+	ulong len() const { return cpt() - gaplen(*this); } // indirectly calculated, 1-based
 	//uchar flag(uchar bit) { return (mem >> 124) & 4; }
 
 	// zero all bits outside of mask and then apply those who are in the mask
@@ -69,7 +69,7 @@ void apnd_c(gap_buf &a, char ch); // append character
 void apnd_s(gap_buf &a, const char *str, ulong size); // append string with given size
 void apnd_s(gap_buf &a, const char *str); // append null-terminated string
 void eras(gap_buf &a); // erase the character at current cursor position
-ulong data(gap_buf &src, ulong from, ulong to); // copy buffer with range to lnbuf
-char at(gap_buf &src, ulong pos); // return character at position calculating the gap
-ulong data2(gap_buf &src, ulong from, ulong to); // same as data(), different implementation
+ulong data(const gap_buf &src, ulong from, ulong to); // copy buffer with range to lnbuf
+char at(const gap_buf &src, ulong pos); // return character at position calculating the gap
+ulong data2(const gap_buf &src, ulong from, ulong to); // same as data(), different implementation
 ulong shrink(gap_buf &a); // shrink buffer to just fit size (gap = 2 bytes)

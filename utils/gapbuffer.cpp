@@ -116,7 +116,7 @@ void eras(gap_buf &a)
 // TODO: this is a mess
 // NOTE: destination buffer is lnbuf
 // extract data from src buffer, returns length extracted (to - from)
-ulong data(gap_buf &src, ulong from, ulong to)
+ulong data(const gap_buf &src, ulong from, ulong to)
 {
 	error_check;
 	// try some special cases where 1 copy is required
@@ -137,14 +137,14 @@ ulong data(gap_buf &src, ulong from, ulong to)
 }
 
 // returns character at pos keeping in mind the gap
-char at(gap_buf &src, ulong pos)
+char at(const gap_buf &src, ulong pos)
 {
 	if (pos >= src.gps())
 		pos += gaplen(src);
 	return src[pos];
 }
 
-ulong data2(gap_buf &src, ulong from, ulong to)
+ulong data2(const gap_buf &src, ulong from, ulong to)
 {
 	error_check;
 	for (ulong i = from; i < to; ++i)
