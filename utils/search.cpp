@@ -143,7 +143,7 @@ uint *_goodsuffix(const char *str, ushort len)
 	return gs;
 }
 
-vector<uint> bm_search(gap_buf &buf, const char *str, ushort len, bool append)
+vector<uint> bm_search(const gap_buf &buf, const char *str, ushort len, bool append)
 {
 	vector<uint> matches;
 	uint count = 0;
@@ -190,7 +190,7 @@ vector<uint> mergei(const vector<vector<uint>> &indices, const bool append)
 }
 
 // each thread searches with this
-void searchch_a(gap_buf &buf, char ch, uint st, uint end, vector<uint> &matches)
+void searchch_a(const gap_buf &buf, char ch, uint st, uint end, vector<uint> &matches)
 {
 	for (uint i = st; i < end; ++i)
 		if (at(buf, i) == ch)
@@ -198,7 +198,7 @@ void searchch_a(gap_buf &buf, char ch, uint st, uint end, vector<uint> &matches)
 }
 
 // each thread searches with this
-void searchch_c(gap_buf &buf, char ch, uint st, uint end, uint &count)
+void searchch_c(const gap_buf &buf, char ch, uint st, uint end, uint &count)
 {
 	for (uint i = st; i < end; ++i)
 		if (at(buf, i) == ch)
@@ -206,7 +206,7 @@ void searchch_c(gap_buf &buf, char ch, uint st, uint end, uint &count)
 }
 
 // wrapper for searchch() to launch with multi-threaded
-vector<uint> mt_search(gap_buf &buf, char ch, const bool append)
+vector<uint> mt_search(const gap_buf &buf, char ch, const bool append)
 {
 	uint nthreads = thread::hardware_concurrency();
 	if (nthreads == 0 || buf.len() < 1e6)
@@ -237,7 +237,7 @@ vector<uint> mt_search(gap_buf &buf, char ch, const bool append)
 }
 
 // search for str in buf, return <pos, color(pos;s)>
-vector<uint> search_a(gap_buf &buf, const char *str, ushort len)
+vector<uint> search_a(const gap_buf &buf, const char *str, ushort len)
 {
 	vector<uint> matches;
 	if (len == 1)
@@ -249,7 +249,7 @@ vector<uint> search_a(gap_buf &buf, const char *str, ushort len)
 	return matches;
 }
 
-uint search_c(gap_buf &buf, const char *str, ushort len)
+uint search_c(const gap_buf &buf, const char *str, ushort len)
 {
 	vector<uint> matches;
 	if (len == 1)

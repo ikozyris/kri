@@ -36,7 +36,7 @@ char *input_header(const char *q)
 }
 
 // prints substring of buffer from: (curr x + 'from' bytes), if (to == 0) print until maxx
-uint print_line(gap_buf &buffer, uint from, uint to, uint y)
+uint print_line(const gap_buf &buffer, uint from, uint to, uint y)
 {
 	// only newline or emulated newline ('\0') is in buffer
 	if (buffer.len() <= 1)
