@@ -1,14 +1,14 @@
 #include "headers/highlight.h"
 
 bool eligible; // is syntax highlighting enabled
-const char *types[] = {"int", "char", "float", "double", "unsigned", "void", "const", 
-	"size_t", "bool", "signed", "long", "enum", "static", "short", "extern", "uint64_t", 
-	"uint32_t", "uint16t", "uint8t", "int64_t", "int32_t", "int16_t", "int8_t"};
-const char *defs[]  = {"if", "else", "while", "for", "do", "return", "sizeof", "switch",
-	"goto", "case", "break", "struct", "default", "continue", "true", "false"};
-const char oper[]  = {'=', '+', '-', '*', '/', '&', '|', '^', '~', '<', '>', '[', ']'};
-uchar types_len[] = {3, 4, 5, 6, 8, 4, 5, 6, 4, 6, 4, 4, 6, 5, 6, 8, 8, 8, 7, 7, 7, 7, 6};
-uchar defs_len[] = {2, 4, 5, 3, 2, 6, 6, 6, 4, 4, 5, 6, 7, 8, 4, 5};
+const char *types[] = {"bool", "char", "const", "double", "enum", "extern", "float", 
+    "int", "int16_t", "int32_t", "int64_t", "long", "short", "signed", "size_t", 
+    "static", "uint16t", "uint32_t", "uint64_t", "uint8t", "unsigned", "void"};
+const char *defs[]  = {"break", "case", "continue", "default", "do", "else", "false", 
+    "for", "goto", "if", "return", "sizeof", "struct", "switch", "true", "while"};
+const char oper[]  = {'&', '*', '+', '-', '/', '<', '=', '>', '[', ']', '^', '|', '~'};
+uchar types_len[] = {4, 4, 5, 6, 4, 6, 5, 3, 7, 7, 7, 4, 5, 6, 6, 6, 7, 8, 8, 6, 8, 4};
+uchar defs_len[] = {5, 4, 8, 7, 2, 4, 5, 3, 4, 2, 6, 6, 6, 6, 4, 5};
 
 #define DEFINC	COLOR_CYAN
 #define COMMENT	COLOR_GREEN
@@ -42,6 +42,28 @@ typedef struct res_s {
 	char type;
 } res_t;
 
+int char_cmp(const char a, const char b, uchar) { return a - b; }
+// helper binary search template
+template <typename T, typename Compare>
+bool binary_search(const T *arr, const uchar *len_arr, uint size, const T &line, res_t &res, 
+		char type, Compare cmpf)
+{
+	int lo = 0, hi = size - 1, mid;
+	while (lo <= hi) {
+		mid = lo + (hi - lo) / 2;
+		int cmp = cmpf(arr[mid], line, len_arr[mid]);
+		if (cmp == 0) {
+			res.len = len_arr ? len_arr[mid] : 1;
+			res.type = type;
+			return true;
+		} else if (cmp < 0)
+			lo = mid + 1;
+		else
+			hi = mid - 1;
+	}
+	return false;
+}
+
 // identify color to use
 res_t get_category(const char *line)
 {
@@ -49,24 +71,12 @@ res_t get_category(const char *line)
 	res.len = 0;
 	res.type = COLOR_WHITE;
 
-	for (uint i = 0; i < nelems(types); ++i)
-		if (strncmp(types[i], line, types_len[i]) == 0) {
-			res.len = types_len[i];
-			res.type = TYPES;
-			return res;
-		}
-	for (uint i = 0; i < nelems(defs); ++i)
-		if (strncmp(defs[i], line, defs_len[i]) == 0) {
-			res.len = defs_len[i];
-			res.type = DEFS;
-			return res;
-		}
-	for (uint i = 0; i < nelems(oper); ++i)
-		if (oper[i] == line[0]) {
-			res.len = 1;
-			res.type = OPER;
-			return res;
-		}
+	if (binary_search(types, types_len, nelems(types), line, res, TYPES, strncmp))
+		return res;
+	if (binary_search(defs, defs_len, nelems(defs), line, res, DEFS, strncmp))
+		return res;
+	if (binary_search(oper, 0, nelems(oper), *line, res, OPER, char_cmp))
+		return res;
 	return res;
 }
 
