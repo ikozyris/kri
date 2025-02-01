@@ -14,7 +14,7 @@ extern WINDOW *header_win, *ln_win, *text_win;
 extern wchar_t s[4];
 extern char s2[4];
 extern cchar_t mark;
-extern uint flag; // actual x processed by offset funcs in size.cpp
+extern uint flag; // displayed x processed by offset funcs in size.cpp
 extern uint y, x, len;
 extern uint maxy, maxx; // to store the maximum rows and columns
 extern long ofy; // offset in y axis of text and screen, x axis is in gapbuffer
