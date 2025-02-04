@@ -80,8 +80,10 @@ void print_new_mark()
 {
 	uint char_pos = dchar2bytes(maxx - 2, 0, *it);
 	if (flag < maxx - 2) { // after deleting a char, new len could be < maxx
-		overflows[y] = false;
-		clean_mark(y);
+		if (overflows[y] == true) {
+			overflows[y] = false;
+			clean_mark(y);
+		}
 		return;
 	}
 	print_del_mark(y);
