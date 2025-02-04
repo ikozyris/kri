@@ -1,14 +1,18 @@
 #include "headers/highlight.h"
 
 bool eligible; // is syntax highlighting enabled
-const char *types[] = {"bool", "char", "const", "double", "enum", "extern", "float", 
-    "int", "int16_t", "int32_t", "int64_t", "long", "short", "signed", "size_t", 
-    "static", "uint16t", "uint32_t", "uint64_t", "uint8t", "unsigned", "void"};
-const char *defs[]  = {"break", "case", "continue", "default", "do", "else", "false", 
-    "for", "goto", "if", "return", "sizeof", "struct", "switch", "true", "while"};
-const char oper[]  = {'&', '*', '+', '-', '/', '<', '=', '>', '[', ']', '^', '|', '~'};
-uchar types_len[] = {4, 4, 5, 6, 4, 6, 5, 3, 7, 7, 7, 4, 5, 6, 6, 6, 7, 8, 8, 6, 8, 4};
-uchar defs_len[] = {5, 4, 8, 7, 2, 4, 5, 3, 4, 2, 6, 6, 6, 6, 4, 5};
+// each array and its element length has to be sorted (for binary search)
+const char *types[] = {"bool", "char", "const", "double", "enum", "float", 
+	"int", "int16_t", "int32_t", "int64_t", "long", "short", "signed", "size_t", 
+	"uchar", "uint", "uint16t", "uint32_t", "uint64_t", "uint8t", "ulong", 
+	"unsigned", "ushort", "void"};
+uchar types_len[] = {4, 4, 5, 6, 4, 5, 3, 7, 7, 7, 4, 5, 6, 6, 6, 4, 7, 8, 8, 6, 
+	5, 8, 7, 4};
+const char *defs[]  = {"break", "case", "continue", "default", "do", "else", "extern", 
+	"false", "for", "goto", "if", "inline", "return", "sizeof", "static", "struct", 
+	"switch", "true", "while"};
+uchar defs_len[] = {5, 4, 8, 7, 2, 4, 6, 5, 3, 4, 2, 6, 6, 6, 6, 6, 6, 4, 5};
+const char oper[]  = {'!', '%', '&', '*', '+', '-', '/',  ':', '<', '=', '>', '?', '[', ']', '^', '|', '~'};
 
 #define DEFINC	COLOR_CYAN
 #define COMMENT	COLOR_GREEN
@@ -17,12 +21,6 @@ uchar defs_len[] = {5, 4, 8, 7, 2, 4, 5, 3, 4, 2, 6, 6, 6, 6, 4, 5};
 #define DEFS    COLOR_BLUE
 #define STR	COLOR_MAGENTA
 // TODO: color for numbers?
-
-#define nelems(x)  (sizeof(x) / sizeof((x)[0]))
-#define is_separator(ch) ((ch > 31 && ch < 48) || (ch > 57 && ch < 65) || (ch > 90 && ch < 95) || ch > 122)
-
-wchar_t tmp[256];
-char str[256];
 
 // checks if file is C source code
 bool isc(const char *str)
@@ -64,6 +62,11 @@ bool binary_search(const T *arr, const uchar *len_arr, uint size, const T &line,
 	return false;
 }
 
+#define nelems(x)  (sizeof(x) / sizeof((x)[0]))
+#define is_separator(ch) ((ch > 31 && ch < 48) || (ch > 57 && ch < 65) || (ch > 90 && ch < 95) || ch > 122)
+#define lookup(x) while (i < len && str[i] == x) ++i
+#define lookup2(x, y) while (i < len && !(str[i] == x && str[i + 1] == y)) ++i
+
 // identify color to use
 res_t get_category(const char *line)
 {
@@ -80,11 +83,14 @@ res_t get_category(const char *line)
 	return res;
 }
 
-// highight line if eligible = true
+wchar_t tmp[256];
+char str[256];
+bool comment;
+// highight line
 void apply(uint line)
 {
-	if (!eligible)
-		return;
+	if (line == 0) // there is no previous line visible
+		comment = false;
 	wmove(text_win, line, 0);
 	winwstr(text_win, tmp);
 	uint len = wcstombs(str, tmp, min(256, maxx - 2));
@@ -92,7 +98,17 @@ void apply(uint line)
 
 	for (uint i = 0; i < len; ++i) {
 		wmove(text_win, line, i);
-		if (str[i] == '#') { // define / include
+		// previous line was a multi-line comment, this might be too
+		if (comment) {
+			lookup2('*', '/');
+			//while (i < len && !(str[i] == '*' && str[i + 1] == '/'))++i;
+			if (i == len) // this is still a comment
+				wchgat(text_win, i + 1, 0, COMMENT, 0);
+			else { // end of multi-line comment
+				comment = false;
+				wchgat(text_win, ++i + 3, 0, COMMENT, 0);
+			}
+		} else if (str[i] == '#') { // define / include
 			wchgat(text_win, maxx - i - 1, 0, DEFINC, 0);
 			return;
 		} else if (str[i] == '/' && str[i + 1] == '/') { // comments
@@ -101,19 +117,19 @@ void apply(uint line)
 		} else if (str[i] == '/' && str[i + 1] == '*') {
 			previ = i;
 			i += 2;
-			// TODO: end of multi-line comment might be in next line
-			while (str[i] != '*' && str[i + 1] != '/' && i < len)
-				++i;
-			wchgat(text_win, i++ - previ + 2, 0, COMMENT, 0);
+			lookup2('*', '/');
+			if (i >= len - 1)
+				comment = true;
+			else
+				i++;
+			wchgat(text_win, i - previ + 2, 0, COMMENT, 0);
 		} else if (str[i] == '\'') { // string / char
 			previ = i++;
-			while (str[i] != '\'' && i < len)
-				++i;
+			lookup('\'');
 			wchgat(text_win, i - previ + 1, 0, STR, 0);
 		} else if (str[i] == '\"') {
 			previ = i++;
-			while (str[i] != '\"' && i < len)
-				++i;
+			lookup('\"');
 			wchgat(text_win, i - previ + 1, 0, STR, 0);
 		} else { // type (int, char) / keyword (if, return) / operator (=, +)
 			res_t res = get_category(str + i);
@@ -132,6 +148,7 @@ void apply(uint line)
 void highlight(uint y)
 {
 #ifdef HIGHLIGHT
-	apply(y);
+	if (eligible)
+		apply(y);
 #endif
 }
