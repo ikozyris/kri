@@ -2,15 +2,13 @@
 
 bool eligible; // is syntax highlighting enabled
 // each array and its element length has to be sorted (for binary search)
-const char *types[] = {"bool", "char", "const", "double", "enum", "float", 
-	"int", "int16_t", "int32_t", "int64_t", "long", "short", "signed", "size_t", 
-	"uchar", "uint", "uint16t", "uint32_t", "uint64_t", "uint8t", "ulong", 
-	"unsigned", "ushort", "void"};
+const char *types[] = {"bool", "char", "const", "double", "enum", "float", "int", "int16_t", "int32_t",
+	"int64_t", "long", "short", "signed", "size_t",	"uchar", "uint", "uint16t", "uint32_t", 
+	"uint64_t", "uint8t", "ulong", "unsigned", "ushort", "void"};
 uchar types_len[] = {4, 4, 5, 6, 4, 5, 3, 7, 7, 7, 4, 5, 6, 6, 6, 4, 7, 8, 8, 6, 
 	5, 8, 7, 4};
-const char *defs[]  = {"break", "case", "continue", "default", "do", "else", "extern", 
-	"false", "for", "goto", "if", "inline", "return", "sizeof", "static", "struct", 
-	"switch", "true", "while"};
+const char *defs[]  = {"break", "case", "continue", "default", "do", "else", "extern", "false", "for",
+	"goto", "if", "inline", "return", "sizeof", "static", "struct", "switch", "true", "while"};
 uchar defs_len[] = {5, 4, 8, 7, 2, 4, 6, 5, 3, 4, 2, 6, 6, 6, 6, 6, 6, 4, 5};
 const char oper[]  = {'!', '%', '&', '*', '+', '-', '/',  ':', '<', '=', '>', '?', '[', ']', '^', '|', '~'};
 
@@ -64,7 +62,7 @@ bool binary_search(const T *arr, const uchar *len_arr, uint size, const T &line,
 
 #define nelems(x)  (sizeof(x) / sizeof((x)[0]))
 #define is_separator(ch) ((ch > 31 && ch < 48) || (ch > 57 && ch < 65) || (ch > 90 && ch < 95) || ch > 122)
-#define lookup(x) while (i < len && str[i] == x) ++i
+#define lookup(x) while (i < len && str[i] != x) ++i
 #define lookup2(x, y) while (i < len && !(str[i] == x && str[i + 1] == y)) ++i
 
 // identify color to use
@@ -101,7 +99,6 @@ void apply(uint line)
 		// previous line was a multi-line comment, this might be too
 		if (comment) {
 			lookup2('*', '/');
-			//while (i < len && !(str[i] == '*' && str[i + 1] == '/'))++i;
 			if (i == len) // this is still a comment
 				wchgat(text_win, i + 1, 0, COMMENT, 0);
 			else { // end of multi-line comment
@@ -117,7 +114,7 @@ void apply(uint line)
 		} else if (str[i] == '/' && str[i + 1] == '*') {
 			previ = i;
 			i += 2;
-			lookup2('*', '/');
+			lookup2('*', '/'); // TODO: comment might end after line cut
 			if (i >= len - 1)
 				comment = true;
 			else
