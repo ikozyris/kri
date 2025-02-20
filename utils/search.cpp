@@ -236,13 +236,13 @@ vector<uint> mt_search(const gap_buf &buf, char ch, const bool append)
 	return matches;
 }
 
-// search for str in buf, return <pos, color(pos;s)>
+// search for str in buf, return vector of occurences
 vector<uint> search_a(const gap_buf &buf, const char *str, ushort len)
 {
 	vector<uint> matches;
 	if (len == 1)
 		matches = mt_search(buf, str[0], 1);
-		//searchch(buf, str[0], 0, buf.len, matches);
+		//searchch(buf, str[0], 0, buf.len, matches); // single-thread
 	else
 		matches = bm_search(buf, str, len, 1);
 

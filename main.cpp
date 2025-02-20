@@ -242,7 +242,7 @@ init:
 			break;
 
 		case ENTER:
-			highlight(y);
+			highlight(y, *it);
 			enter();
 			break;
 

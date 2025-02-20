@@ -32,7 +32,7 @@ uint memusg()
 	return memusg;
 }
 
-// locate character in string, -1 if not found
+// locate character in string, 0 if not found
 uint whereis(const char *str, char ch)
 {
 	const char *end = strchr(str, ch);
