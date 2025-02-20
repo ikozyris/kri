@@ -214,7 +214,7 @@ void sol()
 {
 	if (!cut.empty()) { // line has been cut
 		mvprint_line(y, 0, *it, 0, 0);
-		highlight(y);
+		highlight(y, *it);
 	}
 	cut.clear();
 	wmove(text_win, y, ofx = 0);
@@ -232,7 +232,7 @@ void scrolldown()
 	mvwprintw(ln_win, maxy - 1, 0, "%3u", ry + 2);
 	wrefresh(ln_win);
 	mvprint_line(y, 0, *it, 0, 0);
-	highlight(y);
+	highlight(y, *it);
 	wmove(text_win, y, 0);
 }
 
@@ -248,7 +248,7 @@ void scrollup()
 	mvwprintw(ln_win, 0, 0, "%3u", ry);
 	wrefresh(ln_win);
 	mvprint_line(0, 0, *it, 0, 0);
-	highlight(0);
+	highlight(0, *it);
 	wmove(text_win, 0, 0);
 }
 
@@ -264,7 +264,7 @@ ushort left()
 		ofx -= cut.back().dchar;
 		cut.pop_back();
 		print_line(*it, cut.empty() ? 0 : cut.back().byte, 0, y);
-		highlight(y);
+		highlight(y, *it);
 		wmove(text_win, y, flag + 1);
 		return CUT;
 	} else if (x > 0) { // go left

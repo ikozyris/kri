@@ -71,7 +71,7 @@ void print_text(uint line)
 	wmove(text_win, line, 0);
 	for (uint ty = line; ty < min(curnum + ofy + 1, maxy) && iter != text.end(); ++iter, ++ty) {
 		mvprint_line(ty, 0, *iter, 0, 0);
-		highlight(ty);
+		highlight(ty, *iter);
 	}
 }
 
