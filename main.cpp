@@ -178,8 +178,10 @@ init:
 					mvwdelch(text_win, y, --x);
 					print_new_mark();
 				}
+				clear_attrs;
+				highlight(y, *it);
 				wmove(text_win, y, x);
-			} else if (!cut.empty()) {
+			} else if (!cut.empty()) { // delete x_-1 on cut line
 				eras(*it);
 				left();
 			} else if (y != 0) { // x = 0 && cut.empty(); merge lines
@@ -220,8 +222,10 @@ init:
 					mvprint_line(y, x, *it, rx, 0);
 				} else {
 					wdelch(text_win);
+					clear_attrs;
 					print_new_mark();
 				}
+				highlight(y, *it);
 				wmove(text_win, y, x);
 			}
 			break;
@@ -339,6 +343,8 @@ init:
 					winsch(text_win, '\t');
 			} else {
 				wins_nwstr(text_win, s, 1);
+				clear_attrs;
+				highlight(y, *it);
 				wmove(text_win, y, x + 1);
 			}
 			len = wcstombs(s2, s, 4);

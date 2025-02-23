@@ -75,7 +75,7 @@ void print_text(uint line)
 	}
 }
 
-// deleted a char; the mark moved left | invalidates 
+// deleted a char; the mark moved left | invalidates flag
 void print_new_mark()
 {
 	uint char_pos = dchar2bytes(maxx - 2, 0, *it);

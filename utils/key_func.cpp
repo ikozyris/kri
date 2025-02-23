@@ -264,8 +264,9 @@ ushort left()
 		ofx -= cut.back().dchar;
 		cut.pop_back();
 		print_line(*it, cut.empty() ? 0 : cut.back().byte, 0, y);
+		const uint tmp = flag; // changed later by highlight
 		highlight(y, *it);
-		wmove(text_win, y, flag + 1);
+		wmove(text_win, y, tmp);
 		return CUT;
 	} else if (x > 0) { // go left
 		wmove(text_win, y, x - 1);
