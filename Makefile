@@ -13,8 +13,8 @@ CC = g++ --std=c++20
 OPTIM = -Ofast -flto -s -march=native -DRELEASE
 SIZE = -Os -s -flto -fdata-sections -ffunction-sections -Wl,--gc-sections
 DEBUG = -g #-DDEBUG
-CXXFLAGS = -Wall -Wextra -pedantic-errors $(DEBUG) -DHIGHLIGHT -lncursesw # Debug only
-#CXXFLAGS = -Wall -Wextra -pedantic $(OPTIM) -DHIGHLIGHT -lncursesw
+#CXXFLAGS = -Wall -Wextra -pedantic-errors $(DEBUG) -DHIGHLIGHT -lncursesw # Debug only
+CXXFLAGS = -Wall -Wextra -pedantic $(OPTIM) -DHIGHLIGHT -lncursesw
 
 # the build target executable:
 TARGET = kri

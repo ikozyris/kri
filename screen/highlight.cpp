@@ -9,7 +9,7 @@ static uchar types_len[] = {4, 8, 13, 19, 23, 28, 31, 38, 45, 52, 56, 61, 67, 73
 static const char keywords[] = {"break""case""continue""default""do""else""extern""false""for""goto""if""inline"
 	"return""sizeof""static""struct""switch""true""while"};
 static uchar keywords_len[] = {5, 9, 17, 24, 26, 30, 36, 41, 44, 48, 50, 56, 62, 68, 74, 80, 86, 90, 95};
-static const char oper[] = {'!', '%', '&', '*', '+', '-', '/', ':', '<', '=', '>', '?', '[', ']', '^', '|', '~'};
+static const char oper[] = {'!', '%', '&', '*', '+', '-', '/', ':', '<', '=', '>', '?', '[', ']', '^', '|', '~', 0};
 
 #define DEFINC	COLOR_CYAN
 #define COMMENT	COLOR_GREEN
