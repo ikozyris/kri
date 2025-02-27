@@ -9,8 +9,8 @@ WINDOW *header_win, *ln_win, *text_win;
 wchar_t s[4];
 char s2[4], *filename;
 cchar_t mark;
-uint flag, ry, rx, curnum;
-uint y, x, maxy, maxx, len;
+ulong ry, rx, curnum;
+uint y, x, maxy, maxx, flag;
 long ofy;
 
 int main(int argc, char *argv[])
@@ -176,7 +176,8 @@ init:
 					wclrtoeol(text_win);
 				} else {
 					mvwdelch(text_win, y, --x);
-					print_new_mark();
+					if (overflows[y])
+						print_new_mark();
 				}
 				clear_attrs;
 				highlight(y, *it);
@@ -187,16 +188,17 @@ init:
 			} else if (y != 0) { // x = 0 && cut.empty(); merge lines
 				list<gap_buf>::iterator curln = it;
 				--it;
-				mv_curs(*it, it->len()); // delete \n
-				it->set_gps(it->gps() - 1);
+				const uint tmp = it->len() - 1;
+				mv_curs(*it, tmp); // delete \n
+				it->set_gpe(it->cpt() - 1);
 
-				uint tmp = it->len();
 				data(*curln, 0, curln->len());
 				apnd_s(*it, lnbuf, curln->len()); // merge
 				text.erase(curln); // delete actual line
 				--curnum;
-				print_text(y - 1);
-				wmove(text_win, y - 1, tmp);
+				print_text(--y);
+				wmove(text_win, y, 0);
+				mvr_scurs(tmp + 1);
 			}
 			break;
 
@@ -347,7 +349,7 @@ init:
 				highlight(y, *it);
 				wmove(text_win, y, x + 1);
 			}
-			len = wcstombs(s2, s, 4);
+			uint len = wcstombs(s2, s, 4);
 			insert_s(*it, rx, s2, len);
 			if (len > 1)
 				ofx += len - 1; // UTF-8 character
