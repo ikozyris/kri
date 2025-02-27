@@ -137,20 +137,20 @@ void read_fgets(FILE *fi)
 
 void read_fread(FILE *fi)
 {
-	char *tmp = (char*)malloc(SZ + 1);
-	uint a, j = 0, res;
+	char *tmp = (char*)malloc(SZ), *res, *cur;
+	uint a;
 	while ((a = fread(tmp, sizeof(tmp[0]), SZ, fi))) {
 		tmp[a] = 0;
-		while ((res = whereis(tmp + j, '\n')) > 0) {
-			apnd_s(*it, tmp + j, res);
-			j += res;
+		cur = tmp;
+		while ((res = strchr(cur, '\n')) != nullptr) {
+			apnd_s(*it, cur, (uint)(res - cur) + 1);
+			cur = res + 1;
 			if (++curnum >= text.size())
 				text.resize(text.size() * 2);
 			++it;
 		}
 		// if last character is not a newline
-		apnd_s(*it, tmp + j, a - j);
-		j = 0;
+		apnd_s(*it, cur, (tmp + a) - cur);
 	}
 	free(tmp);
 }

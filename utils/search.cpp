@@ -19,6 +19,7 @@ void find(const char *str, uchar mode)
 		else // only count
 			for (uint i = 0; i < first_batch; ++i, ++tmp_it)
 				total += search_c(*tmp_it, str, str_len);
+
 		for (uint i = first_batch; i <= curnum; ++i, ++tmp_it) // count the rest
 			total += search_c(*tmp_it, str, str_len);
 	} else { // this line
@@ -87,14 +88,14 @@ void find(const char *str, uchar mode)
 		tmp_it = it;
 		for (uint i = 0; i < first_batch; ++i, ++tmp_it) { // line
 			for (uint j = prevx[i]; j < matches[ofy + i].size(); ++j) { // occurrence
-				calc_offset_act(matches[ofy + i][j], previ[i], *tmp_it);
+				uint hg_pos = bytes2dchar(matches[ofy + i][j], previ[i], *tmp_it);
 				prevx[i] = j;
-				if (dix[i] + flag >= maxx - 1 + prevpr[i]) {
+				if (dix[i] + hg_pos >= maxx - 1 + prevpr[i]) {
 					prevpr[i] = matches[ofy + i][j] - matches[ofy + i][j] % (maxx - 1);
 					break;
 				}
 				previ[i] = matches[ofy + i][j];
-				dix[i] += flag;
+				dix[i] += hg_pos;
 				wmove(text_win, i, dix[i] % (maxx - 1));
 				wchgat(text_win, str_len, A_STANDOUT, 0, 0);
 			}
@@ -240,6 +241,9 @@ vector<uint> mt_search(const gap_buf &buf, char ch, const bool append)
 vector<uint> search_a(const gap_buf &buf, const char *str, ushort len)
 {
 	vector<uint> matches;
+	if (len > buf.len())
+		return matches;
+
 	if (len == 1)
 		matches = mt_search(buf, str[0], 1);
 		//searchch(buf, str[0], 0, buf.len, matches); // single-thread
@@ -251,6 +255,9 @@ vector<uint> search_a(const gap_buf &buf, const char *str, ushort len)
 
 uint search_c(const gap_buf &buf, const char *str, ushort len)
 {
+	if (len > buf.len())
+		return 0;
+
 	vector<uint> matches;
 	if (len == 1)
 		matches = mt_search(buf, str[0], 0);
