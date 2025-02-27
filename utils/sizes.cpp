@@ -16,15 +16,6 @@ char hrsize(size_t bytes, char *dest, ushort dest_cpt)
 	return suffix[i];
 }
 
-// locate character in string, 0 if not found
-ulong whereis(const char *str, char ch)
-{
-	const char *end = strchr(str, ch);
-	if (end == 0)
-		return 0;
-	return end - str + 1;
-}
-
 // helper function for calc_offset_[dis|act](), dchar2bytes()
 static void get_off(ulong &x, ulong &i, const gap_buf &buf)
 {

@@ -22,10 +22,10 @@ static const char oper[] = {'!', '%', '&', '*', '+', '-', '/', ':', '<', '=', '>
 // checks if file is C source code
 bool isc(const char *str)
 {
-	uint res = whereis(str, '.');
+	const char *res = strchr(str, '.');
 	if (res == 0)
 		return false;
-	str += res;
+	str = res + 1;
 	if (!strcmp(str, "c") || !strcmp(str, "cpp") || !strcmp(str, "cc")
 		|| !strcmp(str, "h") || !strcmp(str, "hpp"))
 		return true;
@@ -74,7 +74,7 @@ res_t get_category(const char *line)
 
 	if (binary_search(types, types_len, nelems(types_len), line, res, TYPE));
 	else if (binary_search(keywords, keywords_len, nelems(keywords_len), line, res, KEYWORD));
-	else if (whereis(oper, line[0])) { // binary search would require an array of the form {1,2,3..}
+	else if (strchr(oper, line[0])) { // binary search would require an array of the form {1,2,3..}
 		res.len = 1;
 		res.type = OPER;
 	}
@@ -89,8 +89,7 @@ void apply(uint line, const gap_buf &buf)
 		comment = false;
 	wmove(text_win, line, 0);
 
-	calc_offset_act(buf.len(), 0, buf);
-	const uint len = min(maxx - 1, flag);
+	const uint len = min(maxx - 1, bytes2dchar(buf.len(), 0, buf));
 	if (len > lnbf_cpt) { // resize to fit line
 		free(lnbuf);
 		lnbuf = (char*)malloc(lnbf_cpt = len);
@@ -105,17 +104,15 @@ void apply(uint line, const gap_buf &buf)
 			wchgat(text_win, len, 0, COMMENT, 0);
 			return;
 		}
-		
+
 		comment = false;
 		if (pos > len) { // ends after len
 			wchgat(text_win, len, 0, COMMENT, 0);
 			return;
 		}
-		
-		calc_offset_act(pos + 2, 0, buf);
-		wchgat(text_win, flag, 0, COMMENT, 0);
-	
-		i = flag; // continue from end of comment
+
+		i = bytes2dchar(pos + 2, 0, buf); // continue from end of comment
+		wchgat(text_win, i, 0, COMMENT, 0);
 	}
 
 	for (; i < len; ++i) {
@@ -134,7 +131,7 @@ void apply(uint line, const gap_buf &buf)
 			i = min(pos + 1, len);
 			if (i >= len - 1) // comment continues in next line
 				comment = true;
-			
+
 			wchgat(text_win, i - previ + 1, 0, COMMENT, 0);
 		} else if (lnbuf[i] == '\'') { // string / char
 			previ = i++;

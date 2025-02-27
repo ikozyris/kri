@@ -2,7 +2,6 @@
 #include "../../headers/main.h"
 
 char hrsize(size_t bytes, char *dest, ushort dest_cpt); // format bytes
-ulong whereis(const char *str, char ch); // position of ch in str (wrapper for strch)
 ulong dchar2bytes(ulong disp_x, ulong from, const gap_buf &buf); // how many bytes are disp_x displayed chars
 ulong bytes2dchar(ulong bytes, ulong from, const gap_buf &buf);
 inline long calc_offset_dis(ulong disp_x, const gap_buf &buf) { // offset until displayed character
