@@ -16,22 +16,6 @@ char hrsize(size_t bytes, char *dest, ushort dest_cpt)
 	return suffix[i];
 }
 
-// in kB
-ulong memusg()
-{
-	ulong memusg = 0, tmp;
-	char *buffer = (char*)malloc(1024);
-	FILE *file = fopen("/proc/self/smaps", "r");
-	while (fscanf(file, " %1023s", buffer) == 1)
-		if (strcmp(buffer, "Pss:") == 0) {
-			fscanf(file, " %lu", &tmp);
-			memusg += tmp;
-		}
-	free(buffer);
-	fclose(file);
-	return memusg;
-}
-
 // locate character in string, 0 if not found
 ulong whereis(const char *str, char ch)
 {
