@@ -31,46 +31,17 @@ void command()
 	if (strcmp(tmp, "resetheader") == 0)
 		reset_header();
 	else if (strcmp(tmp, "shrink") == 0) {
-		size_t prev = memusg(); // RAM usage before
-
+		ulong prev = lnbf_cpt;
 		// shrink line buffer
 		lnbf_cpt = 16;
 		lnbuf = (char*)realloc(lnbuf, lnbf_cpt);
                 // shrink linked list
                 text.resize(curnum + 1);
-		//shrink each line
-		size_t bytes_freed = 0;
-		for (auto &i : text)
-			bytes_freed += shrink(i);
-		char *bytes_saved_str = (char*)malloc(24);
-		hrsize(bytes_freed, bytes_saved_str, 24);
-
-		size_t curr = memusg(); // RAM usage after
-		char *prev_curr_str = (char*)malloc(24);
-		hrsize((prev - curr) * 1000, prev_curr_str, 24);
 
 		char buffer[64] = "";
-		snprintf(buffer, 64, "freed: %s | kernel reclaimed %s", bytes_saved_str, prev_curr_str);
-		free(bytes_saved_str);
-		free(prev_curr_str);
+		snprintf(buffer, 64, "freed: %lu B", prev - lnbf_cpt);
 		clear_header();
 		print2header(buffer, 1);
-	} else if (strcmp(tmp, "usage") == 0) {
-		size_t pid = 0;
-
-		// Linux-only
-		FILE *file = fopen("/proc/self/status", "r");
-		while (fscanf(file, " %127s", tmp) == 1)
-			if (strcmp(tmp, "Pid:") == 0) {
-				fscanf(file, " %lu", &pid);
-				break;
-			}
-		fclose(file);
-		char ram_usg[24];
-		hrsize(memusg() * 1000, ram_usg, 24);
-		sprintf(tmp, "RAM: %s PID: %lu", ram_usg, pid);
-		clear_header();
-		print2header(tmp, 1);
 	} else if (strcmp(tmp, "stats") == 0)
 		stats();
 	else if (strncmp(tmp, "run", 3) == 0) {
