@@ -1,6 +1,6 @@
 # g++ (clang works too with -stdlib=libc++)
 # C++20 minimum for branching prediction hints: [[likely]], otherwise C++11
-CC = g++ --std=c++20
+CXX = g++ --std=c++20
 
 # Compiler flags:
 #  -Ofast		Safe as no floating point arithmetic is done
@@ -10,19 +10,19 @@ CC = g++ --std=c++20
 #  -DHIGHLIGHT		Enable syntax highlighting
 #  -lncursesw		Links to ncurses library for wide characters (unicode)
 
-OPTIM = -Ofast -flto -s -march=native -DRELEASE
+OPTIM = -Ofast -flto -march=native -DRELEASE
 SIZE = -Os -s -flto -fdata-sections -ffunction-sections -Wl,--gc-sections
 DEBUG = -g #-DDEBUG
 #CXXFLAGS = -Wall -Wextra -pedantic-errors $(DEBUG) -DHIGHLIGHT -lncursesw # Debug only
 CXXFLAGS = -Wall -Wextra -pedantic $(OPTIM) -DHIGHLIGHT -lncursesw
 
-# the build target executable:
+# the build target executable
 TARGET = kri
 PATHT = /usr/bin/
 # root is not required to install
 #PATHT = ~/.local/bin/
 
-# Source files
+# source files
 SRCS = main.cpp \
 	utils/key_func.cpp \
 	utils/io.cpp \
@@ -32,26 +32,25 @@ SRCS = main.cpp \
 	utils/gapbuffer.cpp \
 	utils/search.cpp
 
-# Object files
+# object files
 OBJS = $(SRCS:.cpp=.o)
 
-# Default target
+# default target
 build: $(TARGET)
 
-# Link the object files to create the executable
+# link
 $(TARGET): $(OBJS)
 	$(CXX) -o $@ $^ $(CXXFLAGS)
 
-# Compile .cpp files
+# compile
 %.o: %.cpp
 	$(CXX) -c $< -o $@ $(CXXFLAGS)
 
 install:
 	cp $(TARGET) $(PATHT)$(TARGET)
 
-# Clean up
 clean:
 	rm $(OBJS) $(TARGET)
 
-# Phony targets
+# phony targets
 .PHONY: build install clean

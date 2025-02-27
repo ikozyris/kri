@@ -4,7 +4,7 @@
 void stats()
 {
 	char *_tmp = (char*)malloc(256);
-	uint sumlen = 0;
+	ulong sumlen = 0;
 	for (auto &i : text)
 		sumlen += i.len();
 #ifndef RELEASE
@@ -13,10 +13,10 @@ void stats()
 		cutb = cut.back().byte;
 		cutd = cut.back().dchar;
 	}
-	snprintf(_tmp, min(maxx, 256), "maxx %u len %lu gs %lu ge %lu cpt %lu cut%lu[d%u,b%u] x: %u ofx: %ld ry: %u     ",
+	snprintf(_tmp, min(maxx, 256), "maxx %u len %lu gs %lu ge %lu cpt %lu cut%lu[d%u,b%u] x: %u ofx: %ld ry: %lu     ",
 		maxx, it->len(), it->gps(), it->gpe(), it->cpt(), cut.size(), cutd, cutb, x, ofx, ry);
 #else	
-	snprintf(_tmp, min(maxx, 256), "len %lu  cpt %lu  y %u  x %u  sum len %u  lines %u  cut %lu  ofx %ld  ", 
+	snprintf(_tmp, min(maxx, 256), "len %lu  cpt %lu  y %lu  x %u  sum len %lu  lines %lu  cut %lu  ofx %ld  ", 
 		it->len(), it->cpt(), ry, x, sumlen, curnum, cut.size(), ofx);
 #endif
 	print2header(_tmp, 1);
@@ -161,6 +161,7 @@ void enter()
 	text.insert(it, *t); // insert new node with text after rx
 	--it;
 	free(t);
+	cut.clear();
 	print_text(y);
 	if (y < maxy - 1)
 		wmove(text_win, y + 1, 0);
@@ -173,38 +174,44 @@ void enter()
 	ofx = 0;
 }
 
-// go to end-of-line, if necessary cut line
-void eol()
+// go to target byte, if necessary cut line
+void mvr_scurs(ulong t_byte)
 {
-	ofx = calc_offset_act(it->len(), 0, *it);
-	if (it->len() - ofx <= maxx) // line fits in screen
-		wmove(text_win, y, it->len() - ofx - 1);
-	else { // cut line
+	ofx = calc_offset_act(t_byte, 0, *it);
+	if (t_byte - ofx <= maxx) // line fits in screen
+		wmove(text_win, y, t_byte - ofx - 1);
+	else { // cut line 
 		cut.clear();
-		uint bytes = 0, nbytes = 0;
-		if (ofx == 0) {
-			while (bytes + maxx < it->len()) {
+		ulong bytes = 0;
+		if (ofx == 0 && t_byte > (uint)5e8) {
+			while (bytes + maxx < t_byte) {
 				bytes += maxx - 1;
 				cut.push_back({maxx - 1, bytes});
 				ofx += maxx - 1;
 			}
-			flag = it->len() % (maxx - 1);
+			flag = t_byte % (maxx - 1);
 		} else {
 			while (1) {
-				nbytes = dchar2bytes(maxx - 1, bytes, *it);
-				if (nbytes >= it->len() - 1)
+				const ulong nbytes = dchar2bytes(maxx - 1, bytes, *it);
+				if (nbytes >= t_byte - 1)
 					break;
 				cut.push_back({flag, nbytes}); // flag was changed by dchar2bytes
 				ofx += flag;
 				bytes = nbytes;
 			}
 		}
-		mvprint_line(y, 0, *it, bytes, it->len());
-		clean_mark(y);
-		// TODO: fix this, remove hack
-		x = (flag == maxx - 1 ? flag : flag - 1);
-		if (x + ofx > it->len() - 1) 
-			ofx -= x + ofx - it->len() + 1;
+		if (t_byte != it->len()) {
+			mvprint_line(y, 0, *it, bytes, 0);
+			if (!overflows[y])
+				clean_mark(y);
+			x = bytes2dchar(t_byte, bytes, *it) - 1;
+		} else {
+			mvprint_line(y, 0, *it, bytes, t_byte);
+			clean_mark(y);
+			x = (flag == maxx - 1 ? flag : flag - 1);
+		}
+		if (x + (uint)ofx > t_byte) 
+			ofx = t_byte - x + 1;
 		wmove(text_win, y, x);
 	}
 }
@@ -229,7 +236,7 @@ void scrolldown()
 	ofx = 0;
 	wscrl(text_win, 1);
 	wscrl(ln_win, 1);
-	mvwprintw(ln_win, maxy - 1, 0, "%3u", ry + 2);
+	mvwprintw(ln_win, maxy - 1, 0, "%3lu", ry + 2);
 	wrefresh(ln_win);
 	mvprint_line(y, 0, *it, 0, 0);
 	highlight(y, *it);
@@ -245,7 +252,7 @@ void scrollup()
 	ofx = 0;
 	wscrl(text_win, -1);
 	wscrl(ln_win, -1);
-	mvwprintw(ln_win, 0, 0, "%3u", ry);
+	mvwprintw(ln_win, 0, 0, "%3lu", ry);
 	wrefresh(ln_win);
 	mvprint_line(0, 0, *it, 0, 0);
 	highlight(0, *it);
