@@ -53,7 +53,7 @@ void command()
 		getch();
 		reset_view();
 	} else if (strcmp(tmp, "help")  == 0)
-		print2header("resetheader, shrink, usage, stats, run, scroll, find, replace", 1);
+		print2header("resetheader, shrink, stats, run, scroll, find, replace", 1);
 	else if (strncmp(tmp, "scroll", 6) == 0) {
 		uint a;
 		sscanf(tmp + 7, "%u", &a);
@@ -64,20 +64,16 @@ void command()
 			print_text(0);
 			advance(it, ofy - ry);
 		}
-	} else if (strncmp(tmp, "find", 4) == 0) { // example: find_all_shw abc
-		uchar mode = 0;
-		if (strncmp(tmp + 5, "all", 3) == 0)
-			mode = 2;
-		if (strncmp(tmp + 9, "shw", 3) == 0)
-			mode += 1;
-
-		if (tmp[4] == ' ')
-			find((const char*)tmp + 5, 3);
-		else
-			find((const char*)tmp + 13, mode);
+	} else if (strncmp(tmp, "find", 4) == 0) { // example: find string
+		uint from = 0, to = curnum;
+		char mode = 'h';
+		char *pr2 = input_header("range/mode: "); // 5-10 h
+		sscanf(pr2, "%u-%u %c", &from, &to, &mode);
+		free(pr2);
+		find(tmp + 5, from, to, mode);
 	} else if (strncmp(tmp, "replace", 7) == 0) {
 		uint from = 0, to = curnum;
-		if (strncmp(tmp + 7, "_thi", 4) == 0)
+		if (strncmp(tmp + 8, "thi", 4) == 0)
 			to = from = ry;
 		else
 			sscanf(tmp + 8, "%u%u", &from, &to);

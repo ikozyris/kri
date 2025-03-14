@@ -1,37 +1,36 @@
 #include "headers/search.h"
 
-// mode: thi-0/all-1 line | cnt-0/shw-1 results | (bits)
-void find(const char *str, uchar mode)
+// highlight or count occurrences of str in range [from, to]
+void find(const char *str, uint from, uint to, char mode)
 {
-	ushort str_len = strlen(str);
+	uint str_len = strlen(str);
 	if (str_len == 0)
 		return;
-	const uint first_batch = min(maxy, curnum + 1);
-	vector<vector<uint>> matches(first_batch + 1);
-	list<gap_buf>::iterator tmp_it = it;
-	uint total = 0;
-	if (mode & 2) { // all lines
-		if (mode & 1) // append
-			for (uint i = 0; i < first_batch; ++i, ++tmp_it) {
-				matches[i] = search_a(*tmp_it, str, str_len);
-				total += matches[i].size();
-			}
-		else // only count
-			for (uint i = 0; i < first_batch; ++i, ++tmp_it)
-				total += search_c(*tmp_it, str, str_len);
 
-		for (uint i = first_batch; i <= curnum; ++i, ++tmp_it) // count the rest
+	list<gap_buf>::iterator tmp_it = text.begin();
+	advance(tmp_it, from);
+	it = tmp_it;
+	const ulong first_batch = min(maxy, to); // how many lines to display
+	vector<vector<uint>> matches(first_batch + 1);
+	ulong total = 0;
+
+	if (mode == 'h') // save positions for highlighting
+		for (uint i = from; i <= first_batch; ++i, ++tmp_it) { // only displayed lines
+			matches[i - from] = search_a(*tmp_it, str, str_len);
+			total += matches[i - from].size();
+		}
+	else // only count
+		for (uint i = from; i <= first_batch; ++i, ++tmp_it)
 			total += search_c(*tmp_it, str, str_len);
-	} else { // this line
-		if (mode & 1) {// show results
-			matches[0] = search_a(*it, str, str_len);
-			total = matches[0].size();
-		} else
-			total = search_c(*it, str, str_len);
-	}
-	snprintf(lnbuf, lnbf_cpt, "%u matches     ", total);
+
+	for (uint i = first_batch + 1; i < to; ++i, ++tmp_it) // count the rest
+		total += search_c(*tmp_it, str, str_len);
+
+	clear_header();
+	snprintf(lnbuf, lnbf_cpt, "%lu matches", total);
 	print2header(lnbuf, 1);
-	if ((mode & 1) == 0)
+
+	if (mode == 'c')
 		return;
 	str_len -= mbcnt(str, str_len); // get displayed characters
 
@@ -43,7 +42,7 @@ void find(const char *str, uchar mode)
 		switch (ch) {
 		case KEY_RIGHT:
 			tmp_it = it;
-			for (uint i = 0; i < first_batch; ++i, ++tmp_it)
+			for (uint i = from; i < first_batch; ++i, ++tmp_it)
 				if (prevpr[i] != 0 && previ[i] != matches[ofy + i].back()) // more occurrences remaining
 					mvprint_line(i, 0, *tmp_it, prevpr[i], 0);
 			break;
@@ -51,16 +50,16 @@ void find(const char *str, uchar mode)
 		case 0:
 		case KEY_LEFT:
 			tmp_it = it;
-			for (uint i = 0; i < first_batch; ++i, ++tmp_it) {
+			for (uint i = from; i < first_batch; ++i, ++tmp_it) {
 				mvprint_line(i, 0, *tmp_it, 0, 0);
 				dix[i] = previ[i] = prevpr[i] = prevx[i] = 0;
 			}
 			break;
 
 		case KEY_DOWN:
-			for (uint i = 0; i < first_batch; ++i)
+			for (uint i = from; i < first_batch; ++i)
 				dix[i] = previ[i] = prevpr[i] = prevx[i] = 0;
-			if (ofy + maxy > curnum)
+			if (ofy + maxy > min(curnum, to))
 				break;
 			++ofy;
 			++it;
@@ -70,7 +69,7 @@ void find(const char *str, uchar mode)
 			break;
 
 		case KEY_UP:
-			for (uint i = 0; i < first_batch; ++i)
+			for (uint i = from; i < first_batch; ++i)
 				dix[i] = previ[i] = prevpr[i] = prevx[i] = 0;
 			if (ofy <= 0)
 				break;
@@ -88,15 +87,16 @@ void find(const char *str, uchar mode)
 		tmp_it = it;
 		for (uint i = 0; i < first_batch; ++i, ++tmp_it) { // line
 			for (uint j = prevx[i]; j < matches[ofy + i].size(); ++j) { // occurrence
-				uint hg_pos = bytes2dchar(matches[ofy + i][j], previ[i], *tmp_it);
+				const uint pos = matches[ofy + i][j];
+				const uint hg_pos = bytes2dchar(pos, previ[i], *tmp_it);
 				prevx[i] = j;
-				if (dix[i] + hg_pos >= maxx - 1 + prevpr[i]) {
-					prevpr[i] = matches[ofy + i][j] - matches[ofy + i][j] % (maxx - 1);
+				if (dix[i] + hg_pos >= maxx - 1 + prevpr[i]) { // cut
+					prevpr[i] = pos - pos % (maxx - 1);
 					break;
 				}
-				previ[i] = matches[ofy + i][j];
+				previ[i] = pos;
 				dix[i] += hg_pos;
-				wmove(text_win, i, dix[i] % (maxx - 1));
+				wmove(text_win, i + from, dix[i] % (maxx - 1));
 				wchgat(text_win, str_len, A_STANDOUT, 0, 0);
 			}
 		}
@@ -106,9 +106,9 @@ exit:
 	reset_view();
 }
 
-uint *_badchar(const char *str, ushort len)
+uchar *_badchar(const char *str, uchar len)
 {
-	uint *badchar = (uint*)malloc(256 * sizeof(uint));
+	uchar *badchar = (uchar*)malloc(256);
 	for (uint i = 0; i < 256; ++i) // BMH table
 		badchar[i] = len;
 	for (uint i = 0; i < len; i++)
@@ -149,7 +149,7 @@ vector<uint> bm_search(const gap_buf &buf, const char *str, ushort len, bool app
 	vector<uint> matches;
 	uint count = 0;
 	// heuristics
-	uint *badchar = _badchar(str, len);
+	uchar *badchar = _badchar(str, len);
 	uint *goodsuffix = _goodsuffix(str, len);
 
 	for (uint i = 0; i < buf.len() - len;) {
@@ -159,7 +159,7 @@ vector<uint> bm_search(const gap_buf &buf, const char *str, ushort len, bool app
 		for (j = len - 1; j < len && str[j] == at(buf, i + j); --j);
 
 		if (j > len) { // unsigned overflow
-			if (append)	
+			if (append)
 				matches.push_back(i);
 			else
 				++count;
@@ -227,7 +227,6 @@ vector<uint> mt_search(const gap_buf &buf, char ch, const bool append)
 			threads.emplace_back(searchch_c, ref(buf), ch, st, end, ref(indices[i][0]));
 		}
 	}
-	
 
 	for (auto &thread : threads)
 		if (thread.joinable())
