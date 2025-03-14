@@ -38,7 +38,6 @@ int main(int argc, char *argv[])
 		"Show debbuging info:	Alt-I (also command stats in built-in terminal)\n\n"
 		"Built-in terminal commands:\n"
 		"scroll		Scroll to line\n"
-		"usage		Show RAM usage and PID of kri\n"
 		"run		Execute a command\n"
 		"find		Find string, takes 2 parameters, can be combined\n"
 		"		  find_all_shw string -> all lines, highlight results\n"
@@ -84,7 +83,7 @@ init:
 	wnoutrefresh(header_win);
 	overflows.resize(maxy, 0);
 	// all functions think there is a newline at EOL, emulate it
-	if (at(*it, it->len()) != '\n')
+	if (it->len() > 0 && at(*it, it->len()) != '\n')
 		apnd_c(*it, 0);
 	print_text(0);
 //loop:

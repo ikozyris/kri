@@ -64,14 +64,14 @@ uint print_line(const gap_buf &buffer, uint from, uint to, uint y)
 // print text starting from line
 void print_text(uint line)
 {
-	list<gap_buf>::iterator iter = text.begin();
-	advance(iter, ofy + line);
+	list<gap_buf>::iterator i = text.begin();
+	advance(i, ofy + line);
 	wmove(text_win, line, 0);
 	wclrtobot(text_win);
 	wmove(text_win, line, 0);
-	for (uint ty = line; ty < min(curnum + ofy + 1, maxy) && iter != text.end(); ++iter, ++ty) {
-		mvprint_line(ty, 0, *iter, 0, 0);
-		highlight(ty, *iter);
+	for (uint ty = line; ty < min(curnum + ofy + 1, maxy) && i != text.end(); ++i, ++ty) {
+		mvprint_line(ty, 0, *i, 0, 0);
+		highlight(ty, *i);
 	}
 }
 
@@ -95,7 +95,7 @@ void print_new_mark()
 	else if (chp < 0) { // 2 bytes to print
 		char chp2 = at(*it, char_pos + 1);
 		const char tmp[2] = {chp, chp2};
-		mvwaddnstr(text_win, y, maxx -2, tmp, 2);
+		mvwaddnstr(text_win, y, maxx - 2, tmp, 2);
 	}
 }
 
@@ -105,11 +105,10 @@ void save()
 	if (!filename)
 		filename = (char*)input_header("Enter filename: ");
 	FILE *fo = fopen(filename, "w");
-	list<gap_buf>::iterator iter = text.begin();
-	for (uint i = 0; iter != text.end() && i <= curnum; ++iter, ++i) {
-		iter->buffer()[iter->gps()] = 0; // null-terminate substring
-		fputs(iter->buffer(), fo); // print up to gps
-		fputs(iter->buffer() + iter->gpe() + 1, fo); // print remaining bytes
+	list<gap_buf>::iterator i = text.begin();
+	for (uint j = 0; i != text.end() && j <= curnum; ++j, ++i) {
+		fwrite(i->buffer(), 1, i->gps(), fo);
+		fwrite(i->buffer() + i->gpe() + 1, 1, i->cpt() - i->gpe() - 1, fo); // print remaining bytes
 	}
 	fclose(fo);
 
