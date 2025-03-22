@@ -90,9 +90,10 @@ void apply(uint line, const gap_buf &buf)
 	wmove(text_win, line, 0);
 
 	const uint len = min(maxx - 1, bytes2dchar(buf.len(), 0, buf));
-	if (len > lnbf_cpt) { // resize to fit line
+	if (len >= lnbf_cpt) { // resize to fit line
 		free(lnbuf);
-		lnbuf = (char*)malloc(lnbf_cpt = len);
+		lnbf_cpt = __bit_ceil(len + 1);
+		lnbuf = (char*)malloc(lnbf_cpt);
 	}
 	winnstr(text_win, lnbuf, len);
 	uint previ = 0, i = 0;

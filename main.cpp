@@ -83,7 +83,7 @@ init:
 	wnoutrefresh(header_win);
 	overflows.resize(maxy, 0);
 	// all functions think there is a newline at EOL, emulate it
-	if (it->len() > 0 && at(*it, it->len()) != '\n')
+	if (it->buffer()[it->len()] != '\n')
 		apnd_c(*it, 0);
 	print_text(0);
 //loop:

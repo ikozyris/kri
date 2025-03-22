@@ -232,8 +232,7 @@ vector<uint> mt_search(const gap_buf &buf, char ch, const bool append)
 		if (thread.joinable())
 			thread.join();
 
-	vector<uint> matches = mergei(indices, append);
-	return matches;
+	return mergei(indices, append);
 }
 
 // search for str in buf, return vector of occurences
