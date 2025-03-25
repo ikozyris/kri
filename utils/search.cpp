@@ -1,30 +1,28 @@
 #include "headers/search.h"
 
-// highlight or count occurrences of str in range [from, to]
+// highlight or count occurrences of str in range [from, to)
 void find(const char *str, uint from, uint to, char mode)
 {
 	uint str_len = strlen(str);
-	if (str_len == 0)
+	if (str_len == 0 || to > curnum || from >= to)
 		return;
 
 	list<gap_buf>::iterator tmp_it = text.begin();
 	advance(tmp_it, from);
 	it = tmp_it;
 	const ulong first_batch = min(maxy, to); // how many lines to display
-	vector<vector<uint>> matches(first_batch + 1);
+	vector<vector<uint>> matches;
 	ulong total = 0;
-
-	if (mode == 'h') // save positions for highlighting
-		for (uint i = from; i <= first_batch; ++i, ++tmp_it) { // only displayed lines
-			matches[i - from] = search_a(*tmp_it, str, str_len);
-			total += matches[i - from].size();
-		}
-	else // only count
-		for (uint i = from; i <= first_batch; ++i, ++tmp_it)
-			total += search_c(*tmp_it, str, str_len);
-
-	for (uint i = first_batch + 1; i < to; ++i, ++tmp_it) // count the rest
-		total += search_c(*tmp_it, str, str_len);
+	if (mode == 'h') {
+		// fetches only the occurrences that will be shown +1
+		matches = search_la(from, first_batch + 1, str, str_len);
+		for (const auto &vec : matches)
+			total += vec.size();
+		if (to > first_batch)
+			total += search_lc(first_batch + 1, to, str, str_len);
+		else total -= matches.back().size(); //overcounted
+	} else
+		total += search_lc(from, to, str, str_len);
 
 	clear_header();
 	snprintf(lnbuf, lnbf_cpt, "%lu matches", total);
@@ -106,6 +104,87 @@ exit:
 	reset_view();
 }
 
+// each thread searches on chunk of lines with this
+void _search_lc(uint from, uint to, list<gap_buf>::iterator it, const char *str, ushort str_len, uint &count)
+{
+	for (uint i = from; i < to; ++i, ++it)
+		count += search_c(*it, str, str_len);
+}
+
+// each thread searches on chunk of lines with this
+void _search_la(uint from, uint to, list<gap_buf>::iterator it, const char *str, ushort str_len, vector<vector<uint>> &matches)
+{
+	for (uint i = from; i < to; ++i, ++it) {
+		vector<uint> tmp = search_a(*it, str, str_len);
+		matches.push_back(tmp);
+	}
+}
+
+void partition_chunks(uint &nthreads, uint &chunk, uint from, uint to)
+{
+	nthreads = thread::hardware_concurrency();
+	if (nthreads == 0 || to - from < (uint)1e6)
+		nthreads = 1;
+	chunk = (to - from) / nthreads;
+}
+
+void join_threads(vector<thread> &threads)
+{
+	for (auto &thread : threads)
+		if (thread.joinable())
+			thread.join();
+}
+
+// search for str in range [from, to) return occurrences
+vector<vector<uint>> search_la(uint from, uint to, const char *str, ushort str_len)
+{
+	uint nthreads, chunk;
+	partition_chunks(nthreads, chunk, from, to);
+	vector<thread> threads(nthreads);
+	vector<vector<vector<uint>>> indices(nthreads);
+
+	list<gap_buf>::iterator tmp_it = text.begin();
+	advance(tmp_it, from);
+	for (uint i = 0; i < nthreads; ++i) {
+		uint st = i * chunk;
+		uint end = min((i + 1) * chunk, to);
+
+		threads.emplace_back(_search_la, st, end, tmp_it, str, str_len, ref(indices[i]));
+		advance(tmp_it, chunk);
+	}
+	join_threads(threads);
+	// merge results (each threads' chunks to one vector)
+	vector<vector<uint>> result;
+	for (vector<vector<uint>> &vec : indices)
+		result.insert(result.end(), vec.begin(), vec.end());
+	return result;
+}
+
+// search for str in range [from, to)
+ulong search_lc(uint from, uint to, const char *str, ushort str_len)
+{
+	uint nthreads, chunk;
+	partition_chunks(nthreads, chunk, from, to);
+	vector<thread> threads(nthreads);
+	vector<uint> indices(nthreads);
+
+	list<gap_buf>::iterator tmp_it = text.begin();
+	advance(tmp_it, from);
+	for (uint i = 0; i < nthreads; ++i) {
+		uint st = i * chunk;
+		uint end = min((i + 1) * chunk, to);
+
+		threads.emplace_back(_search_lc, st, end, tmp_it, str, str_len, ref(indices[i]));
+		advance(tmp_it, chunk);
+	}
+	join_threads(threads);
+
+	ulong total = 0;
+	for (uint tmp : indices)
+		total += tmp;
+	return total;
+}
+
 uchar *_badchar(const char *str, uchar len)
 {
 	uchar *badchar = (uchar*)malloc(256);
@@ -159,7 +238,7 @@ vector<uint> bm_search(const gap_buf &buf, const char *str, ushort len, bool app
 		for (j = len - 1; j < len && str[j] == at(buf, i + j); --j);
 
 		if (j > len) { // unsigned overflow
-			if (append)
+			if (append) // this wasn't a bottleneck in benchmarks (maybe retest?)
 				matches.push_back(i);
 			else
 				++count;
@@ -209,10 +288,8 @@ void searchch_c(const gap_buf &buf, char ch, uint st, uint end, uint &count)
 // wrapper for searchch() to launch with multi-threaded
 vector<uint> mt_search(const gap_buf &buf, char ch, const bool append)
 {
-	uint nthreads = thread::hardware_concurrency();
-	if (nthreads == 0 || buf.len() < 1e6)
-		nthreads = 1;
-	uint chunk = buf.len() / nthreads;
+	uint nthreads, chunk;
+	partition_chunks(nthreads, chunk, 0, buf.len());
 	vector<thread> threads(nthreads);
 	vector<vector<uint>> indices(nthreads); // each thread's result
 
@@ -227,10 +304,7 @@ vector<uint> mt_search(const gap_buf &buf, char ch, const bool append)
 			threads.emplace_back(searchch_c, ref(buf), ch, st, end, ref(indices[i][0]));
 		}
 	}
-
-	for (auto &thread : threads)
-		if (thread.joinable())
-			thread.join();
+	join_threads(threads);
 
 	return mergei(indices, append);
 }
