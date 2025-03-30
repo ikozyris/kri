@@ -106,12 +106,20 @@ void save()
 		filename = (char*)input_header("Enter filename: ");
 	FILE *fo = fopen(filename, "w");
 	list<gap_buf>::iterator i = text.begin();
-	for (uint j = 0; i != text.end() && j <= curnum; ++j, ++i) {
+	for (uint j = 0; i != text.end() && j < curnum; ++j, ++i) {
 		fwrite(i->buffer(), 1, i->gps(), fo);
 		fwrite(i->buffer() + i->gpe() + 1, 1, i->cpt() - i->gpe() - 1, fo); // print remaining bytes
 	}
-	fclose(fo);
+	ulong end = i->gps();
+	if (end > 0 && i->buffer()[i->gps() - 1] == 0)
+		end--;	
+	fwrite(i->buffer(), 1, end, fo);
+	end = i->cpt() - i->gpe() - 1;
+	if (end > 0 && i->buffer()[i->cpt() - 1] == 0)
+		end--;
+	fwrite(i->buffer() + i->gpe() + 1, 1, end, fo);
 
+	fclose(fo);
 	reset_header();
 	print2header("Saved", 1);
 	wmove(text_win, y, x);
