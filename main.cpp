@@ -310,10 +310,12 @@ init:
 		case EXIT:
 			// has char been inserted, new file, allocations are multiples of 2
 			if (s2[0] != 0 || argc < 2 || text.size() % 2 == 1) {
-				char *in = input_header("Unsaved changes, exit? (y/n) ");
-				flag = in[0]; // tmp var to free branchlessly
+				char *in = input_header("Exit and Save changes? (y/n/c) ");
+				flag = in[0]; // tmp var to free branchlessly | TODO: getch()
 				free(in);
-				if (flag != 'y') {
+				if (flag == 'y')
+					save();
+				else if (flag != 'n') {
 					reset_header();
 					wmove(text_win, y, x);
 					break;

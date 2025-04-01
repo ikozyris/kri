@@ -6,6 +6,7 @@
 #include <vector>
 #include <thread>
 #include <bit>	// for __bit_ceil (cntlz)
+#include <signal.h> // for pause in command suspend
 typedef unsigned long ulong;
 typedef unsigned int uint;
 typedef unsigned short ushort;
