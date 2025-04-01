@@ -31,29 +31,25 @@ void command()
 	if (strcmp(tmp, "resetheader") == 0)
 		reset_header();
 	else if (strcmp(tmp, "shrink") == 0) {
-		ulong prev = lnbf_cpt;
+		char buffer[64] = "";
+		snprintf(buffer, 64, "freed: %lu B", lnbf_cpt - 16 +
+			sizeof(list<gap_buf>) * (text.size() - curnum));
+		clear_header();
+		print2header(buffer, 1);
+
 		// shrink line buffer
 		lnbf_cpt = 16;
 		lnbuf = (char*)realloc(lnbuf, lnbf_cpt);
                 // shrink linked list
                 text.resize(curnum + 1);
-
-		char buffer[64] = "";
-		snprintf(buffer, 64, "freed: %lu B", prev - lnbf_cpt);
-		clear_header();
-		print2header(buffer, 1);
 	} else if (strcmp(tmp, "stats") == 0)
 		stats();
-	else if (strncmp(tmp, "run", 3) == 0) {
-		clear();
-		refresh();
-		int res = system(tmp + 4);
-		printw("\nreturned: %d", res);
-
-		getch();
+	else if (strcmp(tmp, "suspend") == 0) {
+		endwin();
+		pause();
 		reset_view();
 	} else if (strcmp(tmp, "help")  == 0)
-		print2header("resetheader, shrink, stats, run, scroll, find, replace", 1);
+		print2header("resetheader, shrink, stats, suspend, scroll, find, replace", 1);
 	else if (strncmp(tmp, "scroll", 6) == 0) {
 		uint a;
 		sscanf(tmp + 7, "%u", &a);
@@ -76,7 +72,7 @@ void command()
 		if (strncmp(tmp + 8, "thi", 4) == 0)
 			to = from = ry;
 		else
-			sscanf(tmp + 8, "%u%u", &from, &to);
+			sscanf(tmp + 8, "%u-%u", &from, &to);
 		free(tmp);
 
 		tmp = input_header("replace: ");
