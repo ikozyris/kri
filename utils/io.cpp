@@ -110,6 +110,7 @@ void save()
 		fwrite(i->buffer(), 1, i->gps(), fo);
 		fwrite(i->buffer() + i->gpe() + 1, 1, i->cpt() - i->gpe() - 1, fo); // print remaining bytes
 	}
+	// last line may have a \0 byte at i->length, don't print it | TODO: simplify
 	ulong end = i->gps();
 	if (end > 0 && i->buffer()[i->gps() - 1] == 0)
 		end--;	
@@ -147,9 +148,9 @@ void read_fread(FILE *fi)
 	char *tmp = (char*)malloc(SZ), *res, *cur;
 	uint a;
 	while ((a = fread(tmp, sizeof(tmp[0]), SZ, fi))) {
-		tmp[a] = 0;
 		cur = tmp;
-		while ((res = strchr(cur, '\n')) != nullptr) {
+		// TODO: multithreaded search?
+		while ((res = (char*)memchr(cur, '\n', tmp + a - cur)) != nullptr) {
 			apnd_s(*it, cur, (uint)(res - cur) + 1);
 			cur = res + 1;
 			if (++curnum >= text.size())

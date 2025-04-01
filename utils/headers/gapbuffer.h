@@ -71,5 +71,4 @@ void apnd_s(gap_buf &a, const char *str); // append null-terminated string
 void eras(gap_buf &a); // erase the character at current cursor position
 ulong data(const gap_buf &src, ulong from, ulong to); // copy buffer with range to lnbuf
 char at(const gap_buf &src, ulong pos); // return character at position calculating the gap
-ulong data2(const gap_buf &src, ulong from, ulong to); // same as data(), different implementation
-ulong shrink(gap_buf &a); // shrink buffer to just fit size (gap = 2 bytes)
+void prepare_iteration(const gap_buf &src, ulong from, ulong to, ulong &st1, ulong &end1, ulong &st2, ulong &end2);
