@@ -144,19 +144,16 @@ char at(const gap_buf &src, ulong pos)
 	return src[pos];
 }
 
-ulong data2(const gap_buf &src, ulong from, ulong to)
+// to iterate in range [from, to) over the gap buffer on positions containg actual data, 2 loops may be needed to skip the gap
+void prepare_iteration(const gap_buf &src, ulong from, ulong to, ulong &st1, ulong &end1, ulong &st2, ulong &end2)
 {
-	error_check;
-	for (ulong i = from; i < to; ++i)
-		lnbuf[i - from] = at(src, i);
-	return to - from;
+	st1 = from; end1 = to; st2 = end2 = 0;
+	if (from >= src.gps()) {
+		st1 = gaplen(src) + from;
+		end1 = gaplen(src) + to;
+	} else if (from < src.gps() && to > src.gps()) {
+		end1 = src.gps();
+		st2 = src.gpe() + 1;
+		end2 = gaplen(src) + to - from + 1 - src.gps(); // remainder
+	}
 }
-
-// shrink buffers to just fit line (reduce RAM usage)
-ulong shrink(gap_buf &a)
-{
-	ulong bytes = a.cpt();
-	mv_curs(a, a.len());
-	resize(a, a.len() + 2);
-	return bytes - a.cpt();
-}	

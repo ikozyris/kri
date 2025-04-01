@@ -3,14 +3,12 @@
 CXX = g++ --std=c++20
 
 # Compiler flags:
-#  -Ofast		Safe as no floating point arithmetic is done
-#  -march=native	Add optimization flags specific to the host platform
-#  -flto		Link Time Optimizations
-#  -pendatic		Comply with the standards
+#  -O3			Safe as no floating point arithmetic is done
 #  -DHIGHLIGHT		Enable syntax highlighting
+#  -DRELEASE		Don't show debugging info
 #  -lncursesw		Links to ncurses library for wide characters (unicode)
 
-OPTIM = -Ofast -flto -march=native -DRELEASE
+OPTIM = -O3 -s -flto -march=native -DRELEASE
 SIZE = -Os -s -flto -fdata-sections -ffunction-sections -Wl,--gc-sections
 DEBUG = -g #-DDEBUG
 #CXXFLAGS = -Wall -Wextra -pedantic-errors $(DEBUG) -DHIGHLIGHT -lncursesw # Debug only
