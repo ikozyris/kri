@@ -16,39 +16,38 @@ inline ulong min(ulong a, ulong b) { return a < b ? a : b; }
 inline ulong max(ulong a, ulong b) { return a > b ? a : b; }
 
 // pointer can also be 44 bits (3 for 8-aligned + 1 for userspace)
-const __uint128_t PTR_MASK = 0xFFFFFFFFFFFF;	// first 48-bits, = 2^48 - 1
-const __uint128_t GPx_MASK = 0x7FFFFFFFF;	// first 35-bits, = 2^35 - 1
-const __uint128_t CPT_MASK = 0x3F;		// first 6-bits,  = 2^6  - 1
+const ulong PTR_MASK = 0xFFFFFFFFFFFF;	// 48-bits, = 2^48 - 1
+const ulong GPx_MASK = 0x7FFFFFFFF;	// 35-bits, = 2^35 - 1
+const ulong LOW_MASK = 0xFFFF;		// 16-bits \ 126 + 19 = 35
+const ulong HIGH_MASK = 0x7FFFF;	// 19-bits /
+const ulong CPT_MASK = 0x3F;		// 6-bits,  = 2^6  - 1
 
 /* bit packing in mem:
- * 0-47: pointer	48-bit	when expanded to 56-bits: see line 18,28
- * 48-82: gap start	35-bit	max value = 32 GiB
- * 83-117: gap end	35-bit	
- * 118-124: capacity	6-bit	2^cpt => max value = 2^(2^6) = 2^64 - 1
- * 124-127: flags	4-bit	(reserved for future use)*/
+ * 0-47: pointer	48-bit	when expanded to 56-bits: see line 18,30
+ * 48-63,0-19: gap start 35-bit	max value = 32 GiB
+ * 20-54: gap end	35-bit	
+ * 55-61: capacity	6-bit	2^cpt => max value = 2^(2^6) = 2^64 - 1*/
 struct gap_buf {
-	__uint128_t mem;
+	ulong lo;
+	ulong hi;
 
-	char *buffer() const { return (char*)(mem & PTR_MASK); } // in userspace bit 47 = 0
-	char &operator[](ulong pos) const {
-		return ((char*)(mem & PTR_MASK))[pos];
-	}
-	ulong gps() const { return (mem >> 48) & GPx_MASK; } // 0-based
-	ulong gpe() const { return (mem >> 83) & GPx_MASK; } // 0-based
-	ulong cpt() const { return pow2((mem >> 118) & CPT_MASK); } // always power of 2, 1-based
+	char *buffer() const { return (char*)(lo & PTR_MASK); } // in userspace bit 47 = 0
+	char &operator[](ulong pos) const { return ((char*)(lo & PTR_MASK))[pos]; }
+	ulong gps() const { return ((hi & HIGH_MASK) << 16) | (lo >> 48); } // 0-based
+	ulong gpe() const { return (hi >> 20) & GPx_MASK; } // 0-based
+	ulong cpt() const { return pow2((hi >> 55) & CPT_MASK); } // always power of 2, 1-based
 	ulong len() const { return cpt() - gaplen(*this); } // indirectly calculated, 1-based
-	//uchar flag(uchar bit) { return (mem >> 124) & 4; }
 
-	// zero all bits outside of mask and then apply those who are in the mask
-	void set_buf(char *buf) { mem = (mem & ~PTR_MASK) | ((ulong)buf); }
-	void set_gps(ulong st) { mem = ((mem & ~(GPx_MASK << 48)) | ((__uint128_t)st << 48)); }
-	void set_gpe(ulong en) { mem = ((mem & ~(GPx_MASK << 83)) | ((__uint128_t)en << 83)); }
+	// zero all bits outside of mask and then apply those in the mask
+	void set_buf(char *buf) { lo = (lo & ~PTR_MASK) | ((ulong)buf); }
+	void set_gps(ulong st) { lo = (lo & ~(GPx_MASK << 48)) | (st << 48); 
+				hi = (hi & ~HIGH_MASK) | (st >> 16); }
+	void set_gpe(ulong en) { hi = (hi & ~(GPx_MASK << 20)) | (en << 20); }
 	// capacity is always power of 2, only the exponent is stored
-	void set_cpt(ulong cpt) { mem = ((mem & ~(CPT_MASK << 118)) | ((__uint128_t)(log2(cpt)) << 118)); }
-	//void set_flag(bool flag, uchar bit) { mem = ((mem & ~(1 << (124+bit)))) | ((__uint128_t)flag << (124+bit)); }
+	void set_cpt(ulong cpt) { hi = (hi & ~(CPT_MASK << 55)) | ((ulong)log2(cpt) << 55); }
 
 	gap_buf() {
-		mem = 0;
+		lo = hi = 0;
 		set_cpt(array_size);
 		set_gpe(array_size - 1);
 		char *buf = (char*)malloc(array_size);
@@ -56,7 +55,7 @@ struct gap_buf {
 	}
 	~gap_buf() {
 		free(buffer());
-		mem = 0;
+		lo = hi = 0;
 	}
 };
 

@@ -6,7 +6,7 @@ uint lnbf_cpt;
 
 void init(gap_buf &a)
 {
-	a.mem = 0;
+	a.lo = a.hi = 0;
 	char *buffer = (char*)malloc(array_size);
 	a.set_buf(buffer);
 	a.set_gpe(array_size - 1);
