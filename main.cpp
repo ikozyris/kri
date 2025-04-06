@@ -38,16 +38,15 @@ int main(int argc, char *argv[])
 		"Show debbuging info:	Alt-I (also command stats in built-in terminal)\n\n"
 		"Built-in terminal commands:\n"
 		"scroll		Scroll to line\n"
-		"run		Execute a command\n"
+		"suspend	Suspend and wait for signal\n"
 		"find		Find string, takes 2 parameters, can be combined\n"
-		"		  find_all_shw string -> all lines, highlight results\n"
-		"		  find string -> same as above\n"
-		"		  find_thi_cnt -> current line, only count\n"
-		"replace 	Replace string, 2 parameters from, to (default 0, max)\n"
 		"	 	2 other prompts follow asking for old and new string\n"
-		"		  replace \\n str1 \\n str2 -> replace all str1 with str2\n"
-		"		  replace 0 20 \\n str1 \\n str2 \\n -> in range [0,20]\n"
-		"		  replace_thi \\n str1 \\n str -> only in current line\n"
+		"		  find <string> \\n \\n -> all lines, highlight results\n"
+		"		  find <string> \\n 0-10 c -> lines\n"
+		"replace 	Replace string, 2 parameters from, to (default 0, max)\n"
+		"		  replace \\n <str1> \\n <str2> -> replace all str1 with str2\n"
+		"		  replace 0 20 \\n <str1> \\n <str2> \\n -> in range [0,20]\n"
+		"		  replace_thi \\n <str1> \\n <str> -> only in current line\n"
 		"help		List commands");
 		return 0;
 	}

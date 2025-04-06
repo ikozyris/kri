@@ -27,7 +27,7 @@ void find(const char *str, uint from, uint to, char mode)
 		total += search_lc(from, to, str, str_len);
 
 	clear_header();
-	snprintf(lnbuf, lnbf_cpt, "%lu matches", total);
+	snprintf(lnbuf, lnbf_cpt, "%lu matches on lines [%u, %u]", total, from, to - 1);
 	print2header(lnbuf, 1);
 
 	if (mode == 'c')

@@ -66,7 +66,7 @@ void command()
 		char *pr2 = input_header("range/mode: "); // 5-10 h
 		sscanf(pr2, "%u-%u %c", &from, &to, &mode);
 		free(pr2);
-		find(tmp + 5, from, to, mode);
+		find(tmp + 5, from, to + 1, mode); // we want closed interval, function is open
 	} else if (strncmp(tmp, "replace", 7) == 0) {
 		uint from = 0, to = curnum;
 		if (strncmp(tmp + 8, "thi", 4) == 0)
