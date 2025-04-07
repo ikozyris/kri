@@ -18,7 +18,7 @@ inline ulong max(ulong a, ulong b) { return a > b ? a : b; }
 // pointer can also be 44 bits (3 for 8-aligned + 1 for userspace)
 const ulong PTR_MASK = 0xFFFFFFFFFFFF;	// 48-bits, = 2^48 - 1
 const ulong GPx_MASK = 0x7FFFFFFFF;	// 35-bits, = 2^35 - 1
-const ulong LOW_MASK = 0xFFFF;		// 16-bits \ 126 + 19 = 35
+const ulong LOW_MASK = 0xFFFF;		// 16-bits \ 26 + 19 = 35
 const ulong HIGH_MASK = 0x7FFFF;	// 19-bits /
 const ulong CPT_MASK = 0x3F;		// 6-bits,  = 2^6  - 1
 
