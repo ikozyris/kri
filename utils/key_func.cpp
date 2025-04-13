@@ -69,10 +69,7 @@ void command()
 		find(tmp + 5, from, to + 1, mode); // we want closed interval, function is open
 	} else if (strncmp(tmp, "replace", 7) == 0) {
 		uint from = 0, to = curnum;
-		if (strncmp(tmp + 8, "thi", 4) == 0)
-			to = from = ry;
-		else
-			sscanf(tmp + 8, "%u-%u", &from, &to);
+		sscanf(tmp + 8, "%u-%u", &from, &to);
 		free(tmp);
 
 		tmp = input_header("replace: ");
@@ -92,6 +89,7 @@ void command()
 				insert_s(*iter, matches[j] + offset, newst, newst_len);
 				offset += (long)newst_len - (long)tmp_len;
 			}
+			offset = 0;
 		}
 		char *tmp_buff = (char*)malloc(128);
 		sprintf(tmp_buff, "Replaced %u occurences of \"%s\" with \"%s\" from line %u to %u", count, tmp, newst, from, to);

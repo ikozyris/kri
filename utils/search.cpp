@@ -4,8 +4,10 @@
 void find(const char *str, uint from, uint to, char mode)
 {
 	uint str_len = strlen(str);
-	if (str_len == 0 || to > curnum || from > to)
+	if (str_len == 0 || to - 1 > curnum || from > to) {
+		print2header("Invalid parameters", 1);
 		return;
+	}
 
 	list<gap_buf>::iterator tmp_it = text.begin();
 	advance(tmp_it, from);
