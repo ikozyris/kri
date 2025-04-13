@@ -89,7 +89,7 @@ void apply(uint line, const gap_buf &buf)
 		comment = false;
 	wmove(text_win, line, 0);
 
-	const uint len = min(maxx - 1, bytes2dchar(buf.len(), 0, buf));
+	const uint len = min(maxx - 2, bytes2dchar(min(maxx * 2, buf.len()), 0, buf));
 	if (len >= lnbf_cpt) { // resize to fit line
 		free(lnbuf);
 		lnbf_cpt = __bit_ceil(len + 1);
