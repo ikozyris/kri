@@ -54,8 +54,7 @@ void init_lines()
 void clear_header()
 {
 	wmove(header_win, 0, 0);
-	for (short i = maxx; i != 0; --i)
-		waddch(header_win, ' ');
+	wclrtoeol(header_win);
 }
 
 // clear header and print title
@@ -69,6 +68,6 @@ void init_header()
 {
 	// newwin arguments: height, width, start y, start x
 	header_win = newwin(1, maxx, 0, 0);
-	wattrset(header_win, A_STANDOUT);
+	wbkgdset(header_win, A_STANDOUT);
 	reset_header();
 }
