@@ -38,12 +38,12 @@ typedef struct res_s {
 } res_t;
 
 // helper binary search
-bool binary_search(const char *arr, const uchar *len_arr, uint size, const char *line, res_t &res, char type)
+static bool binary_search(const char *arr, const uchar *len_arr, uint size, const char *line, res_t &res, char type)
 {
 	int lo = 0, hi = size - 1, mid;
 	while (lo <= hi) {
-		mid = lo + (hi - lo) / 2;
-		int cmp = strncmp(arr + len_arr[mid-1], line, len_arr[mid] - len_arr[mid - 1]);
+		mid = (hi + lo) / 2;
+		int cmp = strncmp(arr + len_arr[mid - 1], line, len_arr[mid] - len_arr[mid - 1]);
 		if (cmp == 0) {
 			res.len = len_arr ? (len_arr[mid] - len_arr[mid - 1]) : 1;
 			res.type = type;
@@ -56,17 +56,17 @@ bool binary_search(const char *arr, const uchar *len_arr, uint size, const char 
 	return false;
 }
 
-#define nelems(x)  (sizeof(x) / sizeof((x)[0]))
-bool is_separator(char ch) { return (ch > 31 && ch < 48) || (ch > 57 && ch < 65) || (ch > 90 && ch < 95) || ch > 122; }
-#define lookup(x) while (i < len && lnbuf[i] != x) ++i
-inline ulong lookup2(const gap_buf &buf, ulong i) { // len = 2, boyer-moore is not useful
+static bool is_separator(char ch) { return (ch > 31 && ch < 48) || (ch > 57 && ch < 65) || (ch > 90 && ch < 95) || ch > 122; }
+static inline ulong lookup2(const gap_buf &buf, ulong i) { // len = 2, boyer-moore is not useful
 	while (i < buf.len() && !(at(buf, i) == '*' && at(buf, i + 1) == '/'))
 		++i;
 	return i;
 }
+#define nelems(x) (sizeof(x) / sizeof((x)[0]))
+#define lookup(x) while (i < len - 1 && lnbuf[i] != x) ++i
 
 // identify color to use
-res_t get_category(const char *line)
+static res_t get_category(const char *line)
 {
 	res_t res;
 	res.len = 0;
@@ -74,22 +74,22 @@ res_t get_category(const char *line)
 
 	if (binary_search(types, types_len, nelems(types_len), line, res, TYPE));
 	else if (binary_search(keywords, keywords_len, nelems(keywords_len), line, res, KEYWORD));
-	else if (strchr(oper, line[0])) { // binary search would require an array of the form {1,2,3..}
+	else if (memchr(oper, line[0], sizeof(oper))) { // binary search would require an array of the form {1,2,3..}
 		res.len = 1;
 		res.type = OPER;
 	}
 	return res;
 }
 
-bool comment;
+static char continued; // string/comment/directive etc. continued after cut/ in next line
 // highight line
-void apply(uint line, const gap_buf &buf)
+static void apply(uint line, const gap_buf &buf)
 {
 	if (line == 0) // there is no previous line visible
-		comment = false;
+		continued = 0;
 	wmove(text_win, line, 0);
 
-	const uint len = min(maxx - 2, bytes2dchar(min(maxx * 2, buf.len()), 0, buf));
+	const uint len = min(maxx - 1, bytes2dchar(buf.len(), 0, buf));
 	if (len >= lnbf_cpt) { // resize to fit line
 		free(lnbuf);
 		lnbf_cpt = __bit_ceil(len + 1);
@@ -99,14 +99,14 @@ void apply(uint line, const gap_buf &buf)
 	uint previ = 0, i = 0;
 
 	// previous line was a multi-line comment, this might be too
-	if (comment) {
+	if (continued == COMMENT) {
 		ulong pos = lookup2(buf, 0);
 		if (pos == buf.len()) { // still a comment
 			wchgat(text_win, len, 0, COMMENT, 0);
 			return;
 		}
 
-		comment = false;
+		continued = 0;
 		if (pos > len) { // ends after len
 			wchgat(text_win, len, 0, COMMENT, 0);
 			return;
@@ -131,7 +131,7 @@ void apply(uint line, const gap_buf &buf)
 
 			i = min(pos + 1, len);
 			if (i >= len - 1) // comment continues in next line
-				comment = true;
+				continued = COMMENT;
 
 			wchgat(text_win, i - previ + 1, 0, COMMENT, 0);
 		} else if (lnbuf[i] == '\'') { // string / char

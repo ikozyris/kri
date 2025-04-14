@@ -38,13 +38,12 @@ kri # ask for filename on save file operation
 * Enter built-in terminal: Alt-C
 * Show info: Alt-I (also command _stats_ in built-in terminal)
 * Search: command _find_ in builtin terminal, parameters in seperate(\n) queries, example:
-	- find <string>
-	- find 1-5 c (\n) <string>  --> count occurences of string on lines [1,5]
-	- find 3-10 h (\n) <string>  --> highlight occurences of sring on lines [3,10]
+	- find str>
+	- find 1-5 c (\n) str  --> count occurences of string on lines [1,5]
+	- find 3-10 h (\n) str  --> highlight occurences of sring on lines [3,10]
 * Replace: command _replace_ :
-	- replace (\n) <str1> (\n) <str2>  -->  replace all str1 with str2
-	- replace 0-20 (\n) <str1> (\n) <str2> (\n)  -->  in range [0,20]
-	- replace_thi (\n) <str1> (\n) str  -->  only in current line
+	- replace (\n) str1 (\n) str2  -->  replace all str1 with str2
+	- replace 0-20 (\n) str1 (\n) str2 (\n)  -->  in range [0,20]
 
 ### How fast is it?
 kri is several times faster than any other text editor at reading files, searching, and other operations.
