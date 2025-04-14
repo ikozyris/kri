@@ -105,6 +105,11 @@ void save()
 	if (!filename)
 		filename = (char*)input_header("Enter filename: ");
 	FILE *fo = fopen(filename, "w");
+	if (!fo) {
+		print2header("Unable to open file for writing, check permissions", 1);
+		wmove(text_win, y, x);
+		return;
+	}
 	list<gap_buf>::iterator i = text.begin();
 	for (uint j = 0; i != text.end() && j < curnum; ++j, ++i) {
 		fwrite(i->buffer(), 1, i->gps(), fo);
