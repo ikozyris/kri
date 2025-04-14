@@ -1,15 +1,15 @@
 # kri
 <!--[![C/C++ CI](https://github.com/ikozyris/kri/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/ikozyris/kri/actions/workflows/c-cpp.yml)-->
-A simple, compact and *fast* text editor using ncurses and a gap buffer, written in C++, in ~1.5k lines of code.
+A simple, compact and *fast* text editor using ncurses and a gap buffer, written in C++, in ~1.6k lines of code.
 More information is available on the [wiki](https://github.com/ikozyris/kri/wiki).
 
 ![A C++ file in kri](https://github.com/user-attachments/assets/7d221564-da5e-41de-a63b-ba5e31c257d1)
 
 
 ## Install
-The 0.8.1 release has been packaged for:
+The 0.8.2 release has been packaged for:
  - Arch Linux: [AUR package](https://aur.archlinux.org/packages/kri/).
- - Debian/Ubuntu: [deb package](https://github.com/ikozyris/kri/releases/download/v0.8.1/kri_0.8.1_x64-v2.deb)
+ - Debian/Ubuntu: [deb package](https://github.com/ikozyris/kri/releases/download/v0.8.2/kri_0.8.2_x64-v2.deb)
 
 ## Build
 ```sh
