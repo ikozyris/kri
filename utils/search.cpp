@@ -109,14 +109,14 @@ exit:
 }
 
 // each thread searches on chunk of lines with this
-void _search_lc(uint from, uint to, list<gap_buf>::iterator it, const char *str, ushort str_len, uint &count)
+static void _search_lc(uint from, uint to, list<gap_buf>::iterator it, const char *str, ushort str_len, uint &count)
 {
 	for (uint i = from; i < to; ++i, ++it)
 		count += search_c(*it, str, str_len);
 }
 
 // each thread searches on chunk of lines with this
-void _search_la(uint from, uint to, list<gap_buf>::iterator it, const char *str, ushort str_len, vector<vector<uint>> &matches)
+static void _search_la(uint from, uint to, list<gap_buf>::iterator it, const char *str, ushort str_len, vector<vector<uint>> &matches)
 {
 	for (uint i = from; i < to; ++i, ++it) {
 		vector<uint> tmp = search_a(*it, str, str_len);
@@ -124,7 +124,7 @@ void _search_la(uint from, uint to, list<gap_buf>::iterator it, const char *str,
 	}
 }
 
-void partition_chunks(uint &nthreads, uint &chunk, uint from, uint to)
+static void partition_chunks(uint &nthreads, uint &chunk, uint from, uint to)
 {
 	nthreads = thread::hardware_concurrency();
 	if (nthreads == 0 || to - from < (uint)1e6)
@@ -132,7 +132,7 @@ void partition_chunks(uint &nthreads, uint &chunk, uint from, uint to)
 	chunk = (to - from + 1) / nthreads;
 }
 
-void join_threads(vector<thread> &threads)
+static void join_threads(vector<thread> &threads)
 {
 	for (auto &thread : threads)
 		if (thread.joinable())
@@ -189,7 +189,7 @@ ulong search_lc(uint from, uint to, const char *str, ushort str_len)
 	return total;
 }
 
-uchar *_badchar(const char *str, uchar len)
+static uchar *_badchar(const char *str, uchar len)
 {
 	uchar *badchar = (uchar*)malloc(256);
 	for (uint i = 0; i < 256; ++i) // BMH table
@@ -200,7 +200,7 @@ uchar *_badchar(const char *str, uchar len)
 	return badchar;
 }
 
-uint *_goodsuffix(const char *str, ushort len)
+static uint *_goodsuffix(const char *str, ushort len)
 {
 	uint *gs = (uint*)malloc(len * sizeof(uint));
 	int *pos = (int*)malloc(len * sizeof(int));
@@ -227,7 +227,7 @@ uint *_goodsuffix(const char *str, ushort len)
 	return gs;
 }
 
-vector<uint> bm_search(const gap_buf &buf, const char *str, ushort len, bool append)
+static vector<uint> bm_search(const gap_buf &buf, const char *str, ushort len, bool append)
 {
 	vector<uint> matches;
 	uint count = 0;
@@ -258,7 +258,7 @@ vector<uint> bm_search(const gap_buf &buf, const char *str, ushort len, bool app
 }
 
 // each thread searches with this
-void searchch_a(const gap_buf &buf, char ch, ulong st, ulong end, vector<uint> &matches)
+static void searchch_a(const gap_buf &buf, char ch, ulong st, ulong end, vector<uint> &matches)
 {
 	ulong st1 = st, st2, end1 = end, end2 = 0;
 	const char *buffer = buf.buffer();
@@ -272,7 +272,7 @@ void searchch_a(const gap_buf &buf, char ch, ulong st, ulong end, vector<uint> &
 }
 
 // each thread searches with this
-void searchch_c(const gap_buf &buf, char ch, ulong st, ulong end, uint &count)
+static void searchch_c(const gap_buf &buf, char ch, ulong st, ulong end, uint &count)
 {
 	ulong st1, end1, st2, end2;
 	const char *buffer = buf.buffer();
@@ -286,7 +286,7 @@ void searchch_c(const gap_buf &buf, char ch, ulong st, ulong end, uint &count)
 }
 
 // wrapper for searchch() to launch with multi-threaded
-vector<uint> mt_search(const gap_buf &buf, char ch, bool append)
+static vector<uint> mt_search(const gap_buf &buf, char ch, bool append)
 {
 	uint nthreads, chunk;
 	partition_chunks(nthreads, chunk, 0, buf.len() - 1); // -1 as last char is \n
