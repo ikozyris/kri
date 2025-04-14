@@ -127,6 +127,9 @@ void enter()
 	if (y < maxy - 1)
 		wmove(text_win, y + 1, 0);
 	else { // y = maxy; scroll
+		wscrl(ln_win, 1);
+		mvwprintw(ln_win, maxy - 1, 0, "%3lu", ry + 2);
+		wnoutrefresh(ln_win);
 		wscrl(text_win, 1);
 		++ofy;
 		mvprint_line(maxy - 1, 0, *it, 0, 0);
@@ -198,7 +201,7 @@ void scrolldown()
 	wscrl(text_win, 1);
 	wscrl(ln_win, 1);
 	mvwprintw(ln_win, maxy - 1, 0, "%3lu", ry + 2);
-	wrefresh(ln_win);
+	wnoutrefresh(ln_win);
 	mvprint_line(y, 0, *it, 0, 0);
 	highlight(y, *it);
 	wmove(text_win, y, 0);
@@ -214,7 +217,7 @@ void scrollup()
 	wscrl(text_win, -1);
 	wscrl(ln_win, -1);
 	mvwprintw(ln_win, 0, 0, "%3lu", ry);
-	wrefresh(ln_win);
+	wnoutrefresh(ln_win);
 	mvprint_line(0, 0, *it, 0, 0);
 	highlight(0, *it);
 	wmove(text_win, 0, 0);
