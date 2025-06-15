@@ -62,8 +62,8 @@ struct gap_buf {
 void init(gap_buf &a); // initialize the gap buffer (should already be called by constructor)
 void resize(gap_buf &a, ulong size); // resize the buffer
 void mv_curs(gap_buf &a, ulong pos); // move the cursor to position
-void insert_c(gap_buf &a, ulong pos, char ch); // insert character at position
-void insert_s(gap_buf &a, ulong pos, const char *str, ulong len); // insert string with given length at pos
+void insert_c(gap_buf &a, char ch); // insert character at cursor position
+void insert_s(gap_buf &a, const char *str, ulong len); // insert string with given length at cursor pos
 void apnd_c(gap_buf &a, char ch); // append character
 void apnd_s(gap_buf &a, const char *str, ulong size); // append string with given size
 void apnd_s(gap_buf &a, const char *str); // append null-terminated string

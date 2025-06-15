@@ -16,7 +16,7 @@ char hrsize(size_t bytes, char *dest, ushort dest_cpt)
 	return suffix[i];
 }
 
-// helper function for calc_offset_[dis|act](), dchar2bytes()
+// helper function for calculating offsets
 static void get_off(ulong &x, ulong &i, const gap_buf &buf)
 {
 	char ch = at(buf, i);
@@ -29,22 +29,25 @@ static void get_off(ulong &x, ulong &i, const gap_buf &buf)
 }
 
 // displayed characters to bytes, flag -> disp_x where counting stopped at
-ulong dchar2bytes(ulong disp_x, ulong from, const gap_buf &buf)
+ulong dchar2bytes(ulong disp_x, ulong from, const iter *i)
 {
+	from += i->offset;
 	ulong x = 0;
-	while (x < disp_x && from < buf.len())
-		get_off(x, from, buf);
+	while (x < disp_x && from < i->orig->len())
+		get_off(x, from, *i->orig);
 	flag = x;
-	return from;
+	return from - i->offset;
 }
 
 // bytes to displayed characters, flag -> bytes of x returned
-ulong bytes2dchar(ulong bytes, ulong from, const gap_buf &buf)
+ulong bytes2dchar(ulong bytes, ulong from, const iter *i)
 {
+	from += i->offset;
+	bytes += i->offset;
 	ulong x = 0;
 	while (from < bytes)
-		get_off(x, from, buf);
-	flag = from;
+		get_off(x, from, *i->orig);
+	flag = from - i->offset;
 	return x;
 }
 
@@ -61,7 +64,7 @@ ulong mbcnt(const char *str, ulong len)
 // currently on a tab; go to previous char
 uint prevdchar()
 {
-	long prev_ofx = calc_offset_dis(x - 8, *it);
+	long prev_ofx = calc_offset_dis(x - 8, 0, &it);
 	long diff = prev_ofx - ofx;
 	wmove(text_win, y, x - diff - 1);
 	return diff;

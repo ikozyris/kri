@@ -1,15 +1,15 @@
 #include "utils/headers/key_func.h"
 #include "headers/keybindings.h"
 
-list<gap_buf> text(2);
-list<gap_buf>::iterator it;
+llist text;
+iter it;
 vector<pair<uint, uint>> cut;
 vector<bool> overflows;
 WINDOW *header_win, *ln_win, *text_win;
 wchar_t s[4];
 char s2[4], *filename;
 cchar_t mark;
-ulong ry, rx, curnum;
+ulong ry, rx;
 uint y, x, maxy, maxx, flag;
 long ofy;
 
@@ -50,22 +50,26 @@ int main(int argc, char *argv[])
 		"help		List commands");
 		return 0;
 	}
-	it = text.begin();
-
+	text.head = create_chunk();
+	text.tail = create_chunk();
+	chunk *new_chunk_tmp = create_chunk();
+	connect(text.head, new_chunk_tmp); // insert without updating size
+	connect(new_chunk_tmp, text.tail);
+	point2chunk(&it, text.head->next);
 read:
 	if (argc > 1) {
 		filename = (char*)malloc(sizeof(char) * 128);
 		strcpy(filename, argv[1]);
-		FILE *fi = fopen(filename, "r");
+		int fd = open(filename, O_RDONLY);
 #ifdef HIGHLIGHT
 		eligible = isc(argv[1]); // syntax highlighting
 #endif
-		if (fi == NULL) {
+		if (fd == -1) {
 			print2header("New file", 1);
 			goto init;
 		}
-		read_fread(fi);
-		fclose(fi);
+		read_file(fd);
+		close(fd);
 	}
 init:
 	init_curses();
@@ -82,20 +86,25 @@ init:
 	wnoutrefresh(header_win);
 	overflows.resize(maxy, 0);
 	// all functions think there is a newline at EOL, emulate it
-	if (it->buffer()[it->len()] != '\n')
-		apnd_c(*it, 0);
+	// if (it.orig->buffer()[it.orig->len()] != '\n') {
+		// apnd_c(*it.orig, 0);
+		// it.parent()->len[it.parent()->num_lines - 1]++;
+	// }
+
 	print_text(0);
 //loop:
 	wmove(text_win, 0, 0);
-	it = text.begin();
+	point2chunk(&it, text.head->next);
+	it.relative_pos = it.global_pos = 0;
+
 	while (1) {
 		getyx(text_win, y, x);
 		ry = y + ofy;
 		// if out of bounds: move (to avoid bugs)
-		if (x > min(it->len() - 1 - ofx, maxx))
-			wmove(text_win, y, x = min(it->len() - ofx - 1, maxx));
+		if (x > min(it.len() - 1 - ofx, maxx))
+			wmove(text_win, y, x = min(it.len() - ofx - 1, maxx));
 		rx = x + ofx;
-		mv_curs(*it, rx);
+		mv_curs(*it.orig, rx + it.offset);
 
 #ifndef RELEASE
 		stats();
@@ -108,17 +117,17 @@ init:
 		wget_wch(text_win, (wint_t*)s);
 		switch (s[0]) {
 		case DOWN:
-			if (ry >= curnum) // do not scroll indefinetly
+			if (ry >= text.lines) // do not scroll indefinetly
 				break;
 			if (!cut.empty()) // revert cut
-				mvprint_line(y, 0, *it, 0, 0);
+				mvprint_line(y, 0, &it, 0, 0);
 			cut.clear();
 			ofx = 0; // invalidated
-			if (y == maxy - 1 && ry < curnum)
+			if (y == maxy - 1 && ry < text.lines)
 				scrolldown();
 			else {
-				++it;
-				ofx = calc_offset_dis(x, *it);
+				iterate_fw(&it, 1);
+				ofx = calc_offset_dis(x, 0, &it);
 				if (flag < maxx)
 					wmove(text_win, y + 1, flag);
 				else { // tab cut
@@ -131,12 +140,12 @@ init:
 
 		case UP:
 			if (!cut.empty()) // revert cut
-				mvprint_line(y, 0, *it, 0, 0);
+				mvprint_line(y, 0, &it, 0, 0);
 			if (y == 0 && ofy != 0)
 				scrollup();
 			else if (y != 0) {
-				--it;
-				ofx = calc_offset_dis(x, *it);
+				iterate_bw(&it, 1);
+				ofx = calc_offset_dis(x, 0, &it);
 				if (flag < maxx)
 					wmove(text_win, y - 1, flag);
 				else { // tab cut
@@ -166,11 +175,12 @@ init:
 
 		case BACKSPACE:
 			if (x > 0) {
-				eras(*it);
-				if (it->buffer()[it->gps()] == '\t') { // deleted a tab
+				eras(*it.orig);
+				it.parent()->len[it.relative_pos]--;
+				if (it.orig->buffer()[it.orig->gps()] == '\t') { // deleted a tab
 					ofx += prevdchar();
 					x = getcurx(text_win);
-					mvprint_line(y, 0, *it, 0, 0);
+					mvprint_line(y, 0, &it, 0, 0);
 					wclrtoeol(text_win);
 				} else {
 					mvwdelch(text_win, y, --x);
@@ -178,75 +188,63 @@ init:
 						print_new_mark();
 				}
 				clear_attrs;
-				highlight(y, *it);
+				highlight(y, &it);
 				wmove(text_win, y, x);
 			} else if (!cut.empty()) { // delete x_-1 on cut line
-				eras(*it);
+				eras(*it.orig);
+				it.parent()->len[it.relative_pos]--;
 				left();
 			} else if (y != 0) { // x = 0 && cut.empty(); merge lines
-				list<gap_buf>::iterator curln = it;
-				--it;
-				const uint tmp = it->len() - 1;
-				mv_curs(*it, tmp); // delete \n
-				it->set_gpe(it->cpt() - 1);
-
-				data(*curln, 0, curln->len());
-				apnd_s(*it, lnbuf, curln->len()); // merge
-				text.erase(curln); // delete actual line
-				--curnum;
+				iter b = it;
+				iterate_bw(&it, 1);
+				uint tmp = it.len();
+				merge_lines(&text, &it, &b);
+				--text.lines;
 				print_text(--y);
-				wmove(text_win, y, 0);
-				mvr_scurs(tmp + 1);
+				mvr_scurs(tmp);
 			}
 			break;
 
 		case DELETE:
-			if (it->buffer()[it->gpe() + 1u] == '\n') { // similar to backspace
-				list<gap_buf>::iterator curln = it; // current line
-				curln->set_gpe(curln->cpt() - 1); // delete newline
-				++it; // next line
-				data(*it, 0, it->len());
-				apnd_s(*curln, lnbuf, it->len());
-				text.erase(it);
-				it = curln;
-				--curnum;
+			if (it.buffer()[it.gpe() + 1u] == '\n') { // similar to backspace
+				iter b = it;
+				iterate_fw(&b, 1);
+				merge_lines(&text, &it, &b);
+				--text.lines;
 				print_text(y);
 				wmove(text_win, y, x);
-			} else if (rx + 1 < it->len()) {
+			} else if (rx + 1 < it.len()) {
+				it.parent()->len[it.relative_pos]--;
 				// or mblen(it->buffer + it->gpe + 1, 3);
-				uint len = it->buffer()[it->gpe() + 1] < 0 ? 2 : 1;
-				mveras(*it, rx + len);
+				uint len = it.buffer()[it.gpe() + 1] < 0 ? 2 : 1;
+				mveras(*it.orig, rx + len);
 				ofx += len - 1;
-				if (it->buffer()[it->gps()] == '\t') {
+				if (it.buffer()[it.gps()] == '\t') {
 					wclrtoeol(text_win);
-					mvprint_line(y, x, *it, rx, 0);
+					mvprint_line(y, x, &it, rx, 0);
 				} else {
 					wdelch(text_win);
 					clear_attrs;
 					print_new_mark();
 				}
-				highlight(y, *it);
+				highlight(y, &it);
 				wmove(text_win, y, x);
 			}
 			break;
 
 		case DELLINE:
-			if (curnum > 0 && text.size() > 2) {
-				curnum--;
-				list<gap_buf>::iterator curln = it;
-				++it;
-				text.erase(curln);
+			if (text.lines > 0 && text.nodes > 2) {
+				rm_mline(it.parent(), it.relative_pos, &it);
+				text.lines--;
 				print_text(y);
 				wmove(text_win, y, 0);
 			} else { // clear line buffer
-				it->set_gps(0); it->set_gpe(it->cpt() - 2);
-				it->buffer()[it->cpt() - 1] = 0;
+				rm_mline(it.parent(), it.relative_pos, &it);
 				clearline;
 			}
-			break;
+			break;//*/
 
 		case ENTER:
-			highlight(y, *it);
 			enter();
 			break;
 
@@ -262,8 +260,8 @@ init:
 			save();
 			s2[0] = 0; // no new char has been inserted since last save
 			argc = 3;
-			if (text.size() % 2 == 1)
-				text.resize(text.size() + 1);
+			// if (text.size() % 2 == 1)
+				// text.resize(text.size() + 1);
 			break;
 
 		case 27: { // ALT or ESC
@@ -277,14 +275,14 @@ init:
 			else if (ch == SWITCH) { // switch file
 				argc = 2;
 				argv[1] = input_header("File to open: ");
-				list<gap_buf>::iterator iter;
+				/*list<gap_buf>::iterator iter;
 				uint i;
-				for (iter = text.begin(), i = 0; iter != text.end() && i <= curnum; ++iter, ++i) {
+				for (iter = text.begin(), i = 0; iter != text.end() && i <= text.size; ++iter, ++i) {
 					iter->set_gps(0);
 					iter->set_gpe(iter->cpt());
 				}
-				curnum = 0;
-				it = text.begin();
+				text.size = 0;
+				it = text.begin();*/
 				wclear(text_win);
 				goto read;
 			}
@@ -308,7 +306,7 @@ init:
 
 		case EXIT:
 			// has char been inserted, new file, allocations are multiples of 2
-			if (s2[0] != 0 || argc < 2 || text.size() % 2 == 1) {
+			if (s2[0] != 0 || argc < 2 /*|| text.nodes % 2 == 1*/) {
 				char *in = input_header("Exit and Save changes? (y/n/c) ");
 				flag = in[0]; // tmp var to free branchlessly | TODO: getch()
 				free(in);
@@ -323,8 +321,8 @@ init:
 			goto stop;
 
 		case KEY_TAB:
-			insert_c(*it, rx, '\t');
-			mvprint_line(y, x, *it, rx, 0);
+			insert_c(*it.orig, '\t');
+			mvprint_line(y, x, &it, rx, 0);
 			ofx -= 7 - x % 8;
 			wmove(text_win, y, x + 8 - x % 8);
 			break;
@@ -336,23 +334,24 @@ init:
 				cut.push_back({maxx - 1, ofx});
 				clearline;
 				ofx += maxx - 1;
-				print_line(*it, ofx, 0, y);
+				print_line(&it, ofx, 0, y);
 				wmove(text_win, y, x = 0);
 				rx = ofx;
-			} if (it->buffer()[it->gpe() + 1] == '\t') { // next character is a tab
+			} if (it.buffer()[it.gpe() + 1] == '\t') { // next character is a tab
 				waddnwstr(text_win, s, 1);
 				if (x % 8 >= 7) // filled the empty tab space; reprint tab
 					winsch(text_win, '\t');
 			} else {
 				wins_nwstr(text_win, s, 1);
 				clear_attrs;
-				highlight(y, *it);
+				highlight(y, &it);
 				wmove(text_win, y, x + 1);
 			}
 			uint len = wcstombs(s2, s, 4);
-			insert_s(*it, rx, s2, len);
+			insert_s(*it.orig, s2, len);
 			if (len > 1)
 				ofx += len - 1; // UTF-8 character
+			it.parent()->len[it.relative_pos] += len;
 			break;
 		}
 	}
