@@ -1,0 +1,176 @@
+#include "headers/merged_unrolled-list.h"
+#include <ncurses.h>
+
+// point iterator to chunk (global_pos not updated)
+void point2chunk(iter *it, chunk *a)
+{
+	it->orig = &a->merged_lines;
+	it->relative_pos = it->offset = 0;
+}
+
+void append_len(chunk *a, uint len)
+{
+	if (a->len_cpt < a->num_lines + 1) {
+		a->len_cpt = (1 + a->len_cpt) * 2;
+		a->len = (uchar*)realloc(a->len, a->len_cpt);
+	}
+	a->len[a->num_lines] = len;
+	a->num_lines++;
+}
+
+// get offset
+void line_offset(iter *it, uint n)
+{
+	chunk *a = it->parent();
+	uint count = 0, i = it->relative_pos;
+	for (; i < it->relative_pos + n; ++i)
+		count += a->len[i];
+	it->offset += count;
+	it->relative_pos = i;
+}
+
+// increase iterator backwards by dist lines
+void iterate_bw(iter *it, uint dist)
+{
+	chunk *a = it->parent();
+	it->global_pos -= dist;
+	while (dist > it->relative_pos) {
+		dist -= it->relative_pos;
+		a = a->prev;
+		point2chunk(it, a);
+		it->relative_pos = a->num_lines;
+	}
+	uint tmp = it->relative_pos;
+	it->relative_pos = it->offset = 0;
+	line_offset(it, tmp - dist);
+	//mv_curs(*it->orig, it->offset);
+}
+
+// increase iterator forwards by dist lines
+void iterate_fw(iter *it, uint dist)
+{
+	chunk *a = it->parent();
+	it->global_pos += dist;
+	while (dist + it->relative_pos >= a->num_lines) { // TODO: optimize
+		dist -= (a->num_lines - it->relative_pos);
+		a = a->next;
+		point2chunk(it, a);
+	}
+	line_offset(it, dist);
+	//mv_curs(*it->orig, it->offset);
+}
+
+// remove a line from a chunk
+void rm_mline(chunk *ch, uint pos, iter *it) { // FIXME: broken
+	if (ch->num_lines == 1) {
+		connect(ch->prev, ch->next);
+		free(ch);
+	} else {
+		if (it)
+			it->orig->set_gpe(it->offset + it->len());
+		memmove(&ch->len[pos], &ch->len[pos + 1], ch->num_lines - pos - 1);
+		ch->num_lines--;
+	}
+}
+
+// moves actual cursor to last line
+void goto_last_mline(chunk *a) { mv_curs(a->merged_lines, a->merged_lines.len() - a->len[a->num_lines - 1]); }
+
+// TODO: it may be faster to split the first of merged lines
+// merged line has grown too much; split last line by moving it to next node (or create new to fit)
+void split_mline(llist *list, chunk *a)
+{
+	uint last_length = a->len[a->num_lines - 1];
+	
+	chunk *next_chunk; // may be newly allocated
+	// create new chunk if last line doesn't fit in next chunk
+	if (a->next == list->tail || a->next->merged_lines.len() + last_length > MAX_CHUNK_SIZE) {
+		next_chunk = create_chunk();
+		insert_chunk(list, a, next_chunk);
+	} else { // shift all lengths of next chunk by one to put this length in pos 0
+		next_chunk = a->next;
+		memmove(&next_chunk->len[1], &next_chunk->len[0], next_chunk->num_lines);
+	}
+	a->num_lines--;
+	apnd_s(next_chunk->merged_lines, a->merged_lines.buffer() + a->merged_lines.len() - last_length, last_length);
+	append_len(next_chunk, last_length);
+	// delete last line
+	a->merged_lines.set_gpe(a->merged_lines.cpt() - 1);
+}
+
+// merge b into a
+void mergeba(iter *a, iter *b)
+{
+	chunk *a_ch = a->parent(), *b_ch = b->parent();
+	insert_s(a_ch->merged_lines, b_ch->merged_lines.buffer(), b->len() - 1);
+	a_ch->len[a->relative_pos] = a->len() + b->len() - 1;
+	rm_mline(b_ch, b->relative_pos, nullptr);
+}
+
+// TODO: this is a mess
+// merge a and b, b is invalidated
+void merge_lines(llist *list, iter *a, iter *b)
+{
+	chunk *a_ch = a->parent(), *b_ch = b->parent();
+	if (a_ch == b_ch) {
+		eras(a_ch->merged_lines);
+		uint rel_pos = a->relative_pos;
+		a_ch->len[rel_pos + 1] += a_ch->len[rel_pos] - 1;
+		memmove(&a_ch->len[rel_pos], &a_ch->len[rel_pos + 1], a_ch->num_lines - rel_pos);
+		a_ch->num_lines--;
+	} else { // need to move at least one line to another chunk
+		bool use_a = a_ch->merged_lines.len() + b->len() < MAX_CHUNK_SIZE || a_ch->num_lines == 0;
+		bool use_b = b_ch->merged_lines.len() + a->len() < MAX_CHUNK_SIZE || b_ch->num_lines == 0;
+		if (use_a && use_b) { // merge small into large
+			if (a_ch->merged_lines.len() < b_ch->merged_lines.len())
+				use_b = false;
+			else
+				use_a = false;
+		}
+		if (use_a)
+			mergeba(b, a);
+		else if (use_b)
+			mergeba(a, b);
+		else {
+			// 3rd case: none fits; create new chunk
+			chunk *new_chunk = create_chunk();
+			// combine a and b's lines (remove a's last char as a newline)
+			apnd_s(new_chunk->merged_lines, a_ch->merged_lines.buffer() + a->offset, a->len() - 1);
+			rm_mline(a_ch, a->relative_pos, nullptr);
+			apnd_s(new_chunk->merged_lines, b_ch->merged_lines.buffer() + b->offset, b->len());
+			rm_mline(b_ch, b->relative_pos, nullptr);
+			
+			append_len(new_chunk, a->len() + b->len() - 1);
+			insert_chunk(list, a_ch, new_chunk);
+			point2chunk(a, a_ch);
+		}
+	}
+}
+
+// insert new_line after before
+/*void insert_line(llist *list, iter *before, gap_buf *new_line)
+{
+	if (before->orig->len() + new_line->len() < 256) {
+		insert_s(*before->orig, new_line->buffer(), new_line->len());
+		chunk *ch = before->parent();
+		uint pos = before->relative_pos + 1;
+		memmove(&ch->len[pos], &ch->len[pos - 1], ch->num_lines - pos - 1);
+	} else if ()
+}*/
+
+// insert new before
+void insert_chunk(llist *list, chunk *before, chunk *new_chunk)
+{
+	connect(new_chunk, before->next);
+	connect(before, new_chunk);
+	list->nodes++;
+}
+
+chunk *create_chunk()
+{
+	chunk *new_chunk = (chunk*)malloc(sizeof(chunk));
+	new_chunk->num_lines = new_chunk->len_cpt = 0;
+	new_chunk->len = nullptr;
+	init(new_chunk->merged_lines);
+	return new_chunk;
+}

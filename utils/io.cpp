@@ -36,23 +36,23 @@ char *input_header(const char *q)
 }
 
 // prints substring of buffer from: (curr x + 'from' bytes), if (to == 0) print until maxx
-uint print_line(const gap_buf &buffer, uint from, uint to, uint y)
+uint print_line(const iter *i, uint from, uint to, uint y)
 {
 	// only newline or emulated newline ('\0') is in buffer
-	if (buffer.len() <= 1)
+	if (i->len() <= 1)
 		return 0;
 	if (to == 0) {
 		uint prevx = getcurx(text_win); // in case x != 0 (mvprint_line)
-		uint prop = dchar2bytes(maxx - 1 - prevx, from, buffer);
-		if (prop < buffer.len() - 1) {
-			to = prop;
+		uint prop_bytes = dchar2bytes(maxx - 1 - prevx, from, i);
+		if (prop_bytes < i->len() - 1) {
+			to = prop_bytes;
 			overflows[y] = true;
 		} else {
-			to = buffer.len();
+			to = i->len();
 			overflows[y] = false;
 		}
 	}
-	uint rlen = data(buffer, from, to);
+	uint rlen = data(*i->orig, from + i->offset, to + i->offset);
 	if (lnbuf[rlen - 1] == '\n' || lnbuf[rlen - 1] == '\t')
 		--rlen;
 	waddnstr(text_win, lnbuf, rlen);
@@ -64,21 +64,24 @@ uint print_line(const gap_buf &buffer, uint from, uint to, uint y)
 // print text starting from line
 void print_text(uint line)
 {
-	list<gap_buf>::iterator i = text.begin();
-	advance(i, ofy + line);
+	iter i;
+	point2chunk(&i, text.head->next);
+	i.global_pos = 0;
+	iterate_fw(&i, ofy + line);
 	wmove(text_win, line, 0);
 	wclrtobot(text_win);
 	wmove(text_win, line, 0);
-	for (uint ty = line; ty < min(curnum + ofy + 1, maxy) && i != text.end(); ++i, ++ty) {
-		mvprint_line(ty, 0, *i, 0, 0);
-		highlight(ty, *i);
+	// FIXME: print last line
+	for (uint ty = line; ty < min(text.lines + ofy - 1, maxy) && i.orig != 0; iterate_fw(&i, 1), ++ty) {
+		mvprint_line(ty, 0, &i, 0, 0);
+		highlight(ty, &i);
 	}
 }
 
 // deleted a char; the mark moved left | invalidates flag
 void print_new_mark()
 {
-	uint char_pos = dchar2bytes(maxx - 2, 0, *it);
+	uint char_pos = dchar2bytes(maxx - 2, 0, &it);
 	if (flag < maxx - 2) { // after deleting a char, new len could be < maxx
 		if (overflows[y] == true) {
 			overflows[y] = false;
@@ -87,13 +90,13 @@ void print_new_mark()
 		return;
 	}
 	print_del_mark(y);
-	char chp = at(*it, char_pos);
+	char chp = at(*it.orig, char_pos + it.offset);
 	if (chp == '\t')
 		clean_mark(y);
 	else if (chp > 0)
 		mvwaddch(text_win, y, maxx - 2, chp);
 	else if (chp < 0) { // 2 bytes to print
-		char chp2 = at(*it, char_pos + 1);
+		char chp2 = at(*it.orig, char_pos + 1);
 		const char tmp[2] = {chp, chp2};
 		mvwaddnstr(text_win, y, maxx - 2, tmp, 2);
 	}
@@ -110,21 +113,22 @@ void save()
 		wmove(text_win, y, x);
 		return;
 	}
-	list<gap_buf>::iterator i = text.begin();
-	for (uint j = 0; i != text.end() && j < curnum; ++j, ++i) {
-		fwrite(i->buffer(), 1, i->gps(), fo);
-		fwrite(i->buffer() + i->gpe() + 1, 1, i->cpt() - i->gpe() - 1, fo); // print remaining bytes
+#define gpb i->merged_lines
+	chunk *i = text.head->next;
+	for (uint j = 0; i != text.tail && j < text.nodes; ++j, i = i->next) {
+		fwrite(gpb.buffer(), 1, gpb.gps(), fo);
+		fwrite(gpb.buffer() + gpb.gpe() + 1, 1, gpb.cpt() - gpb.gpe() - 1, fo); // print remaining bytes
 	}
 	// last line may have a \0 byte at i->length, don't print it | TODO: simplify
-	ulong end = i->gps();
-	if (end > 0 && i->buffer()[i->gps() - 1] == 0)
+	ulong end = gpb.gps();
+	if (end > 0 && gpb.buffer()[gpb.gps() - 1] == 0)
 		end--;	
-	fwrite(i->buffer(), 1, end, fo);
-	end = i->cpt() - i->gpe() - 1;
-	if (end > 0 && i->buffer()[i->cpt() - 1] == 0)
+	fwrite(gpb.buffer(), 1, end, fo);
+	end = gpb.cpt() - gpb.gpe() - 1;
+	if (end > 0 && gpb.buffer()[gpb.cpt() - 1] == 0)
 		end--;
-	fwrite(i->buffer() + i->gpe() + 1, 1, end, fo);
-
+	fwrite(gpb.buffer() + gpb.gpe() + 1, 1, end, fo);
+#undef gpb
 	fclose(fo);
 	reset_header();
 	print2header("Saved", 1);
@@ -134,36 +138,30 @@ void save()
 // For size see: https://github.com/ikozyris/kri/wiki/Comments-on-optimizations#buffer-size-for-reading
 #define SZ 524288 // 512 KiB
 
-void read_fgets(FILE *fi)
+void read_file(int fd)
 {
-	char *tmp = (char*)malloc(SZ);
-	while ((fgets_unlocked(tmp, SZ, fi))) {
-		apnd_s(*it, tmp);
-		if (it->buffer()[it->len() - 1] == '\n') { [[unlikely]]
-			if (++curnum >= text.size()) [[unlikely]]
-				text.resize(text.size() * 2);
-			++it;
-		}
-	}
-	free(tmp);
-}
-
-void read_fread(FILE *fi)
-{
+	// TODO: double buffering
 	char *tmp = (char*)malloc(SZ), *res, *cur;
 	uint a;
-	while ((a = fread(tmp, sizeof(tmp[0]), SZ, fi))) {
+	while ((a = read(fd, tmp, SZ))) {
 		cur = tmp;
 		// TODO: multithreaded search?
 		while ((res = (char*)memchr(cur, '\n', tmp + a - cur)) != nullptr) {
-			apnd_s(*it, cur, (uint)(res - cur) + 1);
+			uint len = res - cur + 1; // length of this line
+			if (it.parent()->num_lines > 1 && it.orig->len() + len > MAX_CHUNK_SIZE) {
+				chunk *new_chunk = create_chunk();
+				insert_chunk(&text, it.parent(), new_chunk);
+				it.orig = &it.parent()->next->merged_lines;
+				it.offset = it.relative_pos = 0;
+			}
+			apnd_s(*it.orig, cur, len); // TODO: write directly to gap buffer?
+			append_len(it.parent(), len);
+			text.lines++;
 			cur = res + 1;
-			if (++curnum >= text.size())
-				text.resize(text.size() * 2);
-			++it;
 		}
 		// if last character is not a newline
-		apnd_s(*it, cur, (tmp + a) - cur);
+		apnd_s(*it.orig, cur, (tmp + a) - cur);
+		it.parent()->len[it.parent()->num_lines - 1] += (tmp + a) - cur;
 	}
 	free(tmp);
 }

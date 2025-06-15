@@ -1,7 +1,7 @@
 #pragma once
-#include "../utils/headers/gapbuffer.h"
-extern list<gap_buf> text;
-extern list<gap_buf>::iterator it;
+#include "../ds/headers/merged_unrolled-list.h"
+extern llist text;
+extern iter it;
 
 // displayed characters of previous cut (or cut|slice of line)
 #define dchar first
@@ -20,4 +20,3 @@ extern uint maxy, maxx; // to store the maximum rows and columns
 extern long ofy; // offset in y axis of text and screen, x axis is in gapbuffer
 extern ulong ry, rx; // x, y positions in buffer/list
 extern char *filename; // name of open file, if none, it isn't malloc'ed 
-extern ulong curnum; // total lines counter

@@ -41,24 +41,19 @@ void mv_curs(gap_buf &a, ulong pos)
 	a.set_gps(pos);
 }
 
-void insert_c(gap_buf &a, ulong pos, char ch)
+void insert_c(gap_buf &a, char ch)
 {
 	if (a.gps() >= a.gpe()) [[unlikely]]
 		resize(a, __bit_ceil(a.cpt() + 1));
-	if (!ingap(a, pos))
-		mv_curs(a, pos);
-	a[pos] = ch;
+	a[a.gps()] = ch;
 	a.set_gps(a.gps() + 1);
 }
 
-void insert_s(gap_buf &a, ulong pos, const char *str, ulong len)
+void insert_s(gap_buf &a, const char *str, ulong len)
 {
-	// TODO: are both checks needed? (checked indirectly?)
 	if (a.gps() + len >= a.gpe() + 1) [[unlikely]]
 		resize(a, __bit_ceil(a.len() + len + 2));
-	if (gaplen(a) <= len)
-		mv_curs(a, pos);
-	memcpy(a.buffer() + pos, str, len);
+	memcpy(a.buffer() + a.gps(), str, len);
 	a.set_gps(a.gps() + len);
 }
 

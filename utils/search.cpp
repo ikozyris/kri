@@ -4,7 +4,7 @@
 void find(const char *str, uint from, uint to, char mode)
 {
 	uint str_len = strlen(str);
-	if (str_len == 0 || to - 1 > curnum || from > to) {
+	if (str_len == 0 || to - 1 > text.size || from > to) {
 		print2header("Invalid parameters", 1);
 		return;
 	}
@@ -61,7 +61,7 @@ void find(const char *str, uint from, uint to, char mode)
 		case KEY_DOWN:
 			for (uint i = from; i < first_batch; ++i)
 				dix[i] = previ[i] = prevpr[i] = prevx[i] = 0;
-			if (ofy + maxy > min(curnum, to))
+			if (ofy + maxy > min(text.size, to))
 				break;
 			++ofy;
 			++it;
@@ -286,9 +286,10 @@ static void searchch_c(const gap_buf &buf, char ch, ulong st, ulong end, uint &c
 }
 
 // wrapper for searchch() to launch with multi-threaded
-static vector<uint> mt_search(const gap_buf &buf, char ch, bool append)
+vector<uint> mt_search(const gap_buf &buf, char ch, bool append)
 {
 	uint nthreads, chunk;
+	// TODO: partition smarter: before gap + after gap
 	partition_chunks(nthreads, chunk, 0, buf.len() - 1); // -1 as last char is \n
 	vector<thread> threads(nthreads);
 	vector<vector<uint>> indices(nthreads); // each thread's result

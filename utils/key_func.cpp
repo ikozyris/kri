@@ -5,19 +5,19 @@ void stats()
 {
 	char *_tmp = (char*)malloc(256);
 	ulong sumlen = 0;
-	for (auto &i : text)
-		sumlen += i.len();
+	// for (auto &i : text)
+		// sumlen += i.len();
 #ifndef RELEASE
 	uint cutd = 0, cutb = 0;
 	if (!cut.empty()) {
 		cutb = cut.back().byte;
 		cutd = cut.back().dchar;
 	}
-	snprintf(_tmp, min(maxx, 256), "maxx %u len %lu gs %lu ge %lu cpt %lu cut%lu[d%u,b%u] x: %u ofx: %ld ry: %lu     ",
-		maxx, it->len(), it->gps(), it->gpe(), it->cpt(), cut.size(), cutd, cutb, x, ofx, ry);
+	snprintf(_tmp, min(maxx, 256), "maxx %u off %u len %u gs %u ge %u cpt %u cut%lu[d%u,b%u] x: %u ofx: %ld ry: %lu     ",
+		maxx, it.offset, it.len(), it.gps(), it.gpe(), it.cpt(), cut.size(), cutd, cutb, x, ofx, ry);
 #else	
 	snprintf(_tmp, min(maxx, 256), "len %lu  cpt %lu  y %lu  x %u  sum len %lu  lines %lu  cut %lu  ofx %ld  ", 
-		it->len(), it->cpt(), ry, x, sumlen, curnum, cut.size(), ofx);
+		it.len(), it.cpt(), ry, x, sumlen, text.size, cut.size(), ofx);
 #endif
 	print2header(_tmp, 1);
 	free(_tmp);
@@ -32,16 +32,13 @@ void command()
 		reset_header();
 	else if (strcmp(tmp, "shrink") == 0) {
 		char buffer[64] = "";
-		snprintf(buffer, 64, "freed: %lu B", lnbf_cpt - 16 +
-			sizeof(list<gap_buf>) * (text.size() - curnum));
+		snprintf(buffer, 64, "freed: %u B", lnbf_cpt);
 		clear_header();
 		print2header(buffer, 1);
 
 		// shrink line buffer
 		lnbf_cpt = 16;
 		lnbuf = (char*)realloc(lnbuf, lnbf_cpt);
-                // shrink linked list
-                text.resize(curnum + 1);
 	} else if (strcmp(tmp, "stats") == 0)
 		stats();
 	else if (strcmp(tmp, "suspend") == 0) {
@@ -53,22 +50,22 @@ void command()
 	else if (strncmp(tmp, "scroll", 6) == 0) {
 		uint a;
 		sscanf(tmp + 7, "%u", &a);
-		if (a <= curnum) {
+		if (a <= text.lines) {
 			ofy = a - 1;
 			print_lines();
 			wrefresh(ln_win);
 			print_text(0);
-			advance(it, ofy - ry);
+			iterate_fw(&it, ofy - ry);
 		}
 	} else if (strncmp(tmp, "find", 4) == 0) { // example: find string
-		uint from = 0, to = curnum;
+		uint from = 0, to = text.lines;
 		char mode = 'h';
 		char *pr2 = input_header("range/mode: "); // 5-10 h
 		sscanf(pr2, "%u-%u %c", &from, &to, &mode);
 		free(pr2);
-		find(tmp + 5, from, to + 1, mode); // we want closed interval, function is open
+		//find(tmp + 5, from, to + 1, mode); // we want closed interval, function is open
 	} else if (strncmp(tmp, "replace", 7) == 0) {
-		uint from = 0, to = curnum;
+		/*uint from = 0, to = text.lines;
 		sscanf(tmp + 8, "%u-%u", &from, &to);
 		free(tmp);
 
@@ -96,7 +93,7 @@ void command()
 		print2header(tmp_buff, 1);
 		print_text(0);
 		free(newst);
-		free(tmp_buff);
+		free(tmp_buff);*/
 	} else
 		print2header("command not found", 3);
 	free(tmp);
@@ -105,23 +102,26 @@ void command()
 // insert enter in rx of buffer, create new line node and reprint
 void enter()
 {
-	insert_c(*it, rx, '\n');
-	gap_buf *t = (gap_buf*)malloc(sizeof(gap_buf));
-	init(*t);
-	/* If buffer's last char is a newline; rx = it->len - 1; gpe = cpt - 2
-	 * so the last character (newline or emulated) will be copied over
-	 * Otherwise, (x != EOL) copy the remaining bytes
-	 */
-	data(*it, rx + 1, it->len() + 1);
-	apnd_s(*t, lnbuf, it->len() - rx - 1);
-	it->set_gps(rx + 1);
-	it->set_gpe(it->cpt() - 1);
+	chunk *ch = it.parent();
+	uint pos = it.relative_pos;
 
-	++it; // insert is on previous than current it
-	++curnum;
-	text.insert(it, *t); // insert new node with text after rx
-	--it;
-	free(t);
+	if (ch->len_cpt < ch->num_lines + 1) {
+		ch->len_cpt = (1 + ch->len_cpt) * 2;
+		ch->len = (uchar*)realloc(ch->len, ch->len_cpt);
+	}
+	memmove(&ch->len[pos + 1], &ch->len[pos], ch->num_lines - pos);
+	ch->num_lines++;
+	ch->len[pos + 1] = it.len() - it.gps();
+	ch->len[pos] = it.gps() + 1;
+	
+	text.lines++;
+	insert_c(*it.orig, '\n');
+	it.offset = it.orig->gps();
+	it.relative_pos++;
+	if (it.orig->len() > 256)
+		split_mline(&text, it.parent());
+
+	ofx = 0;
 	cut.clear();
 	print_text(y);
 	if (y < maxy - 1)
@@ -132,16 +132,15 @@ void enter()
 		wnoutrefresh(ln_win);
 		wscrl(text_win, 1);
 		++ofy;
-		mvprint_line(maxy - 1, 0, *it, 0, 0);
+		mvprint_line(maxy - 1, 0, &it, 0, 0);
 		wmove(text_win, maxy - 1, x);
 	}
-	ofx = 0;
 }
 
 // go to target byte, if necessary cut line
 void mvr_scurs(ulong t_byte)
 {
-	ofx = calc_offset_act(t_byte, 0, *it);
+	ofx = calc_offset_act(t_byte, 0, &it);
 	if (t_byte - ofx <= maxx) // line fits in screen
 		wmove(text_win, y, t_byte - ofx - 1);
 	else { // cut line 
@@ -156,7 +155,7 @@ void mvr_scurs(ulong t_byte)
 			flag = t_byte % (maxx - 1);
 		} else {
 			while (1) {
-				const ulong nbytes = dchar2bytes(maxx - 1, bytes, *it);
+				const ulong nbytes = dchar2bytes(maxx - 1, bytes, &it);
 				if (nbytes >= t_byte - 1)
 					break;
 				cut.push_back({flag, nbytes}); // flag was changed by dchar2bytes
@@ -164,13 +163,13 @@ void mvr_scurs(ulong t_byte)
 				bytes = nbytes;
 			}
 		}
-		if (t_byte != it->len()) {
-			mvprint_line(y, 0, *it, bytes, 0);
+		if (t_byte != it.len()) {
+			mvprint_line(y, 0, &it, bytes, 0);
 			if (!overflows[y])
 				clean_mark(y);
-			x = bytes2dchar(t_byte, bytes, *it) - 1;
+			x = bytes2dchar(t_byte, bytes, &it) - 1;
 		} else {
-			mvprint_line(y, 0, *it, bytes, t_byte);
+			mvprint_line(y, 0, &it, bytes, t_byte);
 			clean_mark(y);
 			x = (flag == maxx - 1 ? flag : flag - 1);
 		}
@@ -184,8 +183,8 @@ void mvr_scurs(ulong t_byte)
 void sol()
 {
 	if (!cut.empty()) { // line has been cut
-		mvprint_line(y, 0, *it, 0, 0);
-		highlight(y, *it);
+		mvprint_line(y, 0, &it, 0, 0);
+		highlight(y, &it);
 	}
 	cut.clear();
 	wmove(text_win, y, ofx = 0);
@@ -194,7 +193,7 @@ void sol()
 // scroll screen down, print last line
 void scrolldown()
 {
-	++it;
+	iterate_fw(&it, 1);
 	++ofy;
 	cut.clear();
 	ofx = 0;
@@ -202,8 +201,8 @@ void scrolldown()
 	wscrl(ln_win, 1);
 	mvwprintw(ln_win, maxy - 1, 0, "%3lu", ry + 2);
 	wnoutrefresh(ln_win);
-	mvprint_line(y, 0, *it, 0, 0);
-	highlight(y, *it);
+	mvprint_line(y, 0, &it, 0, 0);
+	highlight(y, &it);
 	wmove(text_win, y, 0);
 }
 
@@ -211,15 +210,15 @@ void scrolldown()
 void scrollup()
 {
 	--ofy;
-	--it;
+	iterate_bw(&it, 1);
 	cut.clear();
 	ofx = 0;
 	wscrl(text_win, -1);
 	wscrl(ln_win, -1);
 	mvwprintw(ln_win, 0, 0, "%3lu", ry);
 	wnoutrefresh(ln_win);
-	mvprint_line(0, 0, *it, 0, 0);
-	highlight(0, *it);
+	mvprint_line(0, 0, &it, 0, 0);
+	highlight(0, &it);
 	wmove(text_win, 0, 0);
 }
 
@@ -234,21 +233,21 @@ ushort left()
 		clearline;
 		ofx -= cut.back().dchar;
 		cut.pop_back();
-		print_line(*it, cut.empty() ? 0 : cut.back().byte, 0, y);
+		print_line(&it, cut.empty() ? 0 : cut.back().byte, 0, y);
 		const uint tmp = flag; // changed later by highlight
-		highlight(y, *it);
+		highlight(y, &it);
 		wmove(text_win, y, tmp);
 		return CUT;
 	} else if (x > 0) { // go left
 		wmove(text_win, y, x - 1);
 		// handle special characters causing offsets
-		if (it->buffer()[it->gps() - 1] == '\t')
+		if (it.buffer()[it.gps() - 1] == '\t')
 			ofx += prevdchar();
-		else if (it->buffer()[it->gps() - 1] < 0)
+		else if (it.buffer()[it.gps() - 1] < 0)
 			--ofx;
 		return NORMAL;
 	} else if (y > 0) { // x = 0
-		--it;
+		iterate_bw(&it, 1);
 		--y;
 		eol();
 		return LN_CHANGE;
@@ -258,14 +257,14 @@ ushort left()
 
 // right arrow
 ushort right() {
-	if (rx >= it->len() - 1 && ry < curnum) { // go to next line
+	if (rx >= it.len() - 1 && ry < text.lines - 1) { // go to next line
 		if (y == maxy - 1) {
 			scrolldown();
 			return SCROLL;
 		} else if (!cut.empty()) // revert cut
-			mvprint_line(y, 0, *it, 0, 0);
+			mvprint_line(y, 0, &it, 0, 0);
 		wmove(text_win, y + 1, 0);
-		++it;
+		iterate_fw(&it, 1);
 		cut.clear();
 		ofx = 0;
 		return LN_CHANGE;
@@ -273,17 +272,17 @@ ushort right() {
 cut_line:
 		clearline;
 		ofx += x;
-		cut.push_back({x, (cut.empty() ? 0 : cut.back().byte) + print_line(*it, ofx, 0, y)});
+		cut.push_back({x, (cut.empty() ? 0 : cut.back().byte) + print_line(&it, ofx, 0, y)});
 		wmove(text_win, y, 0);
 		return CUT;
 	} else { // go right
 		wmove(text_win, y, x + 1);
-		if (it->buffer()[it->gpe() + 1] == '\t') {
+		if (it.buffer()[it.gpe() + 1] == '\t') {
 			if (x >= maxx - 7)
 				goto cut_line;
 			ofx -= 8 - x % 8 - 1;
 			wmove(text_win, y, x + 8 - x % 8);
-		} else if (it->buffer()[it->gpe() + 1] < 0)
+		} else if (it.buffer()[it.gpe() + 1] < 0)
 			++ofx;
 		return NORMAL;
 	}
@@ -297,7 +296,7 @@ void prnxt_word(ushort func(void))
 	do {
 		status = func();
 		x = getcurx(text_win);
-		mv_curs(*it, x + ofx);
+		mv_curs(*it.orig, x + ofx);
 	} while ((winch(text_win) & A_CHARTEXT) != ' ' && status == NORMAL);
 }
 
@@ -305,7 +304,8 @@ void reset_view()
 {
 	ofy = ofx = 0;
 	cut.clear();
-	it = text.begin();
+	point2chunk(&it, text.head->next);
+	it.relative_pos = it.global_pos = 0;
 	print_text(0);
 	reset_header();
 	print_lines();

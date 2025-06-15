@@ -74,7 +74,7 @@ static res_t get_category(const char *line)
 
 	if (binary_search(types, types_len, nelems(types_len), line, res, TYPE));
 	else if (binary_search(keywords, keywords_len, nelems(keywords_len), line, res, KEYWORD));
-	else if (memchr(oper, line[0], sizeof(oper))) { // binary search would require an array of the form {1,2,3..}
+	else if (memchr(oper, line[0], sizeof(oper))) { // above binary search would require an array of the form {1,2,3..}
 		res.len = 1;
 		res.type = OPER;
 	}
@@ -83,13 +83,13 @@ static res_t get_category(const char *line)
 
 static char continued; // string/comment/directive etc. continued after cut/ in next line
 // highight line
-static void apply(uint line, const gap_buf &buf)
+static void apply(uint line, const iter *cur_ln)
 {
 	if (line == 0) // there is no previous line visible
 		continued = 0;
 	wmove(text_win, line, 0);
 
-	const uint len = min(maxx - 1, bytes2dchar(buf.len(), 0, buf));
+	const uint len = min(maxx - 1, bytes2dchar(cur_ln->len(), 0, cur_ln));
 	if (len >= lnbf_cpt) { // resize to fit line
 		free(lnbuf);
 		lnbf_cpt = __bit_ceil(len + 1);
@@ -100,8 +100,9 @@ static void apply(uint line, const gap_buf &buf)
 
 	// previous line was a multi-line comment, this might be too
 	if (continued == COMMENT) {
-		ulong pos = lookup2(buf, 0);
-		if (pos == buf.len()) { // still a comment
+		ulong pos = lookup2(*cur_ln->orig, cur_ln->offset);
+		pos -= cur_ln->offset;
+		if (pos == cur_ln->len()) { // still a comment
 			wchgat(text_win, len, 0, COMMENT, 0);
 			return;
 		}
@@ -112,7 +113,7 @@ static void apply(uint line, const gap_buf &buf)
 			return;
 		}
 
-		i = bytes2dchar(pos + 2, 0, buf); // continue from end of comment
+		i = bytes2dchar(pos + 2, 0, cur_ln); // continue from end of comment
 		wchgat(text_win, i, 0, COMMENT, 0);
 	}
 
@@ -127,7 +128,8 @@ static void apply(uint line, const gap_buf &buf)
 		} else if (lnbuf[i] == '/' && lnbuf[i + 1] == '*') {
 			previ = i;
 			i += 2;
-			ulong pos = lookup2(buf, i); // comment might end in this line
+			ulong pos = lookup2(*cur_ln->orig, i + cur_ln->offset); // comment might end in this line
+			pos -= cur_ln->offset;
 
 			i = min(pos + 1, len);
 			if (i >= len - 1) // comment continues in next line
@@ -159,10 +161,10 @@ static void apply(uint line, const gap_buf &buf)
 }
 
 // wrapper for apply()
-void highlight(uint line, const gap_buf &buf)
+void highlight(uint line, const iter *i)
 {
 #ifdef HIGHLIGHT
 	if (eligible)
-		apply(line, buf);
+		apply(line, i);
 #endif
 }

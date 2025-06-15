@@ -9,10 +9,10 @@ CXX = g++ --std=c++20
 #  -lncursesw		Links to ncurses library for wide characters (unicode)
 
 OPTIM = -O3 -s -flto -march=native -DRELEASE
-SIZE = -Os -s -flto -fdata-sections -ffunction-sections -Wl,--gc-sections
+SIZE  = -Os -s -flto -fdata-sections -ffunction-sections -Wl,--gc-sections
 DEBUG = -g #-DDEBUG
-#CXXFLAGS = -Wall -Wextra -pedantic-errors $(DEBUG) -DHIGHLIGHT -lncursesw # Debug only
-CXXFLAGS = -Wall -Wextra -pedantic $(OPTIM) -DHIGHLIGHT -lncursesw
+CXXFLAGS = -Wall -Wextra -pedantic-errors $(DEBUG) -DHIGHLIGHT # Debug only
+#CXXFLAGS = -Wall -Wextra -pedantic $(OPTIM) -DHIGHLIGHT
 
 # the build target executable
 TARGET = kri
@@ -24,11 +24,12 @@ PATHT = /usr/bin/
 SRCS = main.cpp \
 	utils/key_func.cpp \
 	utils/io.cpp \
+	ds/gapbuffer.cpp \
+	ds/merged_unrolled-list.cpp \
 	screen/highlight.cpp \
 	screen/init.cpp \
-	utils/sizes.cpp \
-	utils/gapbuffer.cpp \
-	utils/search.cpp
+	utils/sizes.cpp 
+#	utils/search.cpp
 
 # object files
 OBJS = $(SRCS:.cpp=.o)
@@ -38,7 +39,7 @@ build: $(TARGET)
 
 # link
 $(TARGET): $(OBJS)
-	$(CXX) -o $@ $^ $(CXXFLAGS)
+	$(CXX) -o $@ $^ $(CXXFLAGS) -lncursesw
 
 # compile
 %.o: %.cpp
