@@ -34,16 +34,19 @@ void iterate_bw(iter *it, uint dist)
 {
 	chunk *a = it->parent();
 	it->global_pos -= dist;
-	while (dist > it->relative_pos) {
+	if (dist > it->relative_pos) {
 		dist -= it->relative_pos;
 		a = a->prev;
-		point2chunk(it, a);
+		while (dist > a->num_lines) {
+			dist -= a->num_lines;
+			a = a->prev;
+		}
+		it->orig = &a->merged_lines;
 		it->relative_pos = a->num_lines;
 	}
 	uint tmp = it->relative_pos;
 	it->relative_pos = it->offset = 0;
 	line_offset(it, tmp - dist);
-	//mv_curs(*it->orig, it->offset);
 }
 
 // increase iterator forwards by dist lines
@@ -51,13 +54,15 @@ void iterate_fw(iter *it, uint dist)
 {
 	chunk *a = it->parent();
 	it->global_pos += dist;
-	while (dist + it->relative_pos >= a->num_lines) { // TODO: optimize
-		dist -= (a->num_lines - it->relative_pos);
-		a = a->next;
+	if (dist + it->relative_pos >= a->num_lines) { // go to next chunk
+		dist += it->relative_pos;
+		do {
+			dist -= a->num_lines;
+			a = a->next;
+		} while (dist >= a->num_lines);
 		point2chunk(it, a);
 	}
 	line_offset(it, dist);
-	//mv_curs(*it->orig, it->offset);
 }
 
 // remove a line from a chunk

@@ -123,7 +123,7 @@ init:
 				mvprint_line(y, 0, &it, 0, 0);
 			cut.clear();
 			ofx = 0; // invalidated
-			if (y == maxy - 1 && ry < text.lines)
+			if (y == maxy - 1)
 				scrolldown();
 			else {
 				iterate_fw(&it, 1);
