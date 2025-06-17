@@ -4,20 +4,20 @@
 void stats()
 {
 	char *_tmp = (char*)malloc(256);
-	ulong sumlen = 0;
-	// for (auto &i : text)
-		// sumlen += i.len();
 #ifndef RELEASE
 	uint cutd = 0, cutb = 0;
 	if (!cut.empty()) {
 		cutb = cut.back().byte;
 		cutd = cut.back().dchar;
 	}
-	snprintf(_tmp, min(maxx, 256), "maxx %u off %u len %u gs %u ge %u cpt %u cut%lu[d%u,b%u] x: %u ofx: %ld ry: %lu     ",
-		maxx, it.offset, it.len(), it.gps(), it.gpe(), it.cpt(), cut.size(), cutd, cutb, x, ofx, ry);
+	snprintf(_tmp, min(maxx, 256), "maxx %u off %u len %lu gs %lu ge %lu cpt %lu cut%lu[d%u,b%u] x %u ofx %ld ry %lu lines %u   ",
+	maxx, it.offset, it.len(), it.gps(), it.gpe(), it.cpt(), cut.size(), cutd, cutb, x, ofx, ry, text.lines);
 #else	
+	ulong sumlen = 0;
+	// for (auto &i : text)
+		// sumlen += i.len();
 	snprintf(_tmp, min(maxx, 256), "len %lu  cpt %lu  y %lu  x %u  sum len %lu  lines %lu  cut %lu  ofx %ld  ", 
-		it.len(), it.cpt(), ry, x, sumlen, text.size, cut.size(), ofx);
+		it.len(), it.cpt(), ry, x, sumlen, text.lines, cut.size(), ofx);
 #endif
 	print2header(_tmp, 1);
 	free(_tmp);
