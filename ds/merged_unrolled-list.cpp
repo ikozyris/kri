@@ -11,10 +11,11 @@ void point2chunk(iter *it, chunk *a)
 void append_len(chunk *a, uint len)
 {
 	if (a->len_cpt < a->num_lines + 1) {
-		a->len_cpt = (1 + a->len_cpt) * 2;
-		a->len = (uchar*)realloc(a->len, a->len_cpt);
+		a->len = (uchar*)realloc(a->len, a->len_cpt * 2);
+		memset(a->len + a->len_cpt, 0, a->len_cpt);
+		a->len_cpt = a->len_cpt * 2;
 	}
-	a->len[a->num_lines] = len;
+	a->len[a->num_lines - 1] += len;
 	a->num_lines++;
 }
 
@@ -59,7 +60,7 @@ void iterate_fw(iter *it, uint dist)
 		do {
 			dist -= a->num_lines;
 			a = a->next;
-		} while (dist >= a->num_lines);
+		} while (dist > a->num_lines);
 		point2chunk(it, a);
 	}
 	line_offset(it, dist);
@@ -86,7 +87,7 @@ void goto_last_mline(chunk *a) { mv_curs(a->merged_lines, a->merged_lines.len() 
 void split_mline(llist *list, chunk *a)
 {
 	uint last_length = a->len[a->num_lines - 1];
-	
+
 	chunk *next_chunk; // may be newly allocated
 	// create new chunk if last line doesn't fit in next chunk
 	if (a->next == list->tail || a->next->merged_lines.len() + last_length > MAX_CHUNK_SIZE) {
@@ -144,7 +145,7 @@ void merge_lines(llist *list, iter *a, iter *b)
 			rm_mline(a_ch, a->relative_pos, nullptr);
 			apnd_s(new_chunk->merged_lines, b_ch->merged_lines.buffer() + b->offset, b->len());
 			rm_mline(b_ch, b->relative_pos, nullptr);
-			
+
 			append_len(new_chunk, a->len() + b->len() - 1);
 			insert_chunk(list, a_ch, new_chunk);
 			point2chunk(a, a_ch);
@@ -174,8 +175,9 @@ void insert_chunk(llist *list, chunk *before, chunk *new_chunk)
 chunk *create_chunk()
 {
 	chunk *new_chunk = (chunk*)malloc(sizeof(chunk));
-	new_chunk->num_lines = new_chunk->len_cpt = 0;
-	new_chunk->len = nullptr;
+	new_chunk->num_lines = 1;
+	new_chunk->len_cpt = 8;
+	new_chunk->len = (uchar*)calloc(8, 1);
 	init(new_chunk->merged_lines);
 	return new_chunk;
 }
