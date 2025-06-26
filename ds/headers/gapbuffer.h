@@ -53,10 +53,6 @@ struct gap_buf {
 		char *buf = (char*)malloc(array_size);
 		set_buf(buf);
 	}
-	~gap_buf() {
-		free(buffer());
-		lo = hi = 0;
-	}
 };
 
 void init(gap_buf &a); // initialize the gap buffer (should already be called by constructor)

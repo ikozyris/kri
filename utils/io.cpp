@@ -71,10 +71,10 @@ void print_text(uint line)
 	wmove(text_win, line, 0);
 	wclrtobot(text_win);
 	wmove(text_win, line, 0);
-	// FIXME: print last line
-	for (uint ty = line; ty < min(text.lines + ofy - 1, maxy) && i.orig != 0; iterate_fw(&i, 1), ++ty) {
+	for (uint ty = line; ty <= min(text.lines + ofy, maxy - 1); ++ty) {
 		mvprint_line(ty, 0, &i, 0, 0);
 		highlight(ty, &i);
+		iterate_fw(&i, 1);
 	}
 }
 
@@ -140,28 +140,43 @@ void save()
 
 void read_file(int fd)
 {
-	// TODO: double buffering
-	char *tmp = (char*)malloc(SZ), *res, *cur;
-	uint a;
-	while ((a = read(fd, tmp, SZ))) {
-		cur = tmp;
+	// TODO: async double buffering
+	char *buf = (char*)malloc(SZ), *res, *cur;
+	char *prev_buf = (char*)malloc(SZ), *prev_cur;
+	cur = prev_buf;
+	uint bread, prev_len = 0; // bytes read
+	chunk *cur_chunk = text.head->next;
+	while ((bread = read(fd, buf, SZ))) {
+		prev_cur = cur;
+		cur = buf;
 		// TODO: multithreaded search?
-		while ((res = (char*)memchr(cur, '\n', tmp + a - cur)) != nullptr) {
+		while ((res = (char*)memchr(cur, '\n', buf + bread - cur)) != nullptr) {
 			uint len = res - cur + 1; // length of this line
-			if (it.parent()->num_lines > 1 && it.orig->len() + len > MAX_CHUNK_SIZE) {
+			if (cur_chunk->num_lines > 1 && cur_chunk->merged_lines.len() + len + prev_len > MAX_CHUNK_SIZE) {
+				text.nodes++;
+				cur_chunk->num_lines--;
 				chunk *new_chunk = create_chunk();
-				insert_chunk(&text, it.parent(), new_chunk);
-				it.orig = &it.parent()->next->merged_lines;
-				it.offset = it.relative_pos = 0;
+				connect(cur_chunk, new_chunk);
+				cur_chunk = new_chunk;
 			}
-			apnd_s(*it.orig, cur, len); // TODO: write directly to gap buffer?
-			append_len(it.parent(), len);
+
+			apnd_s(cur_chunk->merged_lines, prev_cur, prev_len);
+			apnd_s(cur_chunk->merged_lines, cur, len); // TODO: write directly to gap buffer?
+			append_len(cur_chunk, len + prev_len);
 			text.lines++;
 			cur = res + 1;
+			prev_len = 0;
 		}
-		// if last character is not a newline
-		apnd_s(*it.orig, cur, (tmp + a) - cur);
-		it.parent()->len[it.parent()->num_lines - 1] += (tmp + a) - cur;
+		prev_len = (buf + bread) - cur;
+		swap(prev_buf, buf);
+		
 	}
-	free(tmp);
+	if (prev_len) {
+		apnd_s(cur_chunk->merged_lines, cur, prev_len);
+		append_len(cur_chunk, prev_len);
+	}
+	free(buf);
+	free(prev_buf);
+	connect(cur_chunk, text.tail);
+	cur_chunk->num_lines--;
 }

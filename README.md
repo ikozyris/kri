@@ -32,7 +32,6 @@ kri # ask for filename on save file operation
 * Exit: Ctrl-X
 * Go to start of line: Ctrl-A
 * Go to end of line: Ctrl-E
-* Open other file Alt-R
 * Delete line: Ctrl-K
 * Go to previous/next word: Shift + Left/Right arrow
 * Enter built-in terminal: Alt-C

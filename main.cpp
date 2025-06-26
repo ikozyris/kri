@@ -33,7 +33,6 @@ int main(int argc, char *argv[])
 		"Go to end of line:	Ctrl-E\n"
 		"Built-in terminal:	Alt-C\n"
 		"Delete line:		Ctrl-K\n"
-		"Open other file:	Alt-R\n"
 		"Previous/Next word	Shift + Left/Right arrow\n"
 		"Show debbuging info:	Alt-I (also command stats in built-in terminal)\n\n"
 		"Built-in terminal commands:\n"
@@ -56,7 +55,7 @@ int main(int argc, char *argv[])
 	connect(text.head, new_chunk_tmp); // insert without updating size
 	connect(new_chunk_tmp, text.tail);
 	point2chunk(&it, text.head->next);
-read:
+
 	if (argc > 1) {
 		filename = (char*)malloc(sizeof(char) * 128);
 		strcpy(filename, argv[1]);
@@ -85,11 +84,12 @@ init:
 	wnoutrefresh(ln_win);
 	wnoutrefresh(header_win);
 	overflows.resize(maxy, 0);
+	new_chunk_tmp = text.tail->prev;
 	// all functions think there is a newline at EOL, emulate it
-	// if (it.orig->buffer()[it.orig->len()] != '\n') {
-		// apnd_c(*it.orig, 0);
-		// it.parent()->len[it.parent()->num_lines - 1]++;
-	// }
+	if (new_chunk_tmp->merged_lines.buffer()[new_chunk_tmp->merged_lines.len() - 1] != '\n') {
+		apnd_c(*it.orig, 0);
+		new_chunk_tmp->len[new_chunk_tmp->num_lines - 1]++;
+	}
 
 	print_text(0);
 //loop:
@@ -260,8 +260,6 @@ init:
 			save();
 			s2[0] = 0; // no new char has been inserted since last save
 			argc = 3;
-			// if (text.size() % 2 == 1)
-				// text.resize(text.size() + 1);
 			break;
 
 		case 27: { // ALT or ESC
@@ -272,20 +270,6 @@ init:
 				stats();
 			else if (ch == CMD)
 				command();
-			else if (ch == SWITCH) { // switch file
-				argc = 2;
-				argv[1] = input_header("File to open: ");
-				/*list<gap_buf>::iterator iter;
-				uint i;
-				for (iter = text.begin(), i = 0; iter != text.end() && i <= text.size; ++iter, ++i) {
-					iter->set_gps(0);
-					iter->set_gpe(iter->cpt());
-				}
-				text.size = 0;
-				it = text.begin();*/
-				wclear(text_win);
-				goto read;
-			}
 			wmove(text_win, y, x);
 			break;
 		}
@@ -305,8 +289,8 @@ init:
 			break;
 
 		case EXIT:
-			// has char been inserted, new file, allocations are multiples of 2
-			if (s2[0] != 0 || argc < 2 /*|| text.nodes % 2 == 1*/) {
+			// has char been inserted, new file
+			if (s2[0] != 0 || argc < 2) {
 				char *in = input_header("Exit and Save changes? (y/n/c) ");
 				flag = in[0]; // tmp var to free branchlessly | TODO: getch()
 				free(in);

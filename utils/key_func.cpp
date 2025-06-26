@@ -14,9 +14,10 @@ void stats()
 	maxx, it.offset, it.len(), it.gps(), it.gpe(), it.cpt(), cut.size(), cutd, cutb, x, ofx, ry, text.lines);
 #else	
 	ulong sumlen = 0;
-	// for (auto &i : text)
-		// sumlen += i.len();
-	snprintf(_tmp, min(maxx, 256), "len %lu  cpt %lu  y %lu  x %u  sum len %lu  lines %lu  cut %lu  ofx %ld  ", 
+	chunk *i;
+	for (i = text.head->next; i != text.tail; i = i->next)
+		sumlen += i->merged_lines.len();
+	snprintf(_tmp, min(maxx, 256), "len %lu  cpt %lu  y %lu  x %u  sum len %lu  lines %u  cut %lu  ofx %ld  ", 
 		it.len(), it.cpt(), ry, x, sumlen, text.lines, cut.size(), ofx);
 #endif
 	print2header(_tmp, 1);
@@ -118,7 +119,7 @@ void enter()
 	insert_c(*it.orig, '\n');
 	it.offset = it.orig->gps();
 	it.relative_pos++;
-	if (it.orig->len() > 256)
+	if (it.orig->len() > MAX_CHUNK_SIZE)
 		split_mline(&text, it.parent());
 
 	ofx = 0;
@@ -154,7 +155,7 @@ void mvr_scurs(ulong t_byte)
 			}
 			flag = t_byte % (maxx - 1);
 		} else {
-			while (1) {
+			while (1) { // TODO: optimize
 				const ulong nbytes = dchar2bytes(maxx - 1, bytes, &it);
 				if (nbytes >= t_byte - 1)
 					break;
@@ -257,7 +258,7 @@ ushort left()
 
 // right arrow
 ushort right() {
-	if (rx >= it.len() - 1 && ry < text.lines - 1) { // go to next line
+	if (rx >= it.len() - 1 && ry < text.lines) { // go to next line
 		if (y == maxy - 1) {
 			scrolldown();
 			return SCROLL;
