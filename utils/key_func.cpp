@@ -10,14 +10,14 @@ void stats()
 		cutb = cut.back().byte;
 		cutd = cut.back().dchar;
 	}
-	snprintf(_tmp, min(maxx, 256), "maxx %u off %u len %lu gs %lu ge %lu cpt %lu cut%lu[d%u,b%u] x %u ofx %ld ry %lu lines %u   ",
+	snprintf(_tmp, min(maxx, 256), "maxx %u off %u len %u gs %u ge %u cpt %u cut%lu[d%u,b%u] x %u ofx %ld ry %u lines %u   ",
 	maxx, it.offset, it.len(), it.gps(), it.gpe(), it.cpt(), cut.size(), cutd, cutb, x, ofx, ry, text.lines);
 #else	
 	ulong sumlen = 0;
 	chunk *i;
 	for (i = text.head->next; i != text.tail; i = i->next)
 		sumlen += i->merged_lines.len();
-	snprintf(_tmp, min(maxx, 256), "len %lu  cpt %lu  y %lu  x %u  sum len %lu  lines %u  cut %lu  ofx %ld  ", 
+	snprintf(_tmp, min(maxx, 256), "len %u  cpt %u  y %u  x %u  sum len %lu  lines %u  cut %lu  ofx %ld  ", 
 		it.len(), it.cpt(), ry, x, sumlen, text.lines, cut.size(), ofx);
 #endif
 	print2header(_tmp, 1);
@@ -117,7 +117,7 @@ void enter()
 	
 	text.lines++;
 	insert_c(*it.orig, '\n');
-	it.offset = it.orig->gps();
+	it.offset = it.orig->gps;
 	it.relative_pos++;
 	if (it.orig->len() > MAX_CHUNK_SIZE)
 		split_mline(&text, it.parent());
@@ -129,7 +129,7 @@ void enter()
 		wmove(text_win, y + 1, 0);
 	else { // y = maxy; scroll
 		wscrl(ln_win, 1);
-		mvwprintw(ln_win, maxy - 1, 0, "%3lu", ry + 2);
+		mvwprintw(ln_win, maxy - 1, 0, "%3u", ry + 2);
 		wnoutrefresh(ln_win);
 		wscrl(text_win, 1);
 		++ofy;
@@ -139,14 +139,14 @@ void enter()
 }
 
 // go to target byte, if necessary cut line
-void mvr_scurs(ulong t_byte)
+void mvr_scurs(uint t_byte)
 {
 	ofx = calc_offset_act(t_byte, 0, &it);
 	if (t_byte - ofx <= maxx) // line fits in screen
 		wmove(text_win, y, t_byte - ofx - 1);
 	else { // cut line 
 		cut.clear();
-		ulong bytes = 0;
+		uint bytes = 0;
 		if (ofx == 0 && t_byte > (uint)5e8) {
 			while (bytes + maxx < t_byte) {
 				bytes += maxx - 1;
@@ -156,7 +156,7 @@ void mvr_scurs(ulong t_byte)
 			flag = t_byte % (maxx - 1);
 		} else {
 			while (1) { // TODO: optimize
-				const ulong nbytes = dchar2bytes(maxx - 1, bytes, &it);
+				const uint nbytes = dchar2bytes(maxx - 1, bytes, &it);
 				if (nbytes >= t_byte - 1)
 					break;
 				cut.push_back({flag, nbytes}); // flag was changed by dchar2bytes
@@ -200,7 +200,7 @@ void scrolldown()
 	ofx = 0;
 	wscrl(text_win, 1);
 	wscrl(ln_win, 1);
-	mvwprintw(ln_win, maxy - 1, 0, "%3lu", ry + 2);
+	mvwprintw(ln_win, maxy - 1, 0, "%3u", ry + 2);
 	wnoutrefresh(ln_win);
 	mvprint_line(y, 0, &it, 0, 0);
 	highlight(y, &it);
@@ -216,7 +216,7 @@ void scrollup()
 	ofx = 0;
 	wscrl(text_win, -1);
 	wscrl(ln_win, -1);
-	mvwprintw(ln_win, 0, 0, "%3lu", ry);
+	mvwprintw(ln_win, 0, 0, "%3u", ry);
 	wnoutrefresh(ln_win);
 	mvprint_line(0, 0, &it, 0, 0);
 	highlight(0, &it);
