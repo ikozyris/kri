@@ -73,7 +73,7 @@ void rm_mline(chunk *ch, uint pos, iter *it) { // FIXME: broken
 		free(ch);
 	} else {
 		if (it)
-			it->orig->set_gpe(it->offset + it->len());
+			it->orig->gpe = it->offset + it->len();
 		memmove(&ch->len[pos], &ch->len[pos + 1], ch->num_lines - pos - 1);
 		ch->num_lines--;
 	}
@@ -101,7 +101,7 @@ void split_mline(llist *list, chunk *a)
 	apnd_s(next_chunk->merged_lines, a->merged_lines.buffer() + a->merged_lines.len() - last_length, last_length);
 	append_len(next_chunk, last_length);
 	// delete last line
-	a->merged_lines.set_gpe(a->merged_lines.cpt() - 1);
+	a->merged_lines.gpe = a->merged_lines.cpt() - 1;
 }
 
 // merge b into a

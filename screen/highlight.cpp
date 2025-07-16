@@ -57,7 +57,7 @@ static bool binary_search(const char *arr, const uchar *len_arr, uint size, cons
 }
 
 static bool is_separator(char ch) { return (ch > 31 && ch < 48) || (ch > 57 && ch < 65) || (ch > 90 && ch < 95) || ch > 122; }
-static inline ulong lookup2(const gap_buf &buf, ulong i) { // len = 2, boyer-moore is not useful
+static inline uint lookup2(const gap_buf &buf, uint i) { // len = 2, boyer-moore is not useful
 	while (i < buf.len() && !(at(buf, i) == '*' && at(buf, i + 1) == '/'))
 		++i;
 	return i;
@@ -100,7 +100,7 @@ static void apply(uint line, const iter *cur_ln)
 
 	// previous line was a multi-line comment, this might be too
 	if (continued == COMMENT) {
-		ulong pos = lookup2(*cur_ln->orig, cur_ln->offset);
+		uint pos = lookup2(*cur_ln->orig, cur_ln->offset);
 		pos -= cur_ln->offset;
 		if (pos == cur_ln->len()) { // still a comment
 			wchgat(text_win, len, 0, COMMENT, 0);
@@ -128,7 +128,7 @@ static void apply(uint line, const iter *cur_ln)
 		} else if (lnbuf[i] == '/' && lnbuf[i + 1] == '*') {
 			previ = i;
 			i += 2;
-			ulong pos = lookup2(*cur_ln->orig, i + cur_ln->offset); // comment might end in this line
+			uint pos = lookup2(*cur_ln->orig, i + cur_ln->offset); // comment might end in this line
 			pos -= cur_ln->offset;
 
 			i = min(pos + 1, len);

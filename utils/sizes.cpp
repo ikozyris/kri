@@ -17,7 +17,7 @@ char hrsize(size_t bytes, char *dest, ushort dest_cpt)
 }
 
 // helper function for calculating offsets
-static void get_off(ulong &x, ulong &i, const gap_buf &buf)
+static void get_off(uint &x, uint &i, const gap_buf &buf)
 {
 	char ch = at(buf, i);
 	if (ch == '\t')
@@ -29,10 +29,10 @@ static void get_off(ulong &x, ulong &i, const gap_buf &buf)
 }
 
 // displayed characters to bytes, flag -> disp_x where counting stopped at
-ulong dchar2bytes(ulong disp_x, ulong from, const iter *i)
+uint dchar2bytes(uint disp_x, uint from, const iter *i)
 {
 	from += i->offset;
-	ulong x = 0;
+	uint x = 0;
 	while (x < disp_x && from < i->orig->len())
 		get_off(x, from, *i->orig);
 	flag = x;
@@ -40,11 +40,11 @@ ulong dchar2bytes(ulong disp_x, ulong from, const iter *i)
 }
 
 // bytes to displayed characters, flag -> bytes of x returned
-ulong bytes2dchar(ulong bytes, ulong from, const iter *i)
+uint bytes2dchar(uint bytes, uint from, const iter *i)
 {
 	from += i->offset;
 	bytes += i->offset;
-	ulong x = 0;
+	uint x = 0;
 	while (from < bytes)
 		get_off(x, from, *i->orig);
 	flag = from - i->offset;
@@ -52,10 +52,10 @@ ulong bytes2dchar(ulong bytes, ulong from, const iter *i)
 }
 
 // count multi-byte characters in string
-ulong mbcnt(const char *str, ulong len)
+uint mbcnt(const char *str, uint len)
 {
-	ulong count = 0; // multi-byte char
-	for (ulong i = 0; i < len && str[i] != 0; ++i)
+	uint count = 0; // multi-byte char
+	for (uint i = 0; i < len && str[i] != 0; ++i)
 		if (str[i] < 0)
 			count++;
 	return count / 2; // only 2-byte multibyte chars are supported

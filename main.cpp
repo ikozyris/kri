@@ -9,7 +9,7 @@ WINDOW *header_win, *ln_win, *text_win;
 wchar_t s[4];
 char s2[4], *filename;
 cchar_t mark;
-ulong ry, rx;
+uint ry, rx;
 uint y, x, maxy, maxx, flag;
 long ofy;
 
@@ -177,7 +177,7 @@ init:
 			if (x > 0) {
 				eras(*it.orig);
 				it.parent()->len[it.relative_pos]--;
-				if (it.orig->buffer()[it.orig->gps()] == '\t') { // deleted a tab
+				if (it.orig->buffer()[it.orig->gps] == '\t') { // deleted a tab
 					ofx += prevdchar();
 					x = getcurx(text_win);
 					mvprint_line(y, 0, &it, 0, 0);

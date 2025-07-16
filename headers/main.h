@@ -18,5 +18,5 @@ extern uint flag; // displayed x processed by offset funcs in size.cpp
 extern uint y, x;
 extern uint maxy, maxx; // to store the maximum rows and columns
 extern long ofy; // offset in y axis of text and screen, x axis is in gapbuffer
-extern ulong ry, rx; // x, y positions in buffer/list
+extern uint ry, rx; // x, y positions in buffer/list
 extern char *filename; // name of open file, if none, it isn't malloc'ed 

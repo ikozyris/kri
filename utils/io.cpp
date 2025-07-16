@@ -116,18 +116,18 @@ void save()
 #define gpb i->merged_lines
 	chunk *i = text.head->next;
 	for (uint j = 0; i != text.tail && j < text.nodes; ++j, i = i->next) {
-		fwrite(gpb.buffer(), 1, gpb.gps(), fo);
-		fwrite(gpb.buffer() + gpb.gpe() + 1, 1, gpb.cpt() - gpb.gpe() - 1, fo); // print remaining bytes
+		fwrite(gpb.buffer(), 1, gpb.gps, fo);
+		fwrite(gpb.buffer() + gpb.gpe + 1, 1, gpb.cpt() - gpb.gpe - 1, fo); // print remaining bytes
 	}
 	// last line may have a \0 byte at i->length, don't print it | TODO: simplify
-	ulong end = gpb.gps();
-	if (end > 0 && gpb.buffer()[gpb.gps() - 1] == 0)
+	uint end = gpb.gps;
+	if (end > 0 && gpb.buffer()[gpb.gps - 1] == 0)
 		end--;	
 	fwrite(gpb.buffer(), 1, end, fo);
-	end = gpb.cpt() - gpb.gpe() - 1;
+	end = gpb.cpt() - gpb.gpe - 1;
 	if (end > 0 && gpb.buffer()[gpb.cpt() - 1] == 0)
 		end--;
-	fwrite(gpb.buffer() + gpb.gpe() + 1, 1, end, fo);
+	fwrite(gpb.buffer() + gpb.gpe + 1, 1, end, fo);
 #undef gpb
 	fclose(fo);
 	reset_header();
@@ -138,6 +138,7 @@ void save()
 // For size see: https://github.com/ikozyris/kri/wiki/Comments-on-optimizations#buffer-size-for-reading
 #define SZ 524288 // 512 KiB
 
+// FIXME: this has become a mess
 void read_file(int fd)
 {
 	// TODO: async double buffering

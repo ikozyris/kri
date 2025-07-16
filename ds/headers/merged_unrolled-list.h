@@ -35,12 +35,12 @@ typedef struct iter {
 	uint relative_pos; // pos in the chunk
 	chunk *parent() const { return (chunk*)(orig); } // force-casting
 	// proxy functions to emulate being a standalone gap buffer
-	ulong len() const { return parent()->len[relative_pos]; }
-	ulong gps() const { return orig->gps() - offset; }
-	ulong gpe() const { return orig->gpe() - offset; }
-	ulong cpt() const { return len() + gpe() - gps(); }
-	void set_gps(uint n) { orig->set_gps(n + offset); }
-	void set_gpe(uint n) { orig->set_gpe(n + offset); }
+	uint len() const { return parent()->len[relative_pos]; }
+	uint gps() const { return orig->gps - offset; }
+	uint gpe() const { return orig->gpe - offset; }
+	uint cpt() const { return len() + orig->gpe - orig->gps; }
+	void set_gps(uint n) { orig->gps = n + offset; }
+	void set_gpe(uint n) { orig->gpe = n + offset; }
 	char *buffer() { return orig->buffer() + offset; }
 } iter;
 
