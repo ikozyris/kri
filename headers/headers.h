@@ -11,4 +11,3 @@
 #include <fcntl.h>
 typedef uint8_t uchar;
 using namespace std;
-void log(const char *str, ...);
