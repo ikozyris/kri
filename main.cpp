@@ -71,6 +71,12 @@ int main(int argc, char *argv[])
 		close(fd);
 	}
 init:
+	// all functions think there is a newline at EOL, emulate it
+	if (!it.orig->len() || it.orig->buffer()[it.orig->len() - 1] != '\n') {
+		apnd_c(*it.orig, 0);
+		it.parent()->len[it.parent()->num_lines - 1]++;
+	}
+
 	init_curses();
 	getmaxyx(stdscr, maxy, maxx);
 
@@ -85,11 +91,6 @@ init:
 	wnoutrefresh(header_win);
 	overflows.resize(maxy, 0);
 	new_chunk_tmp = text.tail->prev;
-	// all functions think there is a newline at EOL, emulate it
-	if (new_chunk_tmp->merged_lines.buffer()[new_chunk_tmp->merged_lines.len() - 1] != '\n') {
-		apnd_c(*it.orig, 0);
-		new_chunk_tmp->len[new_chunk_tmp->num_lines - 1]++;
-	}
 
 	print_text(0);
 //loop:

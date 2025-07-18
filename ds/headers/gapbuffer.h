@@ -19,7 +19,7 @@ inline uint max(uint a, uint b) { return a > b ? a : b; }
 const ulong PTR_MASK = (1ul << 48) - 1;
 
 struct gap_buf {
-	uintptr_t ptr;
+	uintptr_t ptr; // TODO: take advantage of ARM TBI / Intel LAM
 	uint gps;
 	uint gpe;
 
