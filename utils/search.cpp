@@ -1,12 +1,23 @@
 #include "headers/search.h"
 
+// heuristics
+static uchar badchar[256];
+static uint goodsuffix[256];
+static void _badchar(const char *str, uchar len);
+static void _goodsuffix(const char *str, uchar len);
+
 // highlight or count occurrences of str in range [from, to)
 void find(const char *str, uint from, uint to, char mode)
 {
 	uint str_len = strlen(str);
-	if (str_len == 0 || to - 1 > curnum || from > to) {
+	if (str_len == 0 || str_len >= 256 || to - 1 > curnum || from > to) {
 		print2header("Invalid parameters", 1);
 		return;
+	}
+
+	if (str_len > 1) {
+		_badchar(str, str_len);
+		_goodsuffix(str, str_len);
 	}
 
 	list<gap_buf>::iterator tmp_it = text.begin();
@@ -189,20 +200,16 @@ ulong search_lc(uint from, uint to, const char *str, ushort str_len)
 	return total;
 }
 
-static uchar *_badchar(const char *str, uchar len)
+static void _badchar(const char *str, uchar len)
 {
-	uchar *badchar = (uchar*)malloc(256);
 	for (uint i = 0; i < 256; ++i) // BMH table
 		badchar[i] = len;
 	for (uint i = 0; i < len; i++)
 		badchar[(uchar)str[i]] = len - i - 1;
-
-	return badchar;
 }
 
-static uint *_goodsuffix(const char *str, ushort len)
+static void _goodsuffix(const char *str, uchar len)
 {
-	uint *gs = (uint*)malloc(len * sizeof(uint));
 	int *pos = (int*)malloc(len * sizeof(int));
 	fill(pos, pos + len, -1);
 
@@ -213,27 +220,23 @@ static uint *_goodsuffix(const char *str, ushort len)
 		pos[i] = j + 1;
 	}
 
-	gs[0] = len;
+	goodsuffix[0] = len;
 	for (uint i = 1; i < len; i++)
-		gs[i] = len - pos[i];
+		goodsuffix[i] = len - pos[i];
 
 	for (uint i = len - 1; i > 0; i--) {
 		if (str[i] != str[pos[i]])
-			gs[i] = len - i;
+			goodsuffix[i] = len - i;
 		else
-			gs[i] = gs[pos[i]];
+			goodsuffix[i] = goodsuffix[pos[i]];
 	}
 	free(pos);
-	return gs;
 }
 
 static vector<uint> bm_search(const gap_buf &buf, const char *str, ushort len, bool append)
 {
 	vector<uint> matches;
 	uint count = 0;
-	// heuristics
-	uchar *badchar = _badchar(str, len);
-	uint *goodsuffix = _goodsuffix(str, len);
 
 	for (uint i = 0; i < buf.len() - len;) {
 		uint j;
@@ -250,8 +253,6 @@ static vector<uint> bm_search(const gap_buf &buf, const char *str, ushort len, b
 		} else
 			i += max(badchar[(uchar)at(buf, i + j)], goodsuffix[j]);
 	}
-	free(goodsuffix);
-	free(badchar);
 	if (!append)
 		matches.push_back(count);
 	return matches;
@@ -330,7 +331,6 @@ vector<uint> search_a(const gap_buf &buf, const char *str, ushort len)
 		matches = mt_search(buf, str[0], 1);
 	else
 		matches = bm_search(buf, str, len, 1);
-
 	return matches;
 }
 
