@@ -1,7 +1,7 @@
 #pragma once
 #include "../../headers/headers.h"
 
-extern long ofx; // offset in x-axis
+extern long ofx; // offset in x-axis = bytes - dchars
 extern char *lnbuf; // temporary buffer for output of data()
 extern uint lnbf_cpt; // lnbuf capacity
 
@@ -46,4 +46,4 @@ void apnd_s(gap_buf &a, const char *str); // append null-terminated string
 void eras(gap_buf &a); // erase the character at current cursor position
 uint data(const gap_buf &src, uint from, uint to); // copy buffer with range to lnbuf
 char at(const gap_buf &src, uint pos); // return character at position calculating the gap
-void prepare_iteration(const gap_buf &src, uint from, uint to, uint &st1, uint &end1, uint &st2, uint &end2);
+void prepare_iteration(const gap_buf *src, uint from, uint to, uint &st1, uint &end1, uint &st2, uint &end2);

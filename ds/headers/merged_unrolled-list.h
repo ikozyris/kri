@@ -56,3 +56,9 @@ chunk *create_chunk();
 void goto_last_line(chunk *a);
 void append_len(chunk *a, uint len);
 void point2chunk(iter *it, chunk *a);
+
+extern llist text;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+inline void point2begin(iter *it) { *it = {.orig = &text.head->next->merged_lines}; }
+#pragma GCC diagnostic pop

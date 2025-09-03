@@ -1,9 +1,9 @@
 #include "headers/merged_unrolled-list.h"
-#include <ncurses.h>
 
 // point iterator to chunk (global_pos not updated)
 void point2chunk(iter *it, chunk *a)
 {
+	// *it = {.orig = x} not used as it zeroes global_pos
 	it->orig = &a->merged_lines;
 	it->relative_pos = it->offset = 0;
 }
