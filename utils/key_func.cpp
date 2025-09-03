@@ -12,12 +12,12 @@ void stats()
 	}
 	snprintf(_tmp, min(maxx, 256), "maxx %u off %u len %u gs %u ge %u cpt %u cut%lu[d%u,b%u] x %u ofx %ld ry %u lines %u   ",
 	maxx, it.offset, it.len(), it.gps(), it.gpe(), it.cpt(), cut.size(), cutd, cutb, x, ofx, ry, text.lines);
-#else	
+#else
 	ulong sumlen = 0;
 	chunk *i;
 	for (i = text.head->next; i != text.tail; i = i->next)
 		sumlen += i->merged_lines.len();
-	snprintf(_tmp, min(maxx, 256), "len %u  cpt %u  y %u  x %u  sum len %lu  lines %u  cut %lu  ofx %ld  ", 
+	snprintf(_tmp, min(maxx, 256), "len %u  cpt %u  y %u  x %u  sum len %lu  lines %u  cut %lu  ofx %ld  ",
 		it.len(), it.cpt(), ry, x, sumlen, text.lines, cut.size(), ofx);
 #endif
 	print2header(_tmp, 1);
@@ -52,10 +52,7 @@ void command()
 		uint a;
 		sscanf(tmp + 7, "%u", &a);
 		if (a <= text.lines) {
-			ofy = a - 1;
-			print_lines();
-			wrefresh(ln_win);
-			print_text(0);
+			scroll2(a);
 			iterate_fw(&it, ofy - ry);
 		}
 	} else if (strncmp(tmp, "find", 4) == 0) { // example: find string
@@ -100,6 +97,16 @@ void command()
 	free(tmp);
 }
 
+void scroll2(uint a)
+{
+	ofy = a - 1;
+	ofx = 0;
+	cut.clear();
+	print_lines();
+	wrefresh(ln_win);
+	print_text(0);
+}
+
 // insert enter in rx of buffer, create new line node and reprint
 void enter()
 {
@@ -114,7 +121,7 @@ void enter()
 	ch->num_lines++;
 	ch->len[pos + 1] = it.len() - it.gps();
 	ch->len[pos] = it.gps() + 1;
-	
+
 	text.lines++;
 	insert_c(*it.orig, '\n');
 	it.offset = it.orig->gps;
@@ -144,7 +151,7 @@ void mvr_scurs(uint t_byte)
 	ofx = calc_offset_act(t_byte, 0, &it);
 	if (t_byte - ofx <= maxx) // line fits in screen
 		wmove(text_win, y, t_byte - ofx - 1);
-	else { // cut line 
+	else { // cut line
 		cut.clear();
 		uint bytes = 0;
 		if (ofx == 0 && t_byte > (uint)5e8) {
@@ -174,10 +181,19 @@ void mvr_scurs(uint t_byte)
 			clean_mark(y);
 			x = (flag == maxx - 1 ? flag : flag - 1);
 		}
-		if (x + (uint)ofx > t_byte) 
+		if (x + (uint)ofx > t_byte)
 			ofx = t_byte - x + 1;
 		wmove(text_win, y, x);
 	}
+}
+
+void mvl_scurs(uint t_byte)
+{
+	while (cut.back().byte > t_byte) {
+		ofx -= cut.back().dchar;
+		cut.pop_back();
+	}
+	mvprint_line(y, 0, &it, cut.back().byte, 0);
 }
 
 // go to start-of-line, uncut line if needed
@@ -258,7 +274,8 @@ ushort left()
 
 // right arrow
 ushort right() {
-	if (rx >= it.len() - 1 && ry < text.lines) { // go to next line
+	// let len overflow if 0
+	if (rx >= it.len() - 1) { // go to next line
 		if (y == maxy - 1) {
 			scrolldown();
 			return SCROLL;
@@ -276,7 +293,7 @@ cut_line:
 		cut.push_back({x, (cut.empty() ? 0 : cut.back().byte) + print_line(&it, ofx, 0, y)});
 		wmove(text_win, y, 0);
 		return CUT;
-	} else { // go right
+	} else if (ry < text.lines) { // go right
 		wmove(text_win, y, x + 1);
 		if (it.buffer()[it.gpe() + 1] == '\t') {
 			if (x >= maxx - 7)
@@ -305,8 +322,7 @@ void reset_view()
 {
 	ofy = ofx = 0;
 	cut.clear();
-	point2chunk(&it, text.head->next);
-	it.relative_pos = it.global_pos = 0;
+	point2begin(&it);
 	print_text(0);
 	reset_header();
 	print_lines();

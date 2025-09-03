@@ -9,7 +9,6 @@ CXX = g++ --std=c++20
 #  -lncursesw		Links to ncurses library for wide characters (unicode)
 
 OPTIM = -O3 -s -flto -march=native -DRELEASE
-SIZE  = -Os -s -flto -fdata-sections -ffunction-sections -Wl,--gc-sections
 DEBUG = -g #-DDEBUG
 CXXFLAGS = -Wall -Wextra -pedantic-errors $(OPTIM) -DHIGHLIGHT # Debug only
 #CXXFLAGS = -Wall -Wextra -pedantic $(OPTIM) -DHIGHLIGHT

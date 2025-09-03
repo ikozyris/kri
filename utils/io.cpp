@@ -70,11 +70,12 @@ void print_text(uint line)
 	iterate_fw(&i, ofy + line);
 	wmove(text_win, line, 0);
 	wclrtobot(text_win);
-	wmove(text_win, line, 0);
-	for (uint ty = line; ty <= min(text.lines + ofy, maxy - 1); ++ty) {
+	mvprint_line(line, 0, &i, 0, 0);
+	highlight(line, &i);
+	for (uint ty = line + 1; ty <= min(text.lines + ofy, maxy - 1); ++ty) {
+		iterate_fw(&i, 1);
 		mvprint_line(ty, 0, &i, 0, 0);
 		highlight(ty, &i);
-		iterate_fw(&i, 1);
 	}
 }
 

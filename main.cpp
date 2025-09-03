@@ -51,10 +51,12 @@ int main(int argc, char *argv[])
 	}
 	text.head = create_chunk();
 	text.tail = create_chunk();
+{
 	chunk *new_chunk_tmp = create_chunk();
 	connect(text.head, new_chunk_tmp); // insert without updating size
 	connect(new_chunk_tmp, text.tail);
-	point2chunk(&it, text.head->next);
+	point2begin(&it);
+}
 
 	if (argc > 1) {
 		filename = (char*)malloc(sizeof(char) * 128);
@@ -71,6 +73,7 @@ int main(int argc, char *argv[])
 		close(fd);
 	}
 init:
+	point2chunk(&it, text.tail->prev);
 	// all functions think there is a newline at EOL, emulate it
 	if (!it.orig->len() || it.orig->buffer()[it.orig->len() - 1] != '\n') {
 		apnd_c(*it.orig, 0);
@@ -90,13 +93,11 @@ init:
 	wnoutrefresh(ln_win);
 	wnoutrefresh(header_win);
 	overflows.resize(maxy, 0);
-	new_chunk_tmp = text.tail->prev;
 
 	print_text(0);
 //loop:
 	wmove(text_win, 0, 0);
-	point2chunk(&it, text.head->next);
-	it.relative_pos = it.global_pos = 0;
+	point2begin(&it);
 
 	while (1) {
 		getyx(text_win, y, x);

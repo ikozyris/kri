@@ -5,6 +5,8 @@
 void stats(); // print statistics in header
 void command(); // prompt for command
 void enter(); // insert enter at *it,rx and create new node for line
+void scroll2(uint a);
+void mvl_scurs(uint t_byte);
 void mvr_scurs(uint t_byte); // move right screen cursor
 inline void eol() { mvr_scurs(it.len()); overflows[y] = false; }// go to end of line, if necessary cut line mod window width (maxx)
 void sol(); // got to start of line, reset cut, ofx
