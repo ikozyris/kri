@@ -3,7 +3,7 @@
 #include <string.h>
 #include <locale.h>	// for setting locale
 #include <vector>
-#include <thread>
+#include <pthread.h>
 #include <bit>	// for __bit_ceil (cntlz)
 #include <signal.h> // for pause in command suspend
 #include <sys/mman.h>

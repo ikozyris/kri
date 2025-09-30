@@ -61,9 +61,10 @@ void command()
 		char *pr2 = input_header("range/mode: "); // 5-10 h
 		sscanf(pr2, "%u-%u %c", &from, &to, &mode);
 		free(pr2);
-		//find(tmp + 5, from, to + 1, mode); // we want closed interval, function is open
+		tmp[4] = strlen(tmp + 5); // pascal string
+		find(tmp + 4, from, to + 1, mode); // we want closed interval, function is open
 	} else if (strncmp(tmp, "replace", 7) == 0) {
-		/*uint from = 0, to = text.lines;
+/*		uint from = 0, to = text.lines;
 		sscanf(tmp + 8, "%u-%u", &from, &to);
 		free(tmp);
 
@@ -73,15 +74,16 @@ void command()
 		long offset = 0;
 		uint count = 0;
 
-		list<gap_buf>::iterator iter = text.begin();
-		advance(iter, from);
-		for (uint i = from; i <= to; ++i, ++iter) {
-			vector<uint> matches = search_a(*iter, tmp, tmp_len);
+		iter tmp_it;
+		point2begin(&tmp_it);
+		iterate_fw(&tmp_it, from);
+		for (uint i = from; i <= to; ++i, iterate_fw(&tmp_it, 1)) {
+			vector<uint> matches = search_a(*tmp_it.orig, tmp);
 			count += matches.size();
 			for (uint j = 0; j < matches.size(); ++j) {
-				mv_curs(*iter, (long)matches[j] + offset);
-				iter->set_gpe(iter->gpe() + tmp_len);
-				insert_s(*iter, matches[j] + offset, newst, newst_len);
+				mv_curs(*tmp_it.orig, (long)matches[j] + offset);
+				tmp_it.set_gpe(tmp_it.gpe() + tmp_len);
+				insert_s(*tmp_it.orig, newst, newst_len);
 				offset += (long)newst_len - (long)tmp_len;
 			}
 			offset = 0;
@@ -145,6 +147,7 @@ void enter()
 	}
 }
 
+// TODO: this is a repetitive mess
 // go to target byte, if necessary cut line
 void mvr_scurs(uint t_byte)
 {
@@ -164,7 +167,7 @@ void mvr_scurs(uint t_byte)
 		} else {
 			while (1) { // TODO: optimize
 				const uint nbytes = dchar2bytes(maxx - 1, bytes, &it);
-				if (nbytes >= t_byte - 1)
+				if (nbytes > t_byte)
 					break;
 				cut.push_back({flag, nbytes}); // flag was changed by dchar2bytes
 				ofx += flag;

@@ -1,349 +1,347 @@
 #include "headers/search.h"
 
+// global is occurrences, each local is matches
+static vector<dynarray> occurrences(4);
+// shared parameters
+static const char *string;
+static bool append;
+static iter first_line;
+static iter last_line;
+
+// TODO: give hint of left/right bound based on cur_occ
+static uint ln_start(const vector<pair<uint, uint>> &yx, uint y) {
+	uint lo = 0, hi = yx.size() - 1, mid;
+	while (lo < hi) {
+		mid = lo + (hi - lo) / 2;
+		if (yx[mid].first < y)
+			lo = mid + 1;
+		else
+			hi = mid; // find leftmost occurrence
+	}
+	return lo;
+}
+
+static pair<uint, uint> index2yx(uint index, iter *it)
+{
+	uint cbyte = 0;
+	const chunk *ch = it->parent();
+	for (uint i = 0; i < ch->num_lines; ++i) {
+		if (index < cbyte + ch->len[i]) {
+			uint dx = bytes2dchar(index, cbyte, it);
+			if (dx >= maxx - 1) // if it's outside of visible range we don't need this
+				dx = index;
+			return {i, dx};
+		}
+		cbyte += ch->len[i];
+	}
+	return {index, 0}; // only one line is in chunk
+}
+
+static void highlight_occ(const vector<pair<uint,uint>> &matches, uint cur_occ)
+{
+	if (matches[cur_occ].first - ofy == 0) // first line may have offset on x axis
+		mvwchgat(text_win, 0, matches[cur_occ].second - ofx,
+			string[0], A_STANDOUT, 0, 0);
+	while (cur_occ < matches.size()) {
+		if (matches[cur_occ].first >= maxy + ofy)
+			break;
+		if (matches[cur_occ].second < maxx) // ignored on handled above
+			mvwchgat(text_win, (uint)matches[cur_occ].first - ofy, matches[cur_occ].second,
+				string[0], A_STANDOUT, 0, 0);
+		cur_occ++;
+	}
+}
+
+static void *_search_lc(void *args);
+static void *_search_la(void *args);
+static void search_mb_common(uint from, uint to, void *search_fn(void*));
+
 // highlight or count occurrences of str in range [from, to)
 void find(const char *str, uint from, uint to, char mode)
 {
-	uint str_len = strlen(str);
-	if (str_len == 0 || to - 1 > text.size || from > to) {
+	uint str_len = str[0];
+	if (str_len == 0 || to - 1 > text.lines || from > to) {
 		print2header("Invalid parameters", 1);
 		return;
 	}
 
-	list<gap_buf>::iterator tmp_it = text.begin();
-	advance(tmp_it, from);
+	iter tmp_it;
+	point2begin(&tmp_it);
+	iterate_fw(&tmp_it, from);
 	it = tmp_it;
-	const ulong first_batch = min(maxy, to); // how many lines to display
-	vector<vector<uint>> matches;
+	append = mode == 'h';
+
+	string = str;
+	if (append)
+		search_mb_common(from, to, _search_la);
+	else
+		search_mb_common(from, to, _search_lc);
 	ulong total = 0;
-	if (mode == 'h') {
-		// fetches only the occurrences that will be shown +1
-		matches = search_la(from, from + first_batch + 1, str, str_len);
-		for (const auto &vec : matches)
-			total += vec.size();
-		if (to > first_batch) // just count the remaining (if any)
-			total += search_lc(first_batch + 1, to, str, str_len);
-		// TODO: fix the showing highlights to work without overcounting
-		else if (to < first_batch)
-			total -= matches.back().size(); // overcounted
-	} else
-		total += search_lc(from, to, str, str_len);
+	for (auto i : occurrences)
+		total += i.len();
 
 	clear_header();
 	snprintf(lnbuf, lnbf_cpt, "%lu matches on lines [%u, %u]", total, from, to - 1);
 	print2header(lnbuf, 1);
 
-	if (mode == 'c')
+	if (mode == 'c' || total == 0)
 		return;
+	str++;
 	str_len -= mbcnt(str, str_len); // get displayed characters
 
-	// displayed x, previous byte, previous print byte, previous iterated occurrence
-	vector<uint> dix(maxy), previ(maxy), prevpr(maxy), prevx(maxy);
-	int ch = 0;
+	uint cline = 0; // cumulative line
+	vector<pair<uint,uint>> matches; // y,x
+	for (uint i = 0; i < occurrences.size(); ++i) { // occurrences in each chunk
+		for (uint j = 0; j < occurrences[i].len(); ++j) { // i.len() may be 0
+			matches.emplace_back(index2yx(occurrences[i].array[j], &first_line));
+			matches.back().first += cline;
+		}
+		append = mode == 'h';
+		cline += first_line.parent()->num_lines;
+		first_line.orig = &first_line.parent()->next->merged_lines;
+		occurrences[i].set_len(0);
+	}
+
+	reset_view();
+	scroll2(matches[0].first + 1);
+	uint cur_occ = 0; // current occurrence
+	highlight_occ(matches, 0);
+
+	y = ofx = 0;
 	curs_set(0);
-	do {
+	int ch;
+	while ((ch = wgetch(text_win))) {
 		switch (ch) {
-		case KEY_RIGHT:
-			tmp_it = it;
-			for (uint i = from; i < first_batch; ++i, ++tmp_it)
-				if (prevpr[i] != 0 && previ[i] != matches[ofy + i].back()) // more occurrences remaining
-					mvprint_line(i, 0, *tmp_it, prevpr[i], 0);
-			break;
-
-		case 0:
-		case KEY_LEFT:
-			tmp_it = it;
-			for (uint i = from; i < first_batch; ++i, ++tmp_it) {
-				mvprint_line(i, 0, *tmp_it, 0, 0);
-				dix[i] = previ[i] = prevpr[i] = prevx[i] = 0;
-			}
-			break;
-
-		case KEY_DOWN:
-			for (uint i = from; i < first_batch; ++i)
-				dix[i] = previ[i] = prevpr[i] = prevx[i] = 0;
-			if (ofy + maxy > min(text.size, to))
+		case KEY_RIGHT: // next occurrence in the same line
+			if (cur_occ == matches.size() - 1 || matches[cur_occ + 1].first != matches[cur_occ].first)
 				break;
-			++ofy;
-			++it;
-			print_text(0);
-			++tmp_it;
-			matches.emplace_back(search_a(*tmp_it, str, str_len));
+			cur_occ++;
+			mvr_scurs(matches[cur_occ].second);
 			break;
 
-		case KEY_UP:
-			for (uint i = from; i < first_batch; ++i)
-				dix[i] = previ[i] = prevpr[i] = prevx[i] = 0;
-			if (ofy <= 0)
+		case KEY_LEFT: // previous occurrence in the same line
+			if (!cur_occ || matches[cur_occ - 1].first != matches[cur_occ].first)
 				break;
-			--ofy;
-			--it;
-			print_text(0);
+			cur_occ--;
+			mvl_scurs(matches[cur_occ].second);
 			break;
 
-		case 27:
-		case 'q':
+		case KEY_DOWN: // previous occurrence in previous lines
+			if (cur_occ == matches.size() - 1 || matches[cur_occ].first == matches.back().first)
+				break;
+			cur_occ = ln_start(matches, matches[cur_occ].first + 1);
+			if (matches[cur_occ].first >= text.lines || it.global_pos + ofy - ry >= text.lines)
+				break;
+			scroll2(matches[cur_occ].first + 1);
+			if (matches[cur_occ].second >= maxx)	
+				mvr_scurs(matches[cur_occ].second); // this is dx not byte
+			iterate_fw(&it, ofy - ry);
+			break;
+
+		case KEY_UP: // next occurrence in next lines
+			if (matches[cur_occ].first == 0 || cur_occ == 0)
+				break;
+			cur_occ = ln_start(matches, matches[cur_occ].first - 1);
+			if (matches[cur_occ].first == ry)
+				cur_occ--;
+			scroll2(matches[cur_occ].first + 1);
+			iterate_bw(&it, ry - ofy);
+			break;
+
 		default:
 			goto exit;
 		}
-
-		tmp_it = it;
-		for (uint i = 0; i < first_batch; ++i, ++tmp_it) { // line
-			for (uint j = prevx[i]; j < matches[ofy + i].size(); ++j) { // occurrence
-				const uint pos = matches[ofy + i][j];
-				const uint hg_pos = bytes2dchar(pos, previ[i], *tmp_it);
-				prevx[i] = j;
-				if (dix[i] + hg_pos >= maxx - 1 + prevpr[i]) { // cut
-					prevpr[i] = pos - pos % (maxx - 1);
-					break;
-				}
-				previ[i] = pos;
-				dix[i] += hg_pos;
-				wmove(text_win, i + from, dix[i] % (maxx - 1));
-				wchgat(text_win, str_len, A_STANDOUT, 0, 0);
-			}
-		}
-	} while ((ch = wgetch(text_win)));
+		highlight_occ(matches, cur_occ);
+		ry = ofy;
+	}
 exit:
 	curs_set(1);
 	reset_view();
 }
 
-// each thread searches on chunk of lines with this
-static void _search_lc(uint from, uint to, list<gap_buf>::iterator it, const char *str, ushort str_len, uint &count)
+static void partition_chunks(uint &nthreads, uint &chunk, uint &remainder, uint len)
 {
-	for (uint i = from; i < to; ++i, ++it)
-		count += search_c(*it, str, str_len);
+	nthreads = sysconf(_SC_NPROCESSORS_ONLN);
+	chunk = len / nthreads;
+	remainder = len % nthreads;
 }
 
-// each thread searches on chunk of lines with this
-static void _search_la(uint from, uint to, list<gap_buf>::iterator it, const char *str, ushort str_len, vector<vector<uint>> &matches)
+static void bitap_search(const uchar *buf, uint blen, dynarray *matches)
 {
-	for (uint i = from; i < to; ++i, ++it) {
-		vector<uint> tmp = search_a(*it, str, str_len);
-		matches.push_back(tmp);
-	}
-}
+	uint plen = string[0]; // pascal string
+	if (blen < plen)
+		return;
+	const uchar *str = (const uchar*)string + 1;
+	uint cnt = 0;
+	// for each possible byte value, 0 where the str has match
+	ulong mask[256];
+	memset(mask, -1, sizeof(mask));
 
-static void partition_chunks(uint &nthreads, uint &chunk, uint from, uint to)
-{
-	nthreads = thread::hardware_concurrency();
-	if (nthreads == 0 || to - from < (uint)1e6)
-		nthreads = 1;
-	chunk = (to - from + 1) / nthreads;
-}
+	// for each position i in buf, bit i = 0 in mask[buf[i]]
+	for (uint i = 0; i < plen; i++)
+		mask[str[i]] &= ~(1ul << i);
 
-static void join_threads(vector<thread> &threads)
-{
-	for (auto &thread : threads)
-		if (thread.joinable())
-			thread.join();
-}
+	ulong state = -1; // no matches
+	ulong accept_bit = 1ul << plen;
 
-// search for str in range [from, to) return occurrences
-vector<vector<uint>> search_la(uint from, uint to, const char *str, ushort str_len)
-{
-	uint nthreads, chunk;
-	partition_chunks(nthreads, chunk, from, to);
-	vector<thread> threads(nthreads);
-	vector<vector<vector<uint>>> indices(nthreads);
+	for (uint i = 0; i < blen; i++) {
+		state = (state | mask[buf[i]]) << 1ul;
 
-	list<gap_buf>::iterator tmp_it = text.begin();
-	advance(tmp_it, from);
-	for (uint i = 0; i < nthreads; ++i) {
-		uint st = i * chunk;
-		uint end = min((i + 1) * chunk, to);
-
-		threads.emplace_back(_search_la, st, end, tmp_it, str, str_len, ref(indices[i]));
-		advance(tmp_it, chunk);
-	}
-	join_threads(threads);
-	// merge results (each threads' chunks to one vector)
-	vector<vector<uint>> result;
-	for (vector<vector<uint>> &vec : indices)
-		result.insert(result.end(), vec.begin(), vec.end());
-	return result;
-}
-
-// search for str in range [from, to)
-ulong search_lc(uint from, uint to, const char *str, ushort str_len)
-{
-	uint nthreads, chunk;
-	partition_chunks(nthreads, chunk, from, to);
-	vector<thread> threads(nthreads);
-	vector<uint> indices(nthreads);
-
-	list<gap_buf>::iterator tmp_it = text.begin();
-	advance(tmp_it, from);
-	for (uint i = 0; i < nthreads; ++i) {
-		uint st = i * chunk;
-		uint end = min((i + 1) * chunk, to);
-
-		threads.emplace_back(_search_lc, st, end, tmp_it, str, str_len, ref(indices[i]));
-		advance(tmp_it, chunk);
-	}
-	join_threads(threads);
-
-	ulong total = 0;
-	for (uint tmp : indices)
-		total += tmp;
-	return total;
-}
-
-static uchar *_badchar(const char *str, uchar len)
-{
-	uchar *badchar = (uchar*)malloc(256);
-	for (uint i = 0; i < 256; ++i) // BMH table
-		badchar[i] = len;
-	for (uint i = 0; i < len; i++)
-		badchar[(uchar)str[i]] = len - i - 1;
-
-	return badchar;
-}
-
-static uint *_goodsuffix(const char *str, ushort len)
-{
-	uint *gs = (uint*)malloc(len * sizeof(uint));
-	int *pos = (int*)malloc(len * sizeof(int));
-	fill(pos, pos + len, -1);
-
-	for (uint i = 1; i < len; i++) {
-		int j = pos[i - 1];
-		while (j >= 0 && str[i] != str[j])
-			j = pos[j];
-		pos[i] = j + 1;
-	}
-
-	gs[0] = len;
-	for (uint i = 1; i < len; i++)
-		gs[i] = len - pos[i];
-
-	for (uint i = len - 1; i > 0; i--) {
-		if (str[i] != str[pos[i]])
-			gs[i] = len - i;
-		else
-			gs[i] = gs[pos[i]];
-	}
-	free(pos);
-	return gs;
-}
-
-static vector<uint> bm_search(const gap_buf &buf, const char *str, ushort len, bool append)
-{
-	vector<uint> matches;
-	uint count = 0;
-	// heuristics
-	uchar *badchar = _badchar(str, len);
-	uint *goodsuffix = _goodsuffix(str, len);
-
-	for (uint i = 0; i < buf.len() - len;) {
-		uint j;
-
-		// check from end of str
-		for (j = len - 1; j < len && str[j] == at(buf, i + j); --j);
-
-		if (j > len) { // unsigned overflow => matched
-			if (append) // this wasn't a bottleneck in benchmarks (maybe retest?)
-				matches.push_back(i);
+		// matched all plen bits in sequence
+		if ((state & accept_bit) == 0) {
+			if (append)
+				matches->append(i + 1 - plen);
 			else
-				++count;
-			i += len; // no overlaps
-		} else
-			i += max(badchar[(uchar)at(buf, i + j)], goodsuffix[j]);
-	}
-	free(goodsuffix);
-	free(badchar);
-	if (!append)
-		matches.push_back(count);
-	return matches;
-}
-
-// each thread searches with this
-static void searchch_a(const gap_buf &buf, char ch, ulong st, ulong end, vector<uint> &matches)
-{
-	ulong st1 = st, st2, end1 = end, end2 = 0;
-	const char *buffer = buf.buffer();
-	prepare_iteration(buf, st, end, st1, end1, st2, end2);
-	for (ulong i = st1; i < end1; ++i)
-		if (buffer[i] == ch)
-			matches.push_back(i - st1 + st);
-	for (ulong i = st2; i < end2; ++i)
-		if (buffer[i] == ch)
-			matches.push_back(i - st2 + st);
-}
-
-// each thread searches with this
-static void searchch_c(const gap_buf &buf, char ch, ulong st, ulong end, uint &count)
-{
-	ulong st1, end1, st2, end2;
-	const char *buffer = buf.buffer();
-	prepare_iteration(buf, st, end, st1, end1, st2, end2);
-	for (ulong i = st1; i < end1; ++i)
-		if (buffer[i] == ch)
-			++count;
-	for (ulong i = st2; i < end2; ++i)
-		if (buffer[i] == ch)
-			++count;
-}
-
-// wrapper for searchch() to launch with multi-threaded
-vector<uint> mt_search(const gap_buf &buf, char ch, bool append)
-{
-	uint nthreads, chunk;
-	// TODO: partition smarter: before gap + after gap
-	partition_chunks(nthreads, chunk, 0, buf.len() - 1); // -1 as last char is \n
-	vector<thread> threads(nthreads);
-	vector<vector<uint>> indices(nthreads); // each thread's result
-
-	for (uint i = 0; i < nthreads; ++i) {
-		ulong st = i * chunk;
-		ulong end = min((i + 1) * chunk, buf.len() - 1);
-
-		if (append)
-			threads.emplace_back(searchch_a, ref(buf), ch, st, end, ref(indices[i]));
-		else {
-			indices[i].push_back(0);
-			threads.emplace_back(searchch_c, ref(buf), ch, st, end, ref(indices[i][0]));
+				matches->incr_len();
 		}
 	}
-	join_threads(threads);
+}
 
-	vector<uint> matches;
-	matches.reserve(indices[0].size());
-	if (append)
-		for (const auto &vec : indices)
-			matches.insert(matches.end(), vec.begin(), vec.end());
-	else {
-		matches.push_back(0);
-		for (const auto &vec : indices)
-			matches[0] += vec[0];
+static void mid_search(const char *buf, dynarray *matches, uint midlen)
+{
+	const uint plen = string[0];
+	const char *str = string + 1;
+	// an occurrence might be split between gap start and gap end
+	const uint midpoint = plen - 1;
+	// if st underflows, it becomes: 2^32-x (which is always) > gps, so loop never gets executed
+	for (uint i = 0; i < midpoint; ++i) {
+		bool a, b;
+		a = strncmp(buf + i, str, midpoint - i);
+		if (a)
+			b = strncmp(buf + midpoint + midlen, str + i, midpoint + midlen - i);
+
+		if ((a & b) == 0) {
+			if (append)
+				matches->append(i);
+			else
+				matches->incr_len();
+			break; // only one match can fit between the gap
+		}
 	}
-	return matches;
 }
 
-// search for str in buf, return vector of occurences
-vector<uint> search_a(const gap_buf &buf, const char *str, ushort len)
+// search for str in buf, return vector of occurrences
+static void searchstr(dynarray *matches, const gap_buf *buf)
 {
-	vector<uint> matches;
-	if (len >= buf.len())
-		return matches;
+	if (string[0] >= buf->len())
+		return;
 
-	if (len == 1)
-		matches = mt_search(buf, str[0], 1);
-	else
-		matches = bm_search(buf, str, len, 1);
+	uint end1 = buf->gps; // for clarity
+	uint st2 = buf->gpe + 1, end2 = buf->cpt();
 
-	return matches;
+	bitap_search((uchar*)buf->buffer(), end1, matches);
+	if (end2 - st2 > 1) // if only 1 char is left it is the newline
+		mid_search(buf->buffer() + end1 + 1 - string[0], matches, st2 - end1);
+	bitap_search((uchar*)buf->buffer() + st2, end2 - st2, matches);
 }
 
-uint search_c(const gap_buf &buf, const char *str, ushort len)
+static void ranged_searchstr(dynarray *matches, const gap_buf *buf, uint from, uint to)
 {
-	if (len >= buf.len())
-		return 0;
+	uint from1, from2, to1, to2;
+	prepare_iteration(buf, from, to, from1, to1, from2, to2);
+	bitap_search((uchar*)buf->buffer() + from1, to1 - from1, matches);
+	if (to2 > from2) {
+		mid_search(buf->buffer(), matches, to2 - to1 + 1);
+		bitap_search((uchar*)buf->buffer() + from2, to2 - from2, matches);
+	}
+}
 
-	vector<uint> matches;
-	if (len == 1)
-		matches = mt_search(buf, str[0], 0);
-	else
-		matches = bm_search(buf, str, len, 0);
-	return matches[0];
+// String search
+
+// arguments for each thread (shared for count/append)
+struct args_str {
+	chunk *lines;
+	uint count; // count of chunks to process
+	uint out; // array of matches or pointer to count
+};
+
+static void search_mb_common(uint from, uint to, void *search_fn(void*))
+{
+	// first chunk may need an offset for start
+	point2begin(&first_line);
+	iterate_fw(&first_line, from);
+	chunk *chi = first_line.parent();
+
+	uint cur_ln = first_line.global_pos, num_chunks = 0;
+	cur_ln += chi->num_lines;
+	while (cur_ln < to) {
+		chi = chi->next;
+		cur_ln += chi->num_lines;
+		num_chunks++;
+	}
+	// last chunk may need reduced length
+	point2chunk(&last_line, chi);
+	line_offset(&last_line, cur_ln - to);
+	if (num_chunks == 0) {
+		ranged_searchstr(&occurrences[0], first_line.orig, first_line.offset, last_line.offset + last_line.len());
+		return;
+	}
+	last_line.global_pos = to;
+	chi = first_line.parent()->next;
+	// it's probably better to directly call these than doing an ugly combination of goto and if
+	if (num_chunks == 1) {
+		ranged_searchstr(&occurrences[0], first_line.orig, first_line.offset, first_line.orig->len());
+		ranged_searchstr(&occurrences[1], last_line.orig, 0, last_line.len());
+		return;
+	}
+
+	uint nthreads = num_chunks < 256 ? 1 : sysconf(_SC_NPROCESSORS_ONLN);
+	occurrences.resize(append ? num_chunks : nthreads);
+	num_chunks--; // first and last chunk are processed independently
+	uint chunk_sz = num_chunks / nthreads;
+	uint remainder = num_chunks % nthreads;
+
+	pthread_t *threads = (pthread_t*)malloc(nthreads * sizeof(pthread_t));
+	struct args_str *args = (struct args_str*)malloc(nthreads * sizeof(struct args_str));
+	for (uint i = 0; i < nthreads; ++i) {
+		uint st = i * chunk_sz;
+		uint size = chunk_sz + (i == nthreads - 1 ? remainder : 0);
+
+		args[i].count = size;
+		args[i].lines = chi;
+		args[i].out = st + 1;
+
+		pthread_create(&threads[i], nullptr, search_fn, &args[i]);
+		while (size--)
+			chi = chi->next;
+	}
+
+	// first and last lines are special cases and thus processed by main thread
+	ranged_searchstr(&occurrences[0], first_line.orig, first_line.offset, first_line.orig->len());
+	ranged_searchstr(&occurrences[num_chunks], last_line.orig, 0, last_line.len());
+
+	for (uint i = 0; i < nthreads; ++i)
+		pthread_join(threads[i], nullptr);
+	free(threads);
+	free(args);
+}
+
+// each thread searches on chunk of nodes with this
+static void *_search_lc(void *args)
+{
+	struct args_str *a = (struct args_str*)args;
+	uint count = 0;
+
+	for (uint i = 0; i < a->count; ++i) {
+		occurrences[a->out].set_len(0); // reset previous search
+		searchstr(&occurrences[a->out], &a->lines->merged_lines);
+		count += occurrences[a->out].array[0];
+		a->lines = a->lines->next;
+	}
+	occurrences[a->out].set_len(count);
+	return nullptr;
+}
+
+// each thread searches on chunk of nodes with this
+static void *_search_la(void *arg)
+{
+	struct args_str *a = (struct args_str*)arg;
+
+	for (uint i = 0; i < a->count; ++i) {
+		occurrences[a->out].set_len(0); // reset previous search
+		searchstr(&occurrences[a->out], &a->lines->merged_lines);
+		a->out++; // next chunk in occurrences[]
+		a->lines = a->lines->next;
+	}
+	return nullptr;
 }

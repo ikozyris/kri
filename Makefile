@@ -27,8 +27,8 @@ SRCS = main.cpp \
 	ds/merged_unrolled-list.cpp \
 	screen/highlight.cpp \
 	screen/init.cpp \
-	utils/sizes.cpp 
-#	utils/search.cpp
+	utils/sizes.cpp \
+	utils/search.cpp
 
 # object files
 OBJS = $(SRCS:.cpp=.o)

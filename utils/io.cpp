@@ -72,7 +72,7 @@ void print_text(uint line)
 	wclrtobot(text_win);
 	mvprint_line(line, 0, &i, 0, 0);
 	highlight(line, &i);
-	for (uint ty = line + 1; ty <= min(text.lines + ofy, maxy - 1); ++ty) {
+	for (uint ty = line + 1; ty <= min(text.lines - ofy, maxy - 1); ++ty) {
 		iterate_fw(&i, 1);
 		mvprint_line(ty, 0, &i, 0, 0);
 		highlight(ty, &i);
