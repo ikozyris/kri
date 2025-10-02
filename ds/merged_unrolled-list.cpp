@@ -137,8 +137,7 @@ void merge_lines(llist *list, iter *a, iter *b)
 			mergeba(b, a);
 		else if (use_b)
 			mergeba(a, b);
-		else {
-			// 3rd case: none fits; create new chunk
+		else { // 3rd case: none fits; create new chunk
 			chunk *new_chunk = create_chunk();
 			// combine a and b's lines (remove a's last char as a newline)
 			apnd_s(new_chunk->merged_lines, a_ch->merged_lines.buffer() + a->offset, a->len() - 1);
@@ -152,17 +151,6 @@ void merge_lines(llist *list, iter *a, iter *b)
 		}
 	}
 }
-
-// insert new_line after before
-/*void insert_line(llist *list, iter *before, gap_buf *new_line)
-{
-	if (before->orig->len() + new_line->len() < 256) {
-		insert_s(*before->orig, new_line->buffer(), new_line->len());
-		chunk *ch = before->parent();
-		uint pos = before->relative_pos + 1;
-		memmove(&ch->len[pos], &ch->len[pos - 1], ch->num_lines - pos - 1);
-	} else if ()
-}*/
 
 // insert new before
 void insert_chunk(llist *list, chunk *before, chunk *new_chunk)
