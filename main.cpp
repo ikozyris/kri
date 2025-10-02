@@ -241,10 +241,13 @@ init:
 				print_text(y);
 				wmove(text_win, y, 0);
 			} else { // clear line buffer
-				rm_mline(it.parent(), it.relative_pos, &it);
+				it.orig->gps = 0;
+				it.orig->gpe = it.orig->cpt() - 1;
+				it.parent()->len[0] = 1;
+				it.parent()->num_lines = 1;
 				clearline;
 			}
-			break;//*/
+			break;
 
 		case ENTER:
 			enter();

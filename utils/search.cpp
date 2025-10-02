@@ -159,21 +159,14 @@ exit:
 	reset_view();
 }
 
-static void partition_chunks(uint &nthreads, uint &chunk, uint &remainder, uint len)
-{
-	nthreads = sysconf(_SC_NPROCESSORS_ONLN);
-	chunk = len / nthreads;
-	remainder = len % nthreads;
-}
-
 static void bitap_search(const uchar *buf, uint blen, dynarray *matches)
 {
 	uint plen = string[0]; // pascal string
 	if (blen < plen)
 		return;
 	const uchar *str = (const uchar*)string + 1;
-	uint cnt = 0;
-	// for each possible byte value, 0 where the str has match
+
+	// for each byte value, 0 where the str has match
 	ulong mask[256];
 	memset(mask, -1, sizeof(mask));
 

@@ -278,7 +278,7 @@ ushort left()
 // right arrow
 ushort right() {
 	// let len overflow if 0
-	if (rx >= it.len() - 1) { // go to next line
+	if (rx >= it.len() - 1 && ry < text.lines) { // go to next line
 		if (y == maxy - 1) {
 			scrolldown();
 			return SCROLL;
@@ -296,7 +296,7 @@ cut_line:
 		cut.push_back({x, (cut.empty() ? 0 : cut.back().byte) + print_line(&it, ofx, 0, y)});
 		wmove(text_win, y, 0);
 		return CUT;
-	} else if (ry < text.lines) { // go right
+	} else if (rx < it.len()) { // go right
 		wmove(text_win, y, x + 1);
 		if (it.buffer()[it.gpe() + 1] == '\t') {
 			if (x >= maxx - 7)
