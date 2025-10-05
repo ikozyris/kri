@@ -12,10 +12,10 @@ void append_len(chunk *a, uint len)
 {
 	if (a->len_cpt < a->num_lines + 1) {
 		a->len = (uchar*)realloc(a->len, a->len_cpt * 2);
-		memset(a->len + a->len_cpt, 0, a->len_cpt);
-		a->len_cpt = a->len_cpt * 2;
+		memset(a->len + a->len_cpt - 1, 0, a->len_cpt + 1);
+		a->len_cpt *= 2;
 	}
-	a->len[a->num_lines - 1] += len;
+	a->len[a->num_lines - 1] = len;
 	a->num_lines++;
 }
 
@@ -125,8 +125,8 @@ void merge_lines(llist *list, iter *a, iter *b)
 		memmove(&a_ch->len[rel_pos], &a_ch->len[rel_pos + 1], a_ch->num_lines - rel_pos);
 		a_ch->num_lines--;
 	} else { // need to move at least one line to another chunk
-		bool use_a = a_ch->merged_lines.len() + b->len() < MAX_CHUNK_SIZE || a_ch->num_lines == 0;
-		bool use_b = b_ch->merged_lines.len() + a->len() < MAX_CHUNK_SIZE || b_ch->num_lines == 0;
+		bool use_a = a_ch->merged_lines.len() + b->len() < MAX_CHUNK_SIZE || a_ch->num_lines <= 1;
+		bool use_b = b_ch->merged_lines.len() + a->len() < MAX_CHUNK_SIZE || b_ch->num_lines <= 1;
 		if (use_a && use_b) { // merge small into large
 			if (a_ch->merged_lines.len() < b_ch->merged_lines.len())
 				use_b = false;
@@ -163,9 +163,11 @@ void insert_chunk(llist *list, chunk *before, chunk *new_chunk)
 chunk *create_chunk()
 {
 	chunk *new_chunk = (chunk*)malloc(sizeof(chunk));
+	// len is actually unallocated, but len_cpt=1 makes 1st realloc easier
+	new_chunk->len_cpt = 1;
+	new_chunk->len = nullptr;
 	new_chunk->num_lines = 1;
-	new_chunk->len_cpt = 8;
-	new_chunk->len = (uchar*)calloc(8, 1);
+	//*new_chunk = {.len_cpt = 1, .num_lines = 1}; // TODO: use this in C
 	init(new_chunk->merged_lines);
 	return new_chunk;
 }

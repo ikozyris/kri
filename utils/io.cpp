@@ -139,46 +139,38 @@ void save()
 // For size see: https://github.com/ikozyris/kri/wiki/Comments-on-optimizations#buffer-size-for-reading
 #define SZ 524288 // 512 KiB
 
-// FIXME: this has become a mess
 void read_file(int fd)
 {
-	// TODO: async double buffering
-	char *buf = (char*)malloc(SZ), *res, *cur;
-	char *prev_buf = (char*)malloc(SZ), *prev_cur;
-	cur = prev_buf;
-	uint bread, prev_len = 0; // bytes read
-	chunk *cur_chunk = text.head->next;
-	while ((bread = read(fd, buf, SZ))) {
-		prev_cur = cur;
-		cur = buf;
-		// TODO: multithreaded search?
-		while ((res = (char*)memchr(cur, '\n', buf + bread - cur)) != nullptr) {
-			uint len = res - cur + 1; // length of this line
-			if (cur_chunk->num_lines > 1 && cur_chunk->merged_lines.len() + len + prev_len > MAX_CHUNK_SIZE) {
-				text.nodes++;
-				cur_chunk->num_lines--;
-				chunk *new_chunk = create_chunk();
-				connect(cur_chunk, new_chunk);
-				cur_chunk = new_chunk;
-			}
+	// TODO: load file in chunks (avoid excessive memory usage)
+	chunk *chnk = text.head->next;
+	struct stat s;
+	int status = fstat(fd, &s);
+	char *buf = (char*)mmap(0, s.st_size, PROT_READ, MAP_PRIVATE | MAP_POPULATE, fd, 0);
+	madvise(buf, s.st_size, MADV_SEQUENTIAL);
+	uint sum_len = 0, sum_read = 0, cur_len;
+	char *last_line = buf, *cur_line; // line ends
+	while ((cur_line = (char*)memchr(last_line, '\n', s.st_size - sum_read))) { // we found the end
+a:
+		cur_len = cur_line - last_line + 1;
+		sum_len += cur_len;
+		if (sum_len >= MAX_CHUNK_SIZE && sum_len != cur_len) { // line cannot fit in this chunk
+			text.nodes++;
+			chunk *new_chunk = create_chunk();
+			connect(chnk, new_chunk);
+			chnk = new_chunk;
+			sum_len = cur_len; // reset this chunk's sum length
+		} if (sum_len < MAX_CHUNK_SIZE)
+			append_len(chnk, cur_len);
+		apnd_s(chnk->merged_lines, last_line, cur_len);
+		sum_read += cur_len;
 
-			apnd_s(cur_chunk->merged_lines, prev_cur, prev_len);
-			apnd_s(cur_chunk->merged_lines, cur, len); // TODO: write directly to gap buffer?
-			append_len(cur_chunk, len + prev_len);
-			text.lines++;
-			cur = res + 1;
-			prev_len = 0;
-		}
-		prev_len = (buf + bread) - cur;
-		swap(prev_buf, buf);
-		
+		text.lines++;
+		last_line = cur_line + 1;
 	}
-	if (prev_len) {
-		apnd_s(cur_chunk->merged_lines, cur, prev_len);
-		append_len(cur_chunk, prev_len);
+	if (s.st_size > sum_read) { // last line may not end with \n
+		cur_line = last_line + s.st_size - sum_read - 1;
+		goto a;
 	}
-	free(buf);
-	free(prev_buf);
-	connect(cur_chunk, text.tail);
-	cur_chunk->num_lines--;
+	munmap(buf, s.st_size);
+	connect(chnk, text.tail);
 }
