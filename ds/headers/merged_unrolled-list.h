@@ -35,7 +35,7 @@ typedef struct iter {
 	uint relative_pos; // pos in the chunk
 	chunk *parent() const { return (chunk*)(orig); } // force-casting
 	// proxy functions to emulate being a standalone gap buffer
-	uint len() const { return parent()->len[relative_pos]; }
+	uint len() const { return parent()->len ? parent()->len[relative_pos] : orig->len(); }
 	uint gps() const { return orig->gps - offset; }
 	uint gpe() const { return orig->gpe - offset; }
 	uint cpt() const { return len() + orig->gpe - orig->gps; }

@@ -116,7 +116,7 @@ void enter()
 	uint pos = it.relative_pos;
 
 	if (ch->len_cpt < ch->num_lines + 1) {
-		ch->len_cpt = (1 + ch->len_cpt) * 2;
+		ch->len_cpt *= 2;
 		ch->len = (uchar*)realloc(ch->len, ch->len_cpt);
 	}
 	memmove(&ch->len[pos + 1], &ch->len[pos], ch->num_lines - pos);
@@ -167,7 +167,7 @@ void mvr_scurs(uint t_byte)
 		} else {
 			while (1) { // TODO: optimize
 				const uint nbytes = dchar2bytes(maxx - 1, bytes, &it);
-				if (nbytes > t_byte)
+				if (nbytes >= t_byte)
 					break;
 				cut.push_back({flag, nbytes}); // flag was changed by dchar2bytes
 				ofx += flag;

@@ -75,9 +75,13 @@ int main(int argc, char *argv[])
 init:
 	point2chunk(&it, text.tail->prev);
 	// all functions think there is a newline at EOL, emulate it
-	if (!it.orig->len() || it.orig->buffer()[it.orig->len() - 1] != '\n') {
+	if (it.orig->buffer()[it.orig->len() - 1] != '\n') {
 		apnd_c(*it.orig, 0);
-		it.parent()->len[it.parent()->num_lines - 1]++;
+		if (it.parent()->num_lines > 1) {
+			it.parent()->num_lines--;
+			it.parent()->len[it.parent()->num_lines - 1]++;
+		}
+		text.lines--;
 	}
 
 	init_curses();
@@ -234,7 +238,7 @@ init:
 			}
 			break;
 
-		case DELLINE:
+		/*case DELLINE: // TODO: fix this
 			if (text.lines > 0 && text.nodes > 2) {
 				rm_mline(it.parent(), it.relative_pos, &it);
 				text.lines--;
@@ -247,7 +251,7 @@ init:
 				it.parent()->num_lines = 1;
 				clearline;
 			}
-			break;
+			break;*/
 
 		case ENTER:
 			enter();
@@ -340,7 +344,8 @@ init:
 			insert_s(*it.orig, s2, len);
 			if (len > 1)
 				ofx += len - 1; // UTF-8 character
-			it.parent()->len[it.relative_pos] += len;
+			if (it.parent()->len)
+				it.parent()->len[it.relative_pos] += len;
 			break;
 		}
 	}
