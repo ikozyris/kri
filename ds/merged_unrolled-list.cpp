@@ -82,8 +82,8 @@ void rm_mline(chunk *ch, uint pos, iter *it) { // FIXME: broken
 // moves actual cursor to last line
 void goto_last_mline(chunk *a) { mv_curs(a->merged_lines, a->merged_lines.len() - a->len[a->num_lines - 1]); }
 
-// TODO: it may be faster to split the first of merged lines
 // merged line has grown too much; split last line by moving it to next node (or create new to fit)
+// (it doesn't matter which of the merged lines is split as they are <= 256B)
 void split_mline(llist *list, chunk *a)
 {
 	uint last_length = a->len[a->num_lines - 1];
