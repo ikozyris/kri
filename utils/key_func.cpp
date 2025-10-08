@@ -113,24 +113,38 @@ void scroll2(uint a)
 void enter()
 {
 	chunk *ch = it.parent();
-	uint pos = it.relative_pos;
+	
+	if (ch->num_lines > 1) { // this chunk has multiple lines; just insert new length
+		if (ch->len_cpt < ch->num_lines + 1) {
+			ch->len_cpt *= 2;
+			ch->len = (uchar*)realloc(ch->len, ch->len_cpt);
+		}
+		uint pos = it.relative_pos;
+		memmove(&ch->len[pos + 1], &ch->len[pos], ch->num_lines - pos);
+		ch->num_lines++;
+		ch->len[pos + 1] = it.len() - it.gps();
+		ch->len[pos] = it.gps() + 1;
+		
+		insert_c(*it.orig, '\n');
+		it.offset = it.orig->gps;
+		it.relative_pos++;
+		if (it.orig->len() > MAX_CHUNK_SIZE)
+			split_mline(&text, it.parent());
+	} else { // worst case; lines > 256B; create new chunk for the new line
+		chunk *t = create_chunk();
+		data(*it.orig, rx + 1, it.len() + 1);
+		apnd_s(t->merged_lines, lnbuf, it.len() - rx - 1);
+		it.orig->gps = rx + 1;
+		it.orig->gpe = it.cpt() - 1;
 
-	if (ch->len_cpt < ch->num_lines + 1) {
-		ch->len_cpt *= 2;
-		ch->len = (uchar*)realloc(ch->len, ch->len_cpt);
+		text.nodes++;
+		connect(t, it.parent()->next);
+		connect(it.parent(), t);
+		point2chunk(&it, t);
+		it.global_pos++;
 	}
-	memmove(&ch->len[pos + 1], &ch->len[pos], ch->num_lines - pos);
-	ch->num_lines++;
-	ch->len[pos + 1] = it.len() - it.gps();
-	ch->len[pos] = it.gps() + 1;
 
 	text.lines++;
-	insert_c(*it.orig, '\n');
-	it.offset = it.orig->gps;
-	it.relative_pos++;
-	if (it.orig->len() > MAX_CHUNK_SIZE)
-		split_mline(&text, it.parent());
-
 	ofx = 0;
 	cut.clear();
 	print_text(y);
