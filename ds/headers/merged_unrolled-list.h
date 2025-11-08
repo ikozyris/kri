@@ -51,7 +51,7 @@ void iterate_fw(iter *it, uint dist); // forward
 void rm_mline(chunk *ch, uint pos, iter *it);
 void split_mline(llist *list, chunk *cur_chunk);
 void merge_lines(llist *list, iter *a, iter *b);
-void insert_chunk(llist *list, chunk *before, chunk *new_chunk);
+void insc_after(llist *list, chunk *previous, chunk *new_chunk);
 chunk *create_chunk();
 void goto_last_line(chunk *a);
 void append_len(chunk *a, uint len);

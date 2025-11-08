@@ -137,9 +137,7 @@ void enter()
 		it.orig->gps = rx + 1;
 		it.orig->gpe = it.cpt() - 1;
 
-		text.nodes++;
-		connect(t, it.parent()->next);
-		connect(it.parent(), t);
+		insc_after(&text, it.parent(), t);
 		point2chunk(&it, t);
 		it.global_pos++;
 	}

@@ -10,12 +10,12 @@ void point2chunk(iter *it, chunk *a)
 
 void append_len(chunk *a, uint len)
 {
-	if (a->len_cpt < a->num_lines + 1) {
+	if (a->len_cpt <= a->num_lines + 1) {
 		a->len = (uchar*)realloc(a->len, a->len_cpt * 2);
 		memset(a->len + a->len_cpt - 1, 0, a->len_cpt + 1);
 		a->len_cpt *= 2;
 	}
-	a->len[a->num_lines - 1] = len;
+	a->len[a->num_lines] = len;
 	a->num_lines++;
 }
 
@@ -74,25 +74,25 @@ void rm_mline(chunk *ch, uint pos, iter *it) { // FIXME: broken
 	} else {
 		if (it)
 			it->orig->gpe = it->offset + it->len();
-		memmove(&ch->len[pos], &ch->len[pos + 1], ch->num_lines - pos - 1);
+		memmove(&ch->len[pos], &ch->len[pos + 1], ch->num_lines - pos);
 		ch->num_lines--;
 	}
 }
 
 // moves actual cursor to last line
-void goto_last_mline(chunk *a) { mv_curs(a->merged_lines, a->merged_lines.len() - a->len[a->num_lines - 1]); }
+void goto_last_mline(chunk *a) { mv_curs(a->merged_lines, a->merged_lines.len() - a->len[a->num_lines]); }
 
 // merged line has grown too much; split last line by moving it to next node (or create new to fit)
 // (it doesn't matter which of the merged lines is split as they are <= 256B)
 void split_mline(llist *list, chunk *a)
 {
-	uint last_length = a->len[a->num_lines - 1];
+	uint last_length = a->len[a->num_lines];
 
 	chunk *next_chunk; // may be newly allocated
 	// create new chunk if last line doesn't fit in next chunk
 	if (a->next == list->tail || a->next->merged_lines.len() + last_length > MAX_CHUNK_SIZE) {
 		next_chunk = create_chunk();
-		insert_chunk(list, a, next_chunk);
+		insc_after(list, a, next_chunk);
 	} else { // shift all lengths of next chunk by one to put this length in pos 0
 		next_chunk = a->next;
 		memmove(&next_chunk->len[1], &next_chunk->len[0], next_chunk->num_lines);
@@ -146,17 +146,17 @@ void merge_lines(llist *list, iter *a, iter *b)
 			rm_mline(b_ch, b->relative_pos, nullptr);
 
 			append_len(new_chunk, a->len() + b->len() - 1);
-			insert_chunk(list, a_ch, new_chunk);
+			insc_after(list, a_ch, new_chunk);
 			point2chunk(a, a_ch);
 		}
 	}
 }
 
-// insert new before
-void insert_chunk(llist *list, chunk *before, chunk *new_chunk)
+// insert chunk after
+void insc_after(llist *list, chunk *previous, chunk *new_chunk)
 {
-	connect(new_chunk, before->next);
-	connect(before, new_chunk);
+	connect(new_chunk, previous->next);
+	connect(previous, new_chunk);
 	list->nodes++;
 }
 
@@ -166,7 +166,7 @@ chunk *create_chunk()
 	// len is actually unallocated, but len_cpt=1 makes 1st realloc easier
 	new_chunk->len_cpt = 1;
 	new_chunk->len = nullptr;
-	new_chunk->num_lines = 1;
+	new_chunk->num_lines = 0;
 	//*new_chunk = {.len_cpt = 1, .num_lines = 1}; // TODO: use this in C
 	init(new_chunk->merged_lines);
 	return new_chunk;
