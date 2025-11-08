@@ -11,4 +11,4 @@ void print_text(uint line); // print text string from line
 #define print_del_mark(line) {if (overflows[line]) {mvwins_wch(text_win, (line), maxx - 1, &mark);}}
 void print_new_mark();
 void save(); // save buffer to filename
-void read_file(int fd); // read file with fread (faster)
+void read_file2(FILE *in); // read file with fgets

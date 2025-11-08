@@ -61,16 +61,16 @@ int main(int argc, char *argv[])
 	if (argc > 1) {
 		filename = (char*)malloc(sizeof(char) * 128);
 		strcpy(filename, argv[1]);
-		int fd = open(filename, O_RDONLY);
+		FILE *in = fopen(filename, "r");
 #ifdef HIGHLIGHT
 		eligible = isc(argv[1]); // syntax highlighting
 #endif
-		if (fd == -1) {
+		if (!in) {
 			print2header("New file", 1);
 			goto init;
 		}
-		read_file(fd);
-		close(fd);
+		read_file2(in);
+		fclose(in);
 	}
 init:
 	point2chunk(&it, text.tail->prev);
@@ -79,7 +79,7 @@ init:
 		apnd_c(*it.orig, 0);
 		if (it.parent()->num_lines > 1) {
 			it.parent()->num_lines--;
-			it.parent()->len[it.parent()->num_lines - 1]++;
+			it.parent()->len[it.parent()->num_lines]++;
 		}
 		text.lines--;
 	}

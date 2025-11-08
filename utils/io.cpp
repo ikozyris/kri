@@ -75,6 +75,7 @@ void print_text(uint line)
 	for (uint ty = line + 1; ty <= min(text.lines - ofy, maxy - 1); ++ty) {
 		iterate_fw(&i, 1);
 		mvprint_line(ty, 0, &i, 0, 0);
+		wrefresh(text_win);
 		highlight(ty, &i);
 	}
 }
@@ -136,41 +137,56 @@ void save()
 	wmove(text_win, y, x);
 }
 
-// For size see: https://github.com/ikozyris/kri/wiki/Comments-on-optimizations#buffer-size-for-reading
-#define SZ 524288 // 512 KiB
+#define SZ 256
 
-void read_file(int fd)
+uint fgets_ret(char *buf, FILE *in)
 {
-	// TODO: load file in chunks (avoid excessive memory usage)
-	chunk *chnk = text.head->next;
-	struct stat s;
-	int status = fstat(fd, &s);
-	char *buf = (char*)mmap(0, s.st_size, PROT_READ, MAP_PRIVATE | MAP_POPULATE, fd, 0);
-	madvise(buf, s.st_size, MADV_SEQUENTIAL);
-	uint sum_len = 0, sum_read = 0, cur_len;
-	char *last_line = buf, *cur_line; // line ends
-	while ((cur_line = (char*)memchr(last_line, '\n', s.st_size - sum_read))) { // we found the end
-a:
-		cur_len = cur_line - last_line + 1;
-		sum_len += cur_len;
-		if (sum_len >= MAX_CHUNK_SIZE && sum_len != cur_len) { // line cannot fit in this chunk
-			text.nodes++;
-			chunk *new_chunk = create_chunk();
-			connect(chnk, new_chunk);
-			chnk = new_chunk;
-			sum_len = cur_len; // reset this chunk's sum length
-		} if (sum_len < MAX_CHUNK_SIZE)
-			append_len(chnk, cur_len);
-		apnd_s(chnk->merged_lines, last_line, cur_len);
-		sum_read += cur_len;
+	uint prev = ftell(in);
+	fgets_unlocked(buf, SZ, in);
+	uint next = ftell(in);
+	return next - prev;
+}
 
-		text.lines++;
-		last_line = cur_line + 1;
+chunk *new_chunk(chunk *chnk) {
+	chunk *t = create_chunk();
+	text.nodes++;
+	connect(chnk, t);
+	return t;
+}
+
+void read_file2(FILE *in)
+{
+	chunk *chnk = text.head->next;
+	char *buf = (char*)malloc(SZ);
+	uint ln_sz = 0, ch_sz = 0; // current line size, current chunk size
+
+	while (const uint bytes_read = fgets_ret(buf, in)) {
+		ln_sz += bytes_read;
+
+		if (buf[bytes_read - 1] == '\n') { // found the end of this line
+			// this line won't fit in the current chunk, but make sure we haven't a
+			if (ch_sz + ln_sz >= MAX_CHUNK_SIZE && ln_sz == bytes_read) {
+				if (!chnk->len)
+					chnk->num_lines++;
+				chnk = new_chunk(chnk);
+				ch_sz = ln_sz;
+			} if (ln_sz < MAX_CHUNK_SIZE) { // this line can be merged in a chunk
+				if (ch_sz != ln_sz) // if this is the first line of the chunk ch_sz == ln_sz from the previous if
+					ch_sz += ln_sz;
+				append_len(chnk, ln_sz);
+			}
+			text.lines++;
+			ln_sz = 0;
+		} 
+		// line is > 256 bytes, but only create a new chunk if the previous chunk ends with a new line 
+		// (this line may have already been split between iterations)
+		else if (chnk->merged_lines.len() > 0 && chnk->merged_lines.buffer()[chnk->merged_lines.len() - 1] == '\n') {
+			chnk = new_chunk(chnk);
+			ch_sz = ln_sz;
+		} else 
+			ch_sz += ln_sz;
+		apnd_s(chnk->merged_lines, buf, bytes_read); // write the line
 	}
-	if (s.st_size > sum_read) { // last line may not end with \n
-		cur_line = last_line + s.st_size - sum_read - 1;
-		goto a;
-	}
-	munmap(buf, s.st_size);
+	free(buf);
 	connect(chnk, text.tail);
 }
