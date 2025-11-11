@@ -75,12 +75,10 @@ int main(int argc, char *argv[])
 init:
 	point2chunk(&it, text.tail->prev);
 	// all functions think there is a newline at EOL, emulate it
-	if (it.orig->buffer()[it.orig->len() - 1] != '\n') {
+	if (it.orig->len() && it.orig->buffer()[it.orig->len() - 1] != '\n') {
 		apnd_c(*it.orig, 0);
-		if (it.parent()->num_lines > 1) {
-			it.parent()->num_lines--;
-			it.parent()->len[it.parent()->num_lines]++;
-		}
+		if (it.parent()->num_lines > 1)
+			it.parent()->len[it.parent()->num_lines - 1]++;
 		text.lines--;
 	}
 

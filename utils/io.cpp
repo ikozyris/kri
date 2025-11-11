@@ -67,7 +67,8 @@ void print_text(uint line)
 	iter i;
 	point2chunk(&i, text.head->next);
 	i.global_pos = 0;
-	iterate_fw(&i, ofy + line);
+	if (ofy + line)
+		iterate_fw(&i, ofy + line);
 	wmove(text_win, line, 0);
 	wclrtobot(text_win);
 	mvprint_line(line, 0, &i, 0, 0);
@@ -148,6 +149,8 @@ uint fgets_ret(char *buf, FILE *in)
 }
 
 chunk *new_chunk(chunk *chnk) {
+	if (!chnk->len)
+		chnk->num_lines++;
 	chunk *t = create_chunk();
 	text.nodes++;
 	connect(chnk, t);
@@ -163,11 +166,9 @@ void read_file2(FILE *in)
 	while (const uint bytes_read = fgets_ret(buf, in)) {
 		ln_sz += bytes_read;
 
-		if (buf[bytes_read - 1] == '\n') { // found the end of this line
+		if (bytes_read < 255 || buf[bytes_read - 1] == '\n') { // found the end of this line
 			// this line won't fit in the current chunk, but make sure we haven't a
 			if (ch_sz + ln_sz >= MAX_CHUNK_SIZE && ln_sz == bytes_read) {
-				if (!chnk->len)
-					chnk->num_lines++;
 				chnk = new_chunk(chnk);
 				ch_sz = ln_sz;
 			} if (ln_sz < MAX_CHUNK_SIZE) { // this line can be merged in a chunk
