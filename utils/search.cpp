@@ -54,13 +54,13 @@ static void highlight_occ(const vector<pair<uint,uint>> &matches, uint cur_occ)
 
 static void *_search_lc(void *args);
 static void *_search_la(void *args);
-static void search_mb_common(uint from, uint to, void *search_fn(void*));
+static void search_mt_common(uint from, uint to, void *search_fn(void*));
 
-// highlight or count occurrences of str in range [from, to)
+// highlight or count occurrences of str in range [from, to]
 void find(const char *str, uint from, uint to, char mode)
 {
 	uint str_len = str[0];
-	if (str_len == 0 || to - 1 > text.lines || from > to) {
+	if (str_len == 0 || to > text.lines || from > to) {
 		print2header("Invalid parameters", 1);
 		return;
 	}
@@ -73,9 +73,9 @@ void find(const char *str, uint from, uint to, char mode)
 
 	string = str;
 	if (append)
-		search_mb_common(from, to, _search_la);
+		search_mt_common(from, to, _search_la);
 	else
-		search_mb_common(from, to, _search_lc);
+		search_mt_common(from, to, _search_lc);
 	ulong total = 0;
 	for (auto i : occurrences)
 		total += i.len();
@@ -89,7 +89,7 @@ void find(const char *str, uint from, uint to, char mode)
 	str++;
 	str_len -= mbcnt(str, str_len); // get displayed characters
 
-	uint cline = 0; // cumulative line
+	uint cline = from; // cumulative line
 	vector<pair<uint,uint>> matches; // y,x
 	for (uint i = 0; i < occurrences.size(); ++i) { // occurrences in each chunk
 		for (uint j = 0; j < occurrences[i].len(); ++j) { // i.len() may be 0
@@ -239,8 +239,6 @@ static void ranged_searchstr(dynarray *matches, const gap_buf *buf, uint from, u
 	}
 }
 
-// String search
-
 // arguments for each thread (shared for count/append)
 struct args_str {
 	chunk *lines;
@@ -248,23 +246,31 @@ struct args_str {
 	uint out; // array of matches or pointer to count
 };
 
-static void search_mb_common(uint from, uint to, void *search_fn(void*))
+static void search_mt_common(uint from, uint to, void *search_fn(void*))
 {
 	// first chunk may need an offset for start
 	point2begin(&first_line);
 	iterate_fw(&first_line, from);
 	chunk *chi = first_line.parent();
 
-	uint cur_ln = first_line.global_pos, num_chunks = 0;
-	cur_ln += chi->num_lines;
-	while (cur_ln < to) {
-		chi = chi->next;
-		cur_ln += chi->num_lines;
-		num_chunks++;
+	last_line.orig = first_line.orig;
+	last_line.relative_pos = first_line.relative_pos;
+	last_line.offset = first_line.offset;
+
+	uint num_chunks = 0;
+	chunk *a = last_line.parent();
+	uint dist = to - from;
+	if (dist + last_line.relative_pos >= a->num_lines) { // go to next chunk
+		dist += last_line.relative_pos;
+		do {
+			dist -= a->num_lines;
+			a = a->next;
+			num_chunks++;
+		} while (dist > a->num_lines);
+		point2chunk(&last_line, a);
 	}
-	// last chunk may need reduced length
-	point2chunk(&last_line, chi);
-	line_offset(&last_line, cur_ln - to);
+	line_offset(&last_line, dist);
+
 	if (num_chunks == 0) {
 		ranged_searchstr(&occurrences[0], first_line.orig, first_line.offset, last_line.offset + last_line.len());
 		return;
@@ -274,7 +280,7 @@ static void search_mb_common(uint from, uint to, void *search_fn(void*))
 	// it's probably better to directly call these than doing an ugly combination of goto and if
 	if (num_chunks == 1) {
 		ranged_searchstr(&occurrences[0], first_line.orig, first_line.offset, first_line.orig->len());
-		ranged_searchstr(&occurrences[1], last_line.orig, 0, last_line.len());
+		ranged_searchstr(&occurrences[1], last_line.orig, 0, last_line.offset + last_line.len());
 		return;
 	}
 
@@ -301,7 +307,7 @@ static void search_mb_common(uint from, uint to, void *search_fn(void*))
 
 	// first and last lines are special cases and thus processed by main thread
 	ranged_searchstr(&occurrences[0], first_line.orig, first_line.offset, first_line.orig->len());
-	ranged_searchstr(&occurrences[num_chunks], last_line.orig, 0, last_line.len());
+	ranged_searchstr(&occurrences[num_chunks], last_line.orig, 0, last_line.offset + last_line.len());
 
 	for (uint i = 0; i < nthreads; ++i)
 		pthread_join(threads[i], nullptr);

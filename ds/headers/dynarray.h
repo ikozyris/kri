@@ -20,7 +20,7 @@ struct dynarray {
 		uint length = len();
 		uint capacity = cpt();
 		if (length >= capacity)
-			array = (uint*)realloc(array - 1, capacity * 2 + 1) + 1;
+			array = (uint*)realloc(array - 1, (capacity * 2 + 1) * sizeof(uint)) + 1;
 		array[length] = elem;
 		incr_len();
 	}

@@ -12,9 +12,9 @@ typedef struct chunk {
 	struct chunk *prev;
 	struct chunk *next;
 	// should be unallocated unless there are 2 lines merged
-	unsigned char *len; // array of lengths of each merged line
+	uchar *len; // array of lengths of each merged line
 	uint num_lines; // count of lines in this chunk
-	unsigned char len_cpt; // capacity of len array
+	uchar len_cpt; // capacity of len array (initialized to 1)
 	// 3-bytes padding (45 / 48 bytes)
 } chunk;
 /* Notes:
@@ -30,9 +30,9 @@ typedef struct llist {
 
 typedef struct iter {
 	gap_buf *orig;
-	uint offset; // offset of start of this line to 0
 	uint global_pos; // position in the list
-	uint relative_pos; // pos in the chunk
+	ushort offset; // offset of start of this line to 0
+	ushort relative_pos; // pos in the chunk
 	chunk *parent() const { return (chunk*)(orig); } // force-casting
 	// proxy functions to emulate being a standalone gap buffer
 	uint len() const { return parent()->len ? parent()->len[relative_pos] : orig->len(); }
