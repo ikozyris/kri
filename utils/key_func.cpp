@@ -62,7 +62,7 @@ void command()
 		sscanf(pr2, "%u-%u %c", &from, &to, &mode);
 		free(pr2);
 		tmp[4] = strlen(tmp + 5); // pascal string
-		find(tmp + 4, from, to, mode); // we want closed interval, function is open
+		find(tmp + 4, from, to, mode);
 	} else if (strncmp(tmp, "replace", 7) == 0) {
 /*		uint from = 0, to = text.lines;
 		sscanf(tmp + 8, "%u-%u", &from, &to);
