@@ -21,6 +21,7 @@ static uint ln_start(const vector<pair<uint, uint>> &yx, uint y) {
 	return lo;
 }
 
+// convert index of chunk buffer to 2d position relative to the start of chunk
 static pair<uint, uint> index2yx(uint index, iter *it)
 {
 	uint cbyte = 0;
@@ -79,9 +80,8 @@ void find(const char *str, uint from, uint to, char mode)
 	ulong total = 0;
 	for (auto i : occurrences)
 		total += i.len();
-
 	clear_header();
-	snprintf(lnbuf, lnbf_cpt, "%lu matches on lines [%u, %u]", total, from, to - 1);
+	snprintf(lnbuf, lnbf_cpt, "%lu matches on lines [%u, %u]", total, from, to);
 	print2header(lnbuf, 1);
 
 	if (mode == 'c' || total == 0)
@@ -89,25 +89,28 @@ void find(const char *str, uint from, uint to, char mode)
 	str++;
 	str_len -= mbcnt(str, str_len); // get displayed characters
 
-	uint cline = from; // cumulative line
+	bool after_first_chunk = first_line.parent() == text.head->next;
+	uint cline = after_first_chunk ? 0 : from - 1; // cumulative line up to previous chunk
 	vector<pair<uint,uint>> matches; // y,x
 	for (uint i = 0; i < occurrences.size(); ++i) { // occurrences in each chunk
 		for (uint j = 0; j < occurrences[i].len(); ++j) { // i.len() may be 0
-			matches.emplace_back(index2yx(occurrences[i].array[j], &first_line));
-			matches.back().first += cline;
+			uint index = occurrences[i].array[j];
+			if (i == 0)
+				index += first_line.offset;
+			matches.emplace_back(index2yx(index, &first_line));
+			if (i != 0 || after_first_chunk == 0)
+				matches.back().first += cline;
 		}
-		append = mode == 'h';
 		cline += first_line.parent()->num_lines;
 		first_line.orig = &first_line.parent()->next->merged_lines;
-		occurrences[i].set_len(0);
+		occurrences[i].set_len(0); // cleanup for next search
 	}
 
-	reset_view();
 	scroll2(matches[0].first + 1);
 	uint cur_occ = 0; // current occurrence
 	highlight_occ(matches, 0);
 
-	y = ofx = 0;
+	y = 0;
 	curs_set(0);
 	int ch;
 	while ((ch = wgetch(text_win))) {
@@ -190,13 +193,14 @@ static void bitap_search(const uchar *buf, uint blen, dynarray *matches)
 	}
 }
 
-static void mid_search(const char *buf, dynarray *matches, uint midlen)
+// find hello in he_llo given gap length
+static void mid_search(const char *buf, dynarray *matches, uint midlen) // broken
 {
 	const uint plen = string[0];
 	const char *str = string + 1;
 	// an occurrence might be split between gap start and gap end
 	const uint midpoint = plen - 1;
-	// if st underflows, it becomes: 2^32-x (which is always) > gps, so loop never gets executed
+
 	for (uint i = 0; i < midpoint; ++i) {
 		bool a, b;
 		a = strncmp(buf + i, str, midpoint - i);
@@ -228,13 +232,14 @@ static void searchstr(dynarray *matches, const gap_buf *buf)
 	bitap_search((uchar*)buf->buffer() + st2, end2 - st2, matches);
 }
 
+// returns relative to from (not absolute from 0)
 static void ranged_searchstr(dynarray *matches, const gap_buf *buf, uint from, uint to)
 {
 	uint from1, from2, to1, to2;
 	prepare_iteration(buf, from, to, from1, to1, from2, to2);
 	bitap_search((uchar*)buf->buffer() + from1, to1 - from1, matches);
-	if (to2 > from2) {
-		mid_search(buf->buffer(), matches, to2 - to1 + 1);
+	if (from2 < to2) { // the search is split in 2
+		mid_search(buf->buffer() + to1 + 1 - string[0], matches, from2 - to1);
 		bitap_search((uchar*)buf->buffer() + from2, to2 - from2, matches);
 	}
 }
@@ -260,6 +265,7 @@ static void search_mt_common(uint from, uint to, void *search_fn(void*))
 	uint num_chunks = 0;
 	chunk *a = last_line.parent();
 	uint dist = to - from;
+	// inlined iterate_fw with counting chunks
 	if (dist + last_line.relative_pos >= a->num_lines) { // go to next chunk
 		dist += last_line.relative_pos;
 		do {

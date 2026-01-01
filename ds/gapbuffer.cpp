@@ -159,12 +159,12 @@ char at(const gap_buf &src, uint pos)
 // to iterate in range [from, to) over the gap buffer on positions containg actual data, 2 loops may be needed to skip the gap
 void prepare_iteration(const gap_buf *src, uint from, uint to, uint &st1, uint &end1, uint &st2, uint &end2)
 {
-	st1 = from; end1 = to; st2 = end2 = 0;
+	st1 = from; end1 = to; st2 = end2 = 0; // range before gap; 1 it (default)
 	const uint t_gpe = src->gpe + 1;
 	if (from >= src->gps) { // range is after gap; 1 iteration needed
 		st1 = t_gpe + from;
 		end1 = t_gpe + to;
-	} else { // range starts before gap and ends after; 2 iterations needed
+	} else if (to >= src->gps) { // range starts before gap and ends after; 2 it
 		end1 = src->gps;
 		st2 = t_gpe;
 		end2 = t_gpe + to - from - 1;
