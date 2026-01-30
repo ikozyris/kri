@@ -162,7 +162,7 @@ exit:
 	reset_view();
 }
 
-static void bitap_search(const uchar *buf, uint blen, dynarray *matches)
+static void bitap_search(const uchar *buf, uint blen, uint offset, dynarray *matches)
 {
 	uint plen = string[0]; // pascal string
 	if (blen < plen)
@@ -177,7 +177,7 @@ static void bitap_search(const uchar *buf, uint blen, dynarray *matches)
 	for (uint i = 0; i < plen; i++)
 		mask[str[i]] &= ~(1ul << i);
 
-	ulong state = -1; // no matches
+	ulong state = ~1; // no matches
 	ulong accept_bit = 1ul << plen;
 
 	for (uint i = 0; i < blen; i++) {
@@ -186,69 +186,59 @@ static void bitap_search(const uchar *buf, uint blen, dynarray *matches)
 		// matched all plen bits in sequence
 		if ((state & accept_bit) == 0) {
 			if (append)
-				matches->append(i + 1 - plen);
+				matches->append(i + 1 + offset - plen);
 			else
 				matches->incr_len();
 		}
 	}
 }
 
-// find hello in he_llo given gap length
-static void mid_search(const char *buf, dynarray *matches, uint midlen) // broken
+// find hello in he_llo given gap length when an occurrence may be split between gap start and gap end
+static void mid_search(const gap_buf *gbuf, dynarray *matches)
 {
-	const uint plen = string[0];
+        uint gaplen = gaplen(*gbuf);
+	const char *buf = gbuf->buffer();
 	const char *str = string + 1;
-	// an occurrence might be split between gap start and gap end
-	const uint midpoint = plen - 1;
 
-	for (uint i = 0; i < midpoint; ++i) {
-		bool a, b;
-		a = strncmp(buf + i, str, midpoint - i);
-		if (a)
-			b = strncmp(buf + midpoint + midlen, str + i, midpoint + midlen - i);
+	for (uint i = gbuf->gps - string[0] + 1; i < gbuf->gps; ++i) {
+		int a, b = 1;
+		// start by comparing the first bytes up to the gap start ("he")
+		a = memcmp(buf + i, str, gbuf->gps - i);
+		if (!a) // if those match then compare the rest ("llo")
+			b = memcmp(buf + gbuf->gps + gaplen, str + gbuf->gps - i, string[0] - (gbuf->gps - i));
 
-		if ((a & b) == 0) {
-			if (append)
-				matches->append(i);
-			else
-				matches->incr_len();
-			break; // only one match can fit between the gap
+		if (a == 0 && b == 0) {
+			matches->append(i);
+			return; // only one match can fit between the gap
 		}
 	}
 }
 
-// search for str in buf, return vector of occurrences
-static void searchstr(dynarray *matches, const gap_buf *buf)
+// search in range [from, to]
+static void ranged_searchstr(dynarray *matches, const gap_buf *buf, uint from, uint to)
 {
 	if (string[0] >= buf->len())
 		return;
-
-	uint end1 = buf->gps; // for clarity
-	uint st2 = buf->gpe + 1, end2 = buf->cpt();
-
-	bitap_search((uchar*)buf->buffer(), end1, matches);
-	if (end2 - st2 > 1) // if only 1 char is left it is the newline
-		mid_search(buf->buffer() + end1 + 1 - string[0], matches, st2 - end1);
-	bitap_search((uchar*)buf->buffer() + st2, end2 - st2, matches);
-}
-
-// returns relative to from (not absolute from 0)
-static void ranged_searchstr(dynarray *matches, const gap_buf *buf, uint from, uint to)
-{
 	uint from1, from2, to1, to2;
 	prepare_iteration(buf, from, to, from1, to1, from2, to2);
-	bitap_search((uchar*)buf->buffer() + from1, to1 - from1, matches);
-	if (from2 < to2) { // the search is split in 2
-		mid_search(buf->buffer() + to1 + 1 - string[0], matches, from2 - to1);
-		bitap_search((uchar*)buf->buffer() + from2, to2 - from2, matches);
+	bitap_search((uchar*)buf->buffer() + from1, to1 - from1, 0, matches);
+	if (from2 > to1 && to2 - from2 >= string[0]) {
+		mid_search(buf, matches);
+		bitap_search((uchar*)buf->buffer() + from2, to2 - from2, from2 - 2, matches);
 	}
+}
+
+// search for str in buf, write in matches
+static void searchstr(dynarray *matches, const gap_buf *buf)
+{
+	ranged_searchstr(matches, buf, 0, buf->len() - 1);
 }
 
 // arguments for each thread (shared for count/append)
 struct args_str {
 	chunk *lines;
 	uint count; // count of chunks to process
-	uint out; // array of matches or pointer to count
+	uint out; // index in occurences[]
 };
 
 static void search_mt_common(uint from, uint to, void *search_fn(void*))
@@ -278,15 +268,15 @@ static void search_mt_common(uint from, uint to, void *search_fn(void*))
 	line_offset(&last_line, dist);
 
 	if (num_chunks == 0) {
-		ranged_searchstr(&occurrences[0], first_line.orig, first_line.offset, last_line.offset + last_line.len());
+		ranged_searchstr(&occurrences[0], first_line.orig, first_line.offset, last_line.offset + last_line.len() - 1);
 		return;
 	}
 	last_line.global_pos = to;
 	chi = first_line.parent()->next;
 	// it's probably better to directly call these than doing an ugly combination of goto and if
 	if (num_chunks == 1) {
-		ranged_searchstr(&occurrences[0], first_line.orig, first_line.offset, first_line.orig->len());
-		ranged_searchstr(&occurrences[1], last_line.orig, 0, last_line.offset + last_line.len());
+		ranged_searchstr(&occurrences[0], first_line.orig, first_line.offset, first_line.orig->len() - 1);
+		ranged_searchstr(&occurrences[1], last_line.orig, 0, last_line.offset + last_line.len() - 1);
 		return;
 	}
 
@@ -312,8 +302,8 @@ static void search_mt_common(uint from, uint to, void *search_fn(void*))
 	}
 
 	// first and last lines are special cases and thus processed by main thread
-	ranged_searchstr(&occurrences[0], first_line.orig, first_line.offset, first_line.orig->len());
-	ranged_searchstr(&occurrences[num_chunks], last_line.orig, 0, last_line.offset + last_line.len());
+	ranged_searchstr(&occurrences[0], first_line.orig, first_line.offset, first_line.orig->len() - 1);
+	ranged_searchstr(&occurrences[num_chunks], last_line.orig, 0, last_line.offset + last_line.len() - 1);
 
 	for (uint i = 0; i < nthreads; ++i)
 		pthread_join(threads[i], nullptr);

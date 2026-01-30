@@ -51,6 +51,7 @@ int main(int argc, char *argv[])
 	}
 	text.head = create_chunk();
 	text.tail = create_chunk();
+	text.nodes = 1;
 {
 	chunk *new_chunk_tmp = create_chunk();
 	connect(text.head, new_chunk_tmp); // insert without updating size
