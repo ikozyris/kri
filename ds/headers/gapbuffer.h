@@ -20,8 +20,8 @@ const ulong PTR_MASK = (1ul << 48) - 1;
 
 struct gap_buf {
 	uintptr_t ptr; // TODO: take advantage of ARM TBI / Intel LAM
-	uint gps;
-	uint gpe;
+	uint gps; // first gap char (gap start)
+	uint gpe; // last gap char (gap end)
 
 	char *buffer() const { return (char*)(ptr & PTR_MASK); } // in userspace bit 47 = 0
 	char &operator[](uint pos) const { return ((char*)(ptr & PTR_MASK))[pos]; }

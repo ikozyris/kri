@@ -167,6 +167,6 @@ void prepare_iteration(const gap_buf *src, uint from, uint to, uint &st1, uint &
 	} else if (to >= src->gps) { // range starts before gap and ends after; 2 it
 		end1 = src->gps;
 		st2 = t_gpe;
-		end2 = t_gpe + to - from - 1;
+		end2 = t_gpe + to - from + 1 - src->gps;
 	}
 }

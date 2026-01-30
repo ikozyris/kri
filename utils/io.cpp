@@ -149,8 +149,8 @@ uint fgets_ret(char *buf, FILE *in)
 }
 
 chunk *new_chunk(chunk *chnk) {
-	if (!chnk->len)
-		chnk->num_lines++;
+	if (!chnk->len) // chunks have 1 line if not merged
+		chnk->num_lines = 1; // from 0
 	chunk *t = create_chunk();
 	text.nodes++;
 	connect(chnk, t);
@@ -189,5 +189,7 @@ void read_file2(FILE *in)
 		apnd_s(chnk->merged_lines, buf, bytes_read); // write the line
 	}
 	free(buf);
+	if (!chnk->len)
+		chnk->num_lines = 1;
 	connect(chnk, text.tail);
 }
