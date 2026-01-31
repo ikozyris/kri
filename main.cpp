@@ -214,6 +214,7 @@ init:
 			if (it.buffer()[it.gpe() + 1u] == '\n') { // similar to backspace
 				iter b = it;
 				iterate_fw(&b, 1);
+				mv_curs(*it.orig, rx + it.offset + 1);
 				merge_lines(&text, &it, &b);
 				--text.lines;
 				print_text(y);
@@ -230,7 +231,8 @@ init:
 				} else {
 					wdelch(text_win);
 					clear_attrs;
-					print_new_mark();
+					if (overflows[y])
+						print_new_mark();
 				}
 				highlight(y, &it);
 				wmove(text_win, y, x);
