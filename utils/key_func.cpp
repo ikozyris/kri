@@ -61,39 +61,44 @@ void command()
 		char *pr2 = input_header("range/mode: "); // 5-10 h
 		sscanf(pr2, "%u-%u %c", &from, &to, &mode);
 		free(pr2);
-		tmp[4] = strlen(tmp + 5); // pascal string
-		find(tmp + 4, from, to, mode);
+		find(tmp + 5, from, to, mode);
 	} else if (strncmp(tmp, "replace", 7) == 0) {
-/*		uint from = 0, to = text.lines;
-		sscanf(tmp + 8, "%u-%u", &from, &to);
+		uint from = 0, to = text.lines;
+		sscanf(tmp + 6, "%u-%u", &from, &to);
 		free(tmp);
+		if (to > text.lines || from > to) {
+			print2header("Invalid parameters", 1);
+			return;
+		}
 
-		tmp = input_header("replace: ");
-		char *newst = input_header("with: ");
-		ushort tmp_len = strlen(tmp), newst_len = strlen(newst);
-		long offset = 0;
-		uint count = 0;
+		char *old = input_header("old: ");
+		if (old[0] == 0) return;
+		char *newst = input_header("new: ");
+		ushort old_len = strlen(old), newst_len = strlen(newst);
+		uint count = search(old, old_len, from, to, 'h');
 
+		int offset = (int)newst_len - (int)old_len;
+		if (offset != 0) // until the length arrays are updated
+			return;
 		iter tmp_it;
 		point2begin(&tmp_it);
-		iterate_fw(&tmp_it, from);
-		for (uint i = from; i <= to; ++i, iterate_fw(&tmp_it, 1)) {
-			vector<uint> matches = search_a(*tmp_it.orig, tmp);
-			count += matches.size();
-			for (uint j = 0; j < matches.size(); ++j) {
-				mv_curs(*tmp_it.orig, (long)matches[j] + offset);
-				tmp_it.set_gpe(tmp_it.gpe() + tmp_len);
+		for (uint i = 0; i < occurrences.size(); ++i) { // occurrences in each chunk
+			for (uint j = 0; j < occurrences[i].len(); ++j) {
+				uint index = occurrences[i].array[j];
+				mv_curs(*tmp_it.orig, index + offset * j);
+				tmp_it.orig->gpe = tmp_it.orig->gpe + old_len;
 				insert_s(*tmp_it.orig, newst, newst_len);
-				offset += (long)newst_len - (long)tmp_len;
 			}
-			offset = 0;
+			tmp_it.orig = &tmp_it.parent()->next->merged_lines;
+			occurrences[i].set_len(0); // cleanup for next search
 		}
-		char *tmp_buff = (char*)malloc(128);
-		sprintf(tmp_buff, "Replaced %u occurences of \"%s\" with \"%s\" from line %u to %u", count, tmp, newst, from, to);
-		print2header(tmp_buff, 1);
-		print_text(0);
+		tmp = (char*)malloc(128);
+		sprintf(tmp, "Replaced %u occurences of \"%s\" with \"%s\" from line %u to %u", count, old, newst, from, to);
+		print2header(tmp, 1);
+		print_text(y);
+
 		free(newst);
-		free(tmp_buff);*/
+		free(old);
 	} else
 		print2header("command not found", 3);
 	free(tmp);

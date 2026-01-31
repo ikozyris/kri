@@ -1,9 +1,10 @@
 #include "headers/search.h"
 
 // global is occurrences, each local is matches
-static vector<dynarray> occurrences(4);
+vector<dynarray> occurrences(4);
 // shared parameters
 static const char *string;
+static uint str_len;
 static bool append;
 static iter first_line;
 static iter last_line;
@@ -42,13 +43,13 @@ static void highlight_occ(const vector<pair<uint,uint>> &matches, uint cur_occ)
 {
 	if (matches[cur_occ].first - ofy == 0) // first line may have offset on x axis
 		mvwchgat(text_win, 0, matches[cur_occ].second - ofx,
-			string[0], A_STANDOUT, 0, 0);
+			str_len, A_STANDOUT, 0, 0);
 	while (cur_occ < matches.size()) {
 		if (matches[cur_occ].first >= maxy + ofy)
 			break;
 		if (matches[cur_occ].second < maxx) // ignored on handled above
 			mvwchgat(text_win, (uint)matches[cur_occ].first - ofy, matches[cur_occ].second,
-				string[0], A_STANDOUT, 0, 0);
+				str_len, A_STANDOUT, 0, 0);
 		cur_occ++;
 	}
 }
@@ -57,22 +58,13 @@ static void *_search_lc(void *args);
 static void *_search_la(void *args);
 static void search_mt_common(uint from, uint to, void *search_fn(void*));
 
-// highlight or count occurrences of str in range [from, to]
-void find(const char *str, uint from, uint to, char mode)
-{
-	uint str_len = str[0];
-	if (str_len == 0 || to > text.lines || from > to) {
-		print2header("Invalid parameters", 1);
-		return;
-	}
 
-	iter tmp_it;
-	point2begin(&tmp_it);
-	iterate_fw(&tmp_it, from);
-	it = tmp_it;
+uint search(const char *str, uint len, uint from, uint to, char mode)
+{
+	string = str;
+	str_len = len;
 	append = mode == 'h';
 
-	string = str;
 	if (append)
 		search_mt_common(from, to, _search_la);
 	else
@@ -80,12 +72,31 @@ void find(const char *str, uint from, uint to, char mode)
 	ulong total = 0;
 	for (auto i : occurrences)
 		total += i.len();
+	return total;
+}
+
+// highlight or count occurrences of str in range [from, to]
+void find(const char *str, uint from, uint to, char mode)
+{
+	str_len = strlen(str);
+	if (!str_len || to > text.lines || from > to) {
+		print2header("Invalid parameters", 1);
+		return;
+	}
+	uint total = search(str, str_len, from, to, mode);
+
 	clear_header();
-	snprintf(lnbuf, lnbf_cpt, "%lu matches on lines [%u, %u]", total, from, to);
+	snprintf(lnbuf, lnbf_cpt, "%u matches on lines [%u, %u]", total, from, to);
 	print2header(lnbuf, 1);
+
+	iter tmp_it;
+	point2begin(&tmp_it);
+	iterate_fw(&tmp_it, from);
+	it = tmp_it;
 
 	if (mode == 'c' || total == 0)
 		return;
+	uint str_len = str[0];
 	str++;
 	str_len -= mbcnt(str, str_len); // get displayed characters
 
@@ -164,10 +175,9 @@ exit:
 
 static void bitap_search(const uchar *buf, uint blen, uint offset, dynarray *matches)
 {
-	uint plen = string[0]; // pascal string
+	uint plen = str_len; // pascal string
 	if (blen < plen)
 		return;
-	const uchar *str = (const uchar*)string + 1;
 
 	// for each byte value, 0 where the str has match
 	ulong mask[256];
@@ -175,7 +185,7 @@ static void bitap_search(const uchar *buf, uint blen, uint offset, dynarray *mat
 
 	// for each position i in buf, bit i = 0 in mask[buf[i]]
 	for (uint i = 0; i < plen; i++)
-		mask[str[i]] &= ~(1ul << i);
+		mask[(uchar)string[i]] &= ~(1ul << i);
 
 	ulong state = ~1; // no matches
 	ulong accept_bit = 1ul << plen;
@@ -198,14 +208,13 @@ static void mid_search(const gap_buf *gbuf, dynarray *matches)
 {
         uint gaplen = gaplen(*gbuf);
 	const char *buf = gbuf->buffer();
-	const char *str = string + 1;
 
-	for (uint i = gbuf->gps - string[0] + 1; i < gbuf->gps; ++i) {
+	for (uint i = gbuf->gps - str_len + 1; i < gbuf->gps; ++i) {
 		int a, b = 1;
 		// start by comparing the first bytes up to the gap start ("he")
-		a = memcmp(buf + i, str, gbuf->gps - i);
+		a = memcmp(buf + i, string, gbuf->gps - i);
 		if (!a) // if those match then compare the rest ("llo")
-			b = memcmp(buf + gbuf->gps + gaplen, str + gbuf->gps - i, string[0] - (gbuf->gps - i));
+			b = memcmp(buf + gbuf->gps + gaplen, string + gbuf->gps - i, str_len - (gbuf->gps - i));
 
 		if (a == 0 && b == 0) {
 			matches->append(i);
@@ -217,12 +226,12 @@ static void mid_search(const gap_buf *gbuf, dynarray *matches)
 // search in range [from, to]
 static void ranged_searchstr(dynarray *matches, const gap_buf *buf, uint from, uint to)
 {
-	if (string[0] >= buf->len())
+	if (str_len >= buf->len())
 		return;
 	uint from1, from2, to1, to2;
 	prepare_iteration(buf, from, to, from1, to1, from2, to2);
 	bitap_search((uchar*)buf->buffer() + from1, to1 - from1, 0, matches);
-	if (from2 > to1 && to2 - from2 >= string[0]) {
+	if (from2 > to1 && to2 - from2 >= str_len) {
 		mid_search(buf, matches);
 		bitap_search((uchar*)buf->buffer() + from2, to2 - from2, from2 - 2, matches);
 	}
