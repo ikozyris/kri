@@ -120,9 +120,9 @@ void merge_lines(llist *list, iter *a, iter *b)
 	chunk *a_ch = a->parent(), *b_ch = b->parent();
 	if (a_ch == b_ch) {
 		eras(a_ch->merged_lines);
-		uint rel_pos = a->relative_pos;
-		a_ch->len[rel_pos + 1] += a_ch->len[rel_pos] - 1;
-		memmove(&a_ch->len[rel_pos], &a_ch->len[rel_pos + 1], a_ch->num_lines - rel_pos);
+		uint rel_pos = b->relative_pos;
+		a_ch->len[rel_pos] += a_ch->len[rel_pos - 1] - 1;
+		memmove(&a_ch->len[rel_pos - 1], &a_ch->len[rel_pos], a_ch->num_lines - rel_pos);
 		a_ch->num_lines--;
 	} else { // need to move at least one line to another chunk
 		bool use_a = a_ch->merged_lines.len() + b->len() < MAX_CHUNK_SIZE || a_ch->num_lines <= 1;

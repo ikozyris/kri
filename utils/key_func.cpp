@@ -113,8 +113,9 @@ void scroll2(uint a)
 void enter()
 {
 	chunk *ch = it.parent();
-	
-	if (ch->num_lines > 1) { // this chunk has multiple lines; just insert new length
+	insert_c(*it.orig, '\n');
+
+	if (ch->len) { // this chunk has multiple lines; just insert new length
 		if (ch->len_cpt < ch->num_lines + 1) {
 			ch->len_cpt *= 2;
 			ch->len = (uchar*)realloc(ch->len, ch->len_cpt);
@@ -122,10 +123,9 @@ void enter()
 		uint pos = it.relative_pos;
 		memmove(&ch->len[pos + 1], &ch->len[pos], ch->num_lines - pos);
 		ch->num_lines++;
-		ch->len[pos + 1] = it.len() - it.gps();
-		ch->len[pos] = it.gps() + 1;
-		
-		insert_c(*it.orig, '\n');
+		ch->len[pos + 1] = it.len() - it.gps() + 1;
+		ch->len[pos] = it.gps();
+
 		it.offset = it.orig->gps;
 		it.relative_pos++;
 		if (it.orig->len() > MAX_CHUNK_SIZE)
