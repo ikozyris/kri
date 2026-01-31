@@ -118,7 +118,7 @@ void save()
 	}
 #define gpb i->merged_lines
 	chunk *i = text.head->next;
-	for (uint j = 0; i != text.tail && j < text.nodes; ++j, i = i->next) {
+	for (uint j = 0; i != text.tail->prev && j < text.nodes; ++j, i = i->next) {
 		fwrite(gpb.buffer(), 1, gpb.gps, fo);
 		fwrite(gpb.buffer() + gpb.gpe + 1, 1, gpb.cpt() - gpb.gpe - 1, fo); // print remaining bytes
 	}

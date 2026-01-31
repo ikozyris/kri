@@ -60,9 +60,8 @@ int main(int argc, char *argv[])
 }
 
 	if (argc > 1) {
-		filename = (char*)malloc(sizeof(char) * 128);
-		strcpy(filename, argv[1]);
-		FILE *in = fopen(filename, "r");
+		filename = argv[1];
+		FILE *in = fopen(argv[1], "r");
 #ifdef HIGHLIGHT
 		eligible = isc(argv[1]); // syntax highlighting
 #endif
@@ -72,15 +71,18 @@ int main(int argc, char *argv[])
 		}
 		read_file2(in);
 		fclose(in);
-	}
 init:
-	point2chunk(&it, text.tail->prev);
-	// all functions think there is a newline at EOL, emulate it
-	if (it.orig->len() && it.orig->buffer()[it.orig->len() - 1] != '\n') {
+		point2chunk(&it, text.tail->prev);
+		// all functions think there is a newline at EOL, emulate it
+		if (it.orig->len() && it.orig->buffer()[it.orig->len() - 1] != '\n') {
+			apnd_c(*it.orig, 0);
+			if (it.parent()->num_lines > 1)
+				it.parent()->len[it.parent()->num_lines - 1]++;
+			text.lines--;
+		}
+	} else {
 		apnd_c(*it.orig, 0);
-		if (it.parent()->num_lines > 1)
-			it.parent()->len[it.parent()->num_lines - 1]++;
-		text.lines--;
+		append_len(it.parent(), 1);
 	}
 
 	init_curses();
@@ -211,7 +213,7 @@ init:
 			break;
 
 		case DELETE:
-			if (it.buffer()[it.gpe() + 1u] == '\n') { // similar to backspace
+			if (it.buffer()[it.gpe() + 1] == '\n') { // similar to backspace
 				iter b = it;
 				iterate_fw(&b, 1);
 				mv_curs(*it.orig, rx + it.offset + 1);
