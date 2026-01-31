@@ -29,8 +29,7 @@ char *input_header(const char *q)
 		reset_header();
 		print2header("ERROR", 1);
 		wmove(text_win, y, x);
-	} if (strlen(tmp) <= 0)
-		tmp[0] = 0;
+	}
 	noecho();
 	return tmp;
 }

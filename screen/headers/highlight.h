@@ -1,6 +1,5 @@
 #pragma once
 #include "init.h"
-#include "../../utils/headers/search.h"
 
 extern bool eligible; // is syntax highlighting enabled
 bool isc(const char *str);
