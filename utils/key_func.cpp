@@ -78,16 +78,17 @@ void command()
 		uint count = search(old, old_len, from, to, 'h');
 
 		int offset = (int)newst_len - (int)old_len;
-		if (offset != 0) // until the length arrays are updated
-			return;
 		iter tmp_it;
 		point2begin(&tmp_it);
 		for (uint i = 0; i < occurrences.size(); ++i) { // occurrences in each chunk
 			for (uint j = 0; j < occurrences[i].len(); ++j) {
 				uint index = occurrences[i].array[j];
-				mv_curs(*tmp_it.orig, index + offset * j);
+				mv_curs(*tmp_it.orig, index + offset * (int)j);
 				tmp_it.orig->gpe = tmp_it.orig->gpe + old_len;
 				insert_s(*tmp_it.orig, newst, newst_len);
+
+				uint n = line_pos(tmp_it.parent(), index + offset * (int)j);
+				tmp_it.parent()->len[n] += offset;
 			}
 			tmp_it.orig = &tmp_it.parent()->next->merged_lines;
 			occurrences[i].set_len(0); // cleanup for next search

@@ -44,7 +44,7 @@ typedef struct iter {
 	char *buffer() { return orig->buffer() + offset; }
 } iter;
 
-
+uint line_pos(chunk *ch, uint offset);
 void line_offset(iter *it, uint n);
 void iterate_bw(iter *it, uint dist); // backward
 void iterate_fw(iter *it, uint dist); // forward

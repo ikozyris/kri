@@ -19,7 +19,18 @@ void append_len(chunk *a, uint len)
 	a->num_lines++;
 }
 
-// get offset
+// given offset find position
+uint line_pos(chunk *ch, uint offset)
+{
+	uint sum = 0, n = 0;
+	while (sum < offset && n < ch->num_lines) {
+		sum += ch->len[n];
+		n++;
+	}
+	return sum == offset ? n : n - 1;
+}
+
+// given position find offset
 void line_offset(iter *it, uint n)
 {
 	chunk *a = it->parent();
