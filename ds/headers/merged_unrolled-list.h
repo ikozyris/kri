@@ -17,10 +17,7 @@ typedef struct chunk {
 	uchar len_cpt; // capacity of len array (initialized to 1)
 	// 3-bytes padding (45 / 48 bytes)
 } chunk;
-/* Notes:
- * head != tail, head and tail are imaginary nodes.
- * 
- */
+
 typedef struct llist {
 	uint nodes; // count of actual nodes allocated
 	uint lines; // count of lines (nodes + merged)

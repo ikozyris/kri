@@ -37,7 +37,7 @@ kri # ask for filename on save file operation
 * Enter built-in terminal: Alt-C
 * Show info: Alt-I (also command _stats_ in built-in terminal)
 * Search: command _find_ in builtin terminal, parameters in seperate(\n) queries, example:
-	- find str>
+	- find str
 	- find 1-5 c (\n) str  --> count occurences of string on lines [1,5]
 	- find 3-10 h (\n) str  --> highlight occurences of sring on lines [3,10]
 * Replace: command _replace_ :

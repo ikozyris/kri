@@ -10,8 +10,8 @@ CXX = g++ --std=c++20
 
 OPTIM = -O3 -s -flto -march=native -DRELEASE
 DEBUG = -Og -g #-DDEBUG
-CXXFLAGS = -Wall -Wextra -pedantic-errors $(DEBUG) -DHIGHLIGHT # Debug only
-#CXXFLAGS = -Wall -Wextra -pedantic $(OPTIM) -DHIGHLIGHT
+#CXXFLAGS = -Wall -Wextra -pedantic-errors $(DEBUG) -DHIGHLIGHT # Debug only
+CXXFLAGS = -Wall -Wextra -pedantic $(OPTIM) -DHIGHLIGHT
 
 # the build target executable
 TARGET = kri
