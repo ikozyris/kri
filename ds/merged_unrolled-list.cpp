@@ -27,17 +27,16 @@ uint line_pos(chunk *ch, uint offset)
 		sum += ch->len[n];
 		n++;
 	}
-	return sum == offset ? n : n - 1;
+	return sum == offset ? n : n - 1; // TODO: there is a cleaner way
 }
 
 // given position find offset
 void line_offset(iter *it, uint n)
 {
 	chunk *a = it->parent();
-	uint count = 0, i = it->relative_pos;
+	uint i = it->relative_pos;
 	for (; i < it->relative_pos + n; ++i)
-		count += a->len[i];
-	it->offset += count;
+		it->offset += a->len[i];
 	it->relative_pos = i;
 }
 

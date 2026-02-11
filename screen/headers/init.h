@@ -1,7 +1,7 @@
 #pragma once
 #include "../../utils/headers/sizes.h"
 
-#define name "kri 0.9-alpha1"
+#define name "kri 0.9-alpha2"
 void init_curses();
 void init_text();
 void print_lines();

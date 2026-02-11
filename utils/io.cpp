@@ -75,7 +75,6 @@ void print_text(uint line)
 	for (uint ty = line + 1; ty <= min(text.lines - ofy, maxy - 1); ++ty) {
 		iterate_fw(&i, 1);
 		mvprint_line(ty, 0, &i, 0, 0);
-		wrefresh(text_win);
 		highlight(ty, &i);
 	}
 }
