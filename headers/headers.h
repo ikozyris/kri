@@ -8,6 +8,7 @@
 #include <signal.h> // for pause in command suspend
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <linux/mman.h>
 #include <fcntl.h>
 typedef uint8_t uchar;
 using namespace std;
