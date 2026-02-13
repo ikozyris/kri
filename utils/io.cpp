@@ -136,7 +136,7 @@ void save()
 	wmove(text_win, y, x);
 }
 
-#define SZ 256
+#define SZ 2*1024*1024
 
 uint fgets_ret(char *buf, FILE *in)
 {
@@ -158,35 +158,30 @@ chunk *new_chunk(chunk *chnk) {
 void read_file2(FILE *in)
 {
 	chunk *chnk = text.head->next;
-	char *buf = (char*)malloc(SZ);
+	void *buffer = mmap(NULL, SZ, PROT_READ | PROT_WRITE,
+			    MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB | MAP_HUGE_2MB, -1, 0);
+	char *buf = (char*)buffer;
 	uint ln_sz = 0, ch_sz = 0; // current line size, current chunk size
 
 	while (const uint bytes_read = fgets_ret(buf, in)) {
 		ln_sz += bytes_read;
 
-		if (bytes_read < 255 || buf[bytes_read - 1] == '\n') { // found the end of this line
-			// this line won't fit in the current chunk, but make sure we haven't a
-			if (ch_sz + ln_sz >= MAX_CHUNK_SIZE && ln_sz == bytes_read) {
-				chnk = new_chunk(chnk);
-				ch_sz = ln_sz;
-			} if (ln_sz < MAX_CHUNK_SIZE) { // this line can be merged in a chunk
-				if (ch_sz != ln_sz) // if this is the first line of the chunk ch_sz == ln_sz from the previous if
-					ch_sz += ln_sz;
+		// line won't fit in the current (non empty) chunk and hasn't been written yet
+		if (ch_sz + ln_sz >= MAX_CHUNK_SIZE && ln_sz == bytes_read && ch_sz > 0) {
+			chnk = new_chunk(chnk);
+			ch_sz = 0;
+		}
+		ch_sz += bytes_read;
+
+		if (bytes_read < SZ - 1 || buf[bytes_read - 1] == '\n') { // found the end of this line
+			if (ln_sz < MAX_CHUNK_SIZE) // line can be merged in a chunk
 				append_len(chnk, ln_sz);
-			}
 			text.lines++;
 			ln_sz = 0;
 		} 
-		// line is > 256 bytes, but only create a new chunk if the previous chunk ends with a new line 
-		// (this line may have already been split between iterations)
-		else if (chnk->merged_lines.len() > 0 && chnk->merged_lines.buffer()[chnk->merged_lines.len() - 1] == '\n') {
-			chnk = new_chunk(chnk);
-			ch_sz = ln_sz;
-		} else 
-			ch_sz += ln_sz;
 		apnd_s(chnk->merged_lines, buf, bytes_read); // write the line
 	}
-	free(buf);
+	munmap(buffer, SZ);
 	if (!chnk->len)
 		chnk->num_lines = 1;
 	connect(chnk, text.tail);
