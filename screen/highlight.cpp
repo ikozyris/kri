@@ -22,7 +22,7 @@ static const char oper[] = {'!', '%', '&', '*', '+', '-', '/', ':', '<', '=', '>
 // checks if file is C source code
 bool isc(const char *str)
 {
-	const char *res = strchr(str, '.');
+	const char *res = strrchr(str, '.');
 	if (res == 0)
 		return false;
 	str = res + 1;
