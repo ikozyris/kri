@@ -54,10 +54,7 @@ void command()
 		uint a;
 		sscanf(tmp + 7, "%u", &a);
 		if (a <= curnum) {
-			ofy = a - 1;
-			print_lines();
-			wrefresh(ln_win);
-			print_text(0);
+			scroll2(a);
 			advance(it, ofy - ry);
 		}
 	} else if (strncmp(tmp, "find", 4) == 0) { // example: find string
@@ -100,6 +97,16 @@ void command()
 	} else
 		print2header("command not found", 3);
 	free(tmp);
+}
+
+void scroll2(uint a)
+{
+	ofy = a - 1;
+	ofx = 0;
+	cut.clear();
+	print_lines();
+	wrefresh(ln_win);
+	print_text(0);
 }
 
 // insert enter in rx of buffer, create new line node and reprint
@@ -150,7 +157,7 @@ void mvr_scurs(ulong t_byte)
 		if (ofx == 0 && t_byte > (uint)5e8) {
 			while (bytes + maxx < t_byte) {
 				bytes += maxx - 1;
-				cut.push_back({maxx - 1, bytes});
+				cut.push_back({maxx - 1, (uint)bytes});
 				ofx += maxx - 1;
 			}
 			flag = t_byte % (maxx - 1);
@@ -159,7 +166,7 @@ void mvr_scurs(ulong t_byte)
 				const ulong nbytes = dchar2bytes(maxx - 1, bytes, *it);
 				if (nbytes >= t_byte - 1)
 					break;
-				cut.push_back({flag, nbytes}); // flag was changed by dchar2bytes
+				cut.push_back({flag, (uint)nbytes}); // flag was changed by dchar2bytes
 				ofx += flag;
 				bytes = nbytes;
 			}
@@ -178,6 +185,15 @@ void mvr_scurs(ulong t_byte)
 			ofx = t_byte - x + 1;
 		wmove(text_win, y, x);
 	}
+}
+
+void mvl_scurs(uint t_byte)
+{
+	while (cut.back().byte > t_byte) {
+		ofx -= cut.back().dchar;
+		cut.pop_back();
+	}
+	mvprint_line(y, 0, *it, cut.back().byte, 0);
 }
 
 // go to start-of-line, uncut line if needed

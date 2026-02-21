@@ -3,7 +3,7 @@
 
 list<gap_buf> text(2);
 list<gap_buf>::iterator it;
-vector<pair<uint, uint>> cut;
+vector<cut_s> cut;
 vector<bool> overflows;
 WINDOW *header_win, *ln_win, *text_win;
 wchar_t s[4];
@@ -333,7 +333,7 @@ init:
 			if (s[0] > 0 && s[0] < 32) // not a character
 				break;
 			if (x == maxx - 1) { // cut line
-				cut.push_back({maxx - 1, ofx});
+				cut.push_back({maxx - 1, (uint)ofx});
 				clearline;
 				ofx += maxx - 1;
 				print_line(*it, ofx, 0, y);

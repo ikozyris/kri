@@ -3,11 +3,11 @@
 extern list<gap_buf> text;
 extern list<gap_buf>::iterator it;
 
-// displayed characters of previous cut (or cut|slice of line)
-#define dchar first
-// bytes printed in current cut
-#define byte second
-extern vector<pair<uint, uint>> cut;
+struct cut_s {
+	uint dchar; // displayed characters of previous cut (or cut|slice of line)
+	uint byte; // bytes printed in current cut
+};
+extern vector<cut_s> cut;
 extern vector<bool> overflows;
 
 extern WINDOW *header_win, *ln_win, *text_win;

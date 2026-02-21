@@ -5,6 +5,40 @@ static uchar badchar[256];
 static uint goodsuffix[256];
 static void _badchar(const char *str, uchar len);
 static void _goodsuffix(const char *str, uchar len);
+struct match {
+	uint y;
+	uint x;
+	uint byte;
+};
+
+// TODO: give hint of left/right bound based on cur_occ
+static uint ln_start(const vector<match> &yx, uint y) {
+	uint lo = 0, hi = yx.size() - 1, mid;
+	while (lo < hi) {
+		mid = lo + (hi - lo) / 2;
+		if (yx[mid].y < y)
+			lo = mid + 1;
+		else
+			hi = mid; // find leftmost occurrence
+	}
+	return lo;
+}
+
+static void highlight_occ(const vector<match> &matches, uint cur_occ, uint str_len)
+{
+	if (matches[cur_occ].y - ofy == 0 && ofx != 0) { // y line may have offset on x axis
+		mvwchgat(text_win, 0, matches[cur_occ].byte - ofx, str_len, A_STANDOUT, 0, 0);
+		cur_occ++;
+	}
+	while (cur_occ < matches.size()) {
+		if (matches[cur_occ].y >= maxy + ofy)
+			break;
+		if (matches[cur_occ].x < maxx) // ignored on handled above
+			mvwchgat(text_win, (uint)matches[cur_occ].y - ofy, matches[cur_occ].x,
+				str_len, A_STANDOUT, 0, 0);
+		cur_occ++;
+	}
+}
 
 // highlight or count occurrences of str in range [from, to)
 void find(const char *str, uint from, uint to, char mode)
@@ -23,97 +57,84 @@ void find(const char *str, uint from, uint to, char mode)
 	list<gap_buf>::iterator tmp_it = text.begin();
 	advance(tmp_it, from);
 	it = tmp_it;
-	const ulong first_batch = min(maxy, to); // how many lines to display
-	vector<vector<uint>> matches;
-	ulong total = 0;
+	vector<vector<uint>> occurrences;
+	uint total = 0;
 	if (mode == 'h') {
-		// fetches only the occurrences that will be shown +1
-		matches = search_la(from, from + first_batch + 1, str, str_len);
-		for (const auto &vec : matches)
+		occurrences = search_la(from, to, str, str_len);
+		for (const auto &vec : occurrences)
 			total += vec.size();
-		if (to > first_batch) // just count the remaining (if any)
-			total += search_lc(first_batch + 1, to, str, str_len);
-		// TODO: fix the showing highlights to work without overcounting
-		else if (to < first_batch)
-			total -= matches.back().size(); // overcounted
 	} else
 		total += search_lc(from, to, str, str_len);
 
 	clear_header();
-	snprintf(lnbuf, lnbf_cpt, "%lu matches on lines [%u, %u]", total, from, to - 1);
+	snprintf(lnbuf, lnbf_cpt, "%u matches on lines [%u, %u]", total, from, to);
 	print2header(lnbuf, 1);
 
-	if (mode == 'c')
+	if (mode == 'c' || total == 0)
 		return;
 	str_len -= mbcnt(str, str_len); // get displayed characters
 
-	// displayed x, previous byte, previous print byte, previous iterated occurrence
-	vector<uint> dix(maxy), previ(maxy), prevpr(maxy), prevx(maxy);
-	int ch = 0;
+	vector<match> matches; // y, x, byte
+	for (uint i = 0; i < occurrences.size(); ++i) { // occurrences in each node
+		for (uint j = 0; j < occurrences[i].size(); ++j) { // i.len() may be 0
+			uint index = occurrences[i][j];
+			matches.push_back({i, (uint)bytes2dchar(index, 0, *tmp_it), index});
+		}
+		occurrences[i].clear();
+		tmp_it++;
+	}
+
+	scroll2(matches[0].y + 1);
+	uint cur_occ = 0; // current occurrence
+	highlight_occ(matches, 0, str_len);
+
+	y = 0;
 	curs_set(0);
-	do {
+	int ch;
+	while ((ch = wgetch(text_win))) {
 		switch (ch) {
-		case KEY_RIGHT:
-			tmp_it = it;
-			for (uint i = from; i < first_batch; ++i, ++tmp_it)
-				if (prevpr[i] != 0 && previ[i] != matches[ofy + i].back()) // more occurrences remaining
-					mvprint_line(i, 0, *tmp_it, prevpr[i], 0);
-			break;
-
-		case 0:
-		case KEY_LEFT:
-			tmp_it = it;
-			for (uint i = from; i < first_batch; ++i, ++tmp_it) {
-				mvprint_line(i, 0, *tmp_it, 0, 0);
-				dix[i] = previ[i] = prevpr[i] = prevx[i] = 0;
-			}
-			break;
-
-		case KEY_DOWN:
-			for (uint i = from; i < first_batch; ++i)
-				dix[i] = previ[i] = prevpr[i] = prevx[i] = 0;
-			if (ofy + maxy > min(curnum, to))
+		case KEY_RIGHT: // next occurrence in the same line
+			if (cur_occ == matches.size() - 1 || matches[cur_occ + 1].y != matches[cur_occ].y)
 				break;
-			++ofy;
-			++it;
-			print_text(0);
-			++tmp_it;
-			matches.emplace_back(search_a(*tmp_it, str, str_len));
+			cur_occ++;
+			mvr_scurs(matches[cur_occ].byte);
 			break;
 
-		case KEY_UP:
-			for (uint i = from; i < first_batch; ++i)
-				dix[i] = previ[i] = prevpr[i] = prevx[i] = 0;
-			if (ofy <= 0)
+		case KEY_LEFT: // previous occurrence in the same line
+			if (!cur_occ || matches[cur_occ - 1].y != matches[cur_occ].y)
 				break;
-			--ofy;
-			--it;
-			print_text(0);
+			cur_occ--;
+			mvl_scurs(matches[cur_occ].byte);
 			break;
 
-		case 27:
-		case 'q':
+		case KEY_DOWN: // next occurrence in following lines
+			if (cur_occ == matches.size() - 1 || matches[cur_occ].y == matches.back().y)
+				break;
+			cur_occ = ln_start(matches, matches[cur_occ].y + 1);
+			if (matches[cur_occ].y >= curnum || ry + ofy - ry >= curnum)
+				break;
+			scroll2(matches[cur_occ].y + 1);
+			advance(it, ofy - ry);
+			if (matches[cur_occ].x >= maxx)	
+				mvr_scurs(matches[cur_occ].byte);
+			break;
+
+		case KEY_UP: // previous occurrence in previous lines
+			if (matches[cur_occ].y == 0 || cur_occ == 0)
+				break;
+			cur_occ = ln_start(matches, matches[cur_occ].y - 1);
+			if (matches[cur_occ].y == ry)
+				cur_occ--;
+			scroll2(matches[cur_occ].y + 1);
+			advance(it, (long)ry - ofy);
+			break;
+
 		default:
 			goto exit;
 		}
-
-		tmp_it = it;
-		for (uint i = 0; i < first_batch; ++i, ++tmp_it) { // line
-			for (uint j = prevx[i]; j < matches[ofy + i].size(); ++j) { // occurrence
-				const uint pos = matches[ofy + i][j];
-				const uint hg_pos = bytes2dchar(pos, previ[i], *tmp_it);
-				prevx[i] = j;
-				if (dix[i] + hg_pos >= maxx - 1 + prevpr[i]) { // cut
-					prevpr[i] = pos - pos % (maxx - 1);
-					break;
-				}
-				previ[i] = pos;
-				dix[i] += hg_pos;
-				wmove(text_win, i + from, dix[i] % (maxx - 1));
-				wchgat(text_win, str_len, A_STANDOUT, 0, 0);
-			}
-		}
-	} while ((ch = wgetch(text_win)));
+		highlight_occ(matches, cur_occ, str_len);
+		ry = ofy;
+	}
 exit:
 	curs_set(1);
 	reset_view();
