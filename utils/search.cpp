@@ -10,11 +10,11 @@ static iter first_line;
 static iter last_line;
 
 // TODO: give hint of left/right bound based on cur_occ
-static uint ln_start(const vector<pair<uint, uint>> &yx, uint y) {
+static uint ln_start(const vector<match> &yx, uint y) {
 	uint lo = 0, hi = yx.size() - 1, mid;
 	while (lo < hi) {
 		mid = lo + (hi - lo) / 2;
-		if (yx[mid].first < y)
+		if (yx[mid].y < y)
 			lo = mid + 1;
 		else
 			hi = mid; // find leftmost occurrence
@@ -23,7 +23,7 @@ static uint ln_start(const vector<pair<uint, uint>> &yx, uint y) {
 }
 
 // convert index of chunk buffer to 2d position relative to the start of chunk
-static pair<uint, uint> index2yx(uint index, iter *it)
+static match index2yx(uint index, iter *it)
 {
 	uint cbyte = 0;
 	const chunk *ch = it->parent();
@@ -32,23 +32,24 @@ static pair<uint, uint> index2yx(uint index, iter *it)
 			uint dx = bytes2dchar(index, cbyte, it);
 			if (dx >= maxx - 1) // if it's outside of visible range we don't need this
 				dx = index;
-			return {i, dx};
+			return {i, dx, index - cbyte};
 		}
 		cbyte += ch->len[i];
 	}
-	return {index, 0}; // only one line is in chunk
+	return {0, bytes2dchar(index, 0, it), index}; // only one line is in chunk
 }
 
-static void highlight_occ(const vector<pair<uint,uint>> &matches, uint cur_occ)
+static void highlight_occ(const vector<match> &matches, uint cur_occ)
 {
-	if (matches[cur_occ].first - ofy == 0) // first line may have offset on x axis
-		mvwchgat(text_win, 0, matches[cur_occ].second - ofx,
-			str_len, A_STANDOUT, 0, 0);
+	if (matches[cur_occ].y - ofy == 0 && ofx != 0) { // first line may have offset on x axis
+		mvwchgat(text_win, 0, matches[cur_occ].byte - ofx, str_len, A_STANDOUT, 0, 0);
+		cur_occ++;
+	}
 	while (cur_occ < matches.size()) {
-		if (matches[cur_occ].first >= maxy + ofy)
+		if (matches[cur_occ].y >= maxy + ofy)
 			break;
-		if (matches[cur_occ].second < maxx) // ignored on handled above
-			mvwchgat(text_win, (uint)matches[cur_occ].first - ofy, matches[cur_occ].second,
+		if (matches[cur_occ].x < maxx) // ignored on handled above
+			mvwchgat(text_win, (uint)matches[cur_occ].y - ofy, matches[cur_occ].x,
 				str_len, A_STANDOUT, 0, 0);
 		cur_occ++;
 	}
@@ -96,13 +97,11 @@ void find(const char *str, uint from, uint to, char mode)
 
 	if (mode == 'c' || total == 0)
 		return;
-	uint str_len = str[0];
-	str++;
 	str_len -= mbcnt(str, str_len); // get displayed characters
 
 	bool after_first_chunk = first_line.parent() == text.head->next;
 	uint cline = after_first_chunk ? 0 : from - 1; // cumulative line up to previous chunk
-	vector<pair<uint,uint>> matches; // y,x
+	vector<match> matches; // y, x, byte (in line not chunk)
 	for (uint i = 0; i < occurrences.size(); ++i) { // occurrences in each chunk
 		for (uint j = 0; j < occurrences[i].len(); ++j) { // i.len() may be 0
 			uint index = occurrences[i].array[j];
@@ -110,14 +109,14 @@ void find(const char *str, uint from, uint to, char mode)
 				index += first_line.offset;
 			matches.emplace_back(index2yx(index, &first_line));
 			if (i != 0 || after_first_chunk == 0)
-				matches.back().first += cline;
+				matches.back().y += cline;
 		}
 		cline += first_line.parent()->num_lines;
 		first_line.orig = &first_line.parent()->next->merged_lines;
 		occurrences[i].set_len(0); // cleanup for next search
 	}
 
-	scroll2(matches[0].first + 1);
+	scroll2(matches[0].y + 1);
 	uint cur_occ = 0; // current occurrence
 	highlight_occ(matches, 0);
 
@@ -127,38 +126,38 @@ void find(const char *str, uint from, uint to, char mode)
 	while ((ch = wgetch(text_win))) {
 		switch (ch) {
 		case KEY_RIGHT: // next occurrence in the same line
-			if (cur_occ == matches.size() - 1 || matches[cur_occ + 1].first != matches[cur_occ].first)
+			if (cur_occ == matches.size() - 1 || matches[cur_occ + 1].y != matches[cur_occ].y)
 				break;
 			cur_occ++;
-			mvr_scurs(matches[cur_occ].second);
+			mvr_scurs(matches[cur_occ].byte);
 			break;
 
 		case KEY_LEFT: // previous occurrence in the same line
-			if (!cur_occ || matches[cur_occ - 1].first != matches[cur_occ].first)
+			if (!cur_occ || matches[cur_occ - 1].y != matches[cur_occ].y)
 				break;
 			cur_occ--;
-			mvl_scurs(matches[cur_occ].second);
+			mvl_scurs(matches[cur_occ].byte);
 			break;
 
-		case KEY_DOWN: // previous occurrence in previous lines
-			if (cur_occ == matches.size() - 1 || matches[cur_occ].first == matches.back().first)
+		case KEY_DOWN: // next occurrence in following lines
+			if (cur_occ == matches.size() - 1 || matches[cur_occ].y == matches.back().y)
 				break;
-			cur_occ = ln_start(matches, matches[cur_occ].first + 1);
-			if (matches[cur_occ].first >= text.lines || it.global_pos + ofy - ry >= text.lines)
+			cur_occ = ln_start(matches, matches[cur_occ].y + 1);
+			if (matches[cur_occ].y >= text.lines || it.global_pos + ofy - ry >= text.lines)
 				break;
-			scroll2(matches[cur_occ].first + 1);
-			if (matches[cur_occ].second >= maxx)	
-				mvr_scurs(matches[cur_occ].second); // this is dx not byte
+			scroll2(matches[cur_occ].y + 1);
 			iterate_fw(&it, ofy - ry);
+			if (matches[cur_occ].x >= maxx)	
+				mvr_scurs(matches[cur_occ].byte);
 			break;
 
-		case KEY_UP: // next occurrence in next lines
-			if (matches[cur_occ].first == 0 || cur_occ == 0)
+		case KEY_UP: // previous occurrence in previous lines
+			if (matches[cur_occ].y == 0 || cur_occ == 0)
 				break;
-			cur_occ = ln_start(matches, matches[cur_occ].first - 1);
-			if (matches[cur_occ].first == ry)
+			cur_occ = ln_start(matches, matches[cur_occ].y - 1);
+			if (matches[cur_occ].y == ry)
 				cur_occ--;
-			scroll2(matches[cur_occ].first + 1);
+			scroll2(matches[cur_occ].y + 1);
 			iterate_bw(&it, ry - ofy);
 			break;
 
