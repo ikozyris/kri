@@ -161,7 +161,7 @@ void read_file2(FILE *in)
 	void *buffer = mmap(NULL, SZ, PROT_READ | PROT_WRITE,
 			    MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB | MAP_HUGE_2MB, -1, 0);
 	// fallback to malloc if hugepages are not available
-	char *buf = (char*)(buffer ? buffer : malloc(SZ));
+	char *buf = (char*)(buffer == MAP_FAILED ? malloc(SZ) : buffer);
 	uint ln_sz = 0, ch_sz = 0; // current line size, current chunk size
 
 	while (const uint bytes_read = fgets_ret(buf, in)) {
@@ -182,10 +182,10 @@ void read_file2(FILE *in)
 		} 
 		apnd_s(chnk->merged_lines, buf, bytes_read); // write the line
 	}
-	if (buffer)
-		munmap(buffer, SZ);
-	else
+	if (buffer == MAP_FAILED)
 		free(buf);
+	else
+		munmap(buffer, SZ);
 	if (!chnk->len)
 		chnk->num_lines = 1;
 	connect(chnk, text.tail);
