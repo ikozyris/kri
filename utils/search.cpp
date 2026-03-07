@@ -27,14 +27,15 @@ static match index2yx(uint index, iter *it)
 {
 	uint cbyte = 0;
 	const chunk *ch = it->parent();
-	for (uint i = 0; i < ch->num_lines; ++i) {
-		if (index < cbyte + ch->len[i]) {
+	uint len_i = ch->len ? ch->len[0] : ch->merged_lines.len();
+	for (uint i = 0; i < ch->num_lines; len_i = ch->len[++i]) {
+		if (index < cbyte + len_i) {
 			uint dx = bytes2dchar(index, cbyte, it);
 			if (dx >= maxx - 1) // if it's outside of visible range we don't need this
 				dx = index;
 			return {i, dx, index - cbyte};
 		}
-		cbyte += ch->len[i];
+		cbyte += len_i;
 	}
 	return {0, bytes2dchar(index, 0, it), index}; // only one line is in chunk
 }
