@@ -87,8 +87,10 @@ void command()
 				tmp_it.orig->gpe = tmp_it.orig->gpe + old_len;
 				insert_s(*tmp_it.orig, newst, newst_len);
 
-				uint n = line_pos(tmp_it.parent(), index + offset * (int)j);
-				tmp_it.parent()->len[n] += offset;
+				if (tmp_it.parent()->len) {
+					uint n = line_pos(tmp_it.parent(), index + offset * (int)j);
+					tmp_it.parent()->len[n] += offset;
+				}
 			}
 			tmp_it.orig = &tmp_it.parent()->next->merged_lines;
 			occurrences[i].set_len(0); // cleanup for next search
