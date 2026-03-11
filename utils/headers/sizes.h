@@ -13,3 +13,12 @@ inline long calc_offset_act(uint pos, uint from, const iter *i) { // offset from
 }
 uint mbcnt(const char *str, uint len); // count multi-byte characters in string
 uint prevdchar(); // left arrow on end of tab; update offset and move cursor
+inline void get_off(uint &x, uint &i, const gap_buf &buf) { // helper function for calculating offsets
+	char ch = at(buf, i);
+	if (ch == '\t')
+		x += 8 - x % 8 - 1; // -1 due to x++ at end
+	else if (ch < 0)
+		i++; // assumes this utf8 code point is 2 bytes
+	x++;
+	i++;
+}

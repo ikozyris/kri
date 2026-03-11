@@ -1,7 +1,7 @@
 #include "headers/search.h"
 
 // global is occurrences, each local is matches
-vector<dynarray> occurrences(4);
+vector<dynarray> occurrences(2);
 // shared parameters
 static const char *string;
 static uint str_len;
@@ -31,7 +31,7 @@ static match index2yx(uint index, iter *it)
 	for (uint i = 0; i < ch->num_lines; len_i = ch->len[++i]) {
 		if (index < cbyte + len_i) {
 			uint dx = bytes2dchar(index, cbyte, it);
-			if (dx >= maxx - 1) // if it's outside of visible range we don't need this
+			if (dx >= maxx - 1) // if it's outside of visible range we don't need it
 				dx = index;
 			return {i, dx, index - cbyte};
 		}
@@ -59,7 +59,6 @@ static void highlight_occ(const vector<match> &matches, uint cur_occ)
 static void *_search_lc(void *args);
 static void *_search_la(void *args);
 static void search_mt_common(uint from, uint to, void *search_fn(void*));
-
 
 uint search(const char *str, uint len, uint from, uint to, char mode)
 {
@@ -262,9 +261,9 @@ static void search_mt_common(uint from, uint to, void *search_fn(void*))
 	last_line.offset = first_line.offset;
 
 	uint num_chunks = 0;
+{ // inlined iterate_fw with counting chunks
 	chunk *a = last_line.parent();
 	uint dist = to - from;
-	// inlined iterate_fw with counting chunks
 	if (dist + last_line.relative_pos >= a->num_lines) { // go to next chunk
 		dist += last_line.relative_pos;
 		do {
@@ -275,6 +274,7 @@ static void search_mt_common(uint from, uint to, void *search_fn(void*))
 		point2chunk(&last_line, a);
 	}
 	line_offset(&last_line, dist);
+}
 
 	if (num_chunks == 0) {
 		ranged_searchstr(&occurrences[0], first_line.orig, first_line.offset, last_line.offset + last_line.len() - 1);
