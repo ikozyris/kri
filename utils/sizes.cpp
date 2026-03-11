@@ -4,28 +4,14 @@
 char hrsize(size_t bytes, char *dest, ushort dest_cpt)
 {
 	const char suffix[] = {0, 'k', 'M', 'G', 'T'};
-	uchar length = sizeof(suffix) / sizeof(suffix[0]);
-
+	uchar length = sizeof(suffix) / sizeof(suffix[0]), i;
 	double dblBytes = bytes;
 
-	uchar i;
 	for (i = 0; (bytes / 1000) > 0 && i < length - 1; ++i, bytes /= 1000)
 		dblBytes = bytes / 1000.0;
 
 	snprintf(dest, dest_cpt, "%.02lf %cB", dblBytes, suffix[i]);
 	return suffix[i];
-}
-
-// helper function for calculating offsets
-static void get_off(uint &x, uint &i, const gap_buf &buf)
-{
-	char ch = at(buf, i);
-	if (ch == '\t')
-		x += 8 - x % 8 - 1; // -1 due to x++ at end
-	else if (ch < 0)
-		i++; // assumes this utf8 code point is 2 bytes
-	x++;
-	i++;
 }
 
 // displayed characters to bytes, flag -> disp_x where counting stopped at

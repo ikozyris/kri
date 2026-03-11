@@ -148,14 +148,6 @@ uint data(const gap_buf &src, uint from, uint to)
 	return to - from;
 }
 
-// returns character at pos keeping in mind the gap
-char at(const gap_buf &src, uint pos)
-{
-	if (pos >= src.gps)
-		pos += gaplen(src);
-	return src[pos];
-}
-
 // to iterate in range [from, to) over the gap buffer on positions containg actual data, 2 loops may be needed to skip the gap
 void prepare_iteration(const gap_buf *src, uint from, uint to, uint &st1, uint &end1, uint &st2, uint &end2)
 {
