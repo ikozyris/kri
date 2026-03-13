@@ -3,21 +3,21 @@
 // display stats on header
 void stats()
 {
-	char *_tmp = (char*)malloc(256);
+	char *_tmp = (char*)malloc(128);
 #ifndef RELEASE
 	uint cutd = 0, cutb = 0;
 	if (!cut.empty()) {
 		cutb = cut.back().byte;
 		cutd = cut.back().dchar;
 	}
-	snprintf(_tmp, min(maxx, 256), "maxx %u off %u len %u gs %u ge %u cpt %u cut%lu[d%u,b%u] x %u ofx %ld ry %u lines %u   ",
-	maxx, it.offset, it.len(), it.gps(), it.gpe(), it.cpt(), cut.size(), cutd, cutb, x, ofx, ry, text.lines);
+	snprintf(_tmp, min(maxx, 128), "maxx %u off %u len %u gs %u ge %u cpt %u cut%lu[d%u,b%u] x %u ofx %ld ry %u lines %u",
+		maxx, it.offset, it.len(), it.gps(), it.gpe(), it.cpt(), cut.size(), cutd, cutb, x, ofx, ry, text.lines);
 #else
 	ulong sumlen = 0;
 	chunk *i;
 	for (i = text.head->next; i != text.tail; i = i->next)
 		sumlen += i->merged_lines.len();
-	snprintf(_tmp, min(maxx, 256), "len %u  cpt %u  y %u  x %u  sum len %lu  lines %u  cut %lu  ofx %ld  ",
+	snprintf(_tmp, min(maxx, 128), "len %u  cpt %u  y %u  x %u  sum len %lu  lines %u  cut %lu  ofx %ld",
 		it.len(), it.cpt(), ry, x, sumlen, text.lines, cut.size(), ofx);
 #endif
 	print2header(_tmp, 1);
@@ -167,45 +167,26 @@ void enter()
 	}
 }
 
-// TODO: this is a repetitive mess
 // go to target byte, if necessary cut line
 void mvr_scurs(uint t_byte)
 {
-	ofx = calc_offset_act(t_byte, 0, &it);
-	if (t_byte - ofx <= maxx) // line fits in screen
-		wmove(text_win, y, t_byte - ofx - 1);
-	else { // cut line
-		cut.clear();
-		uint bytes = 0;
-		if (ofx == 0 && t_byte > (uint)5e8) {
-			while (bytes + maxx < t_byte) {
-				bytes += maxx - 1;
-				cut.push_back({maxx - 1, bytes});
-				ofx += maxx - 1;
-			}
-			flag = t_byte % (maxx - 1);
-		} else {
-			while (1) { // TODO: optimize
-				const uint nbytes = dchar2bytes(maxx - 1, bytes, &it);
-				if (nbytes >= t_byte)
-					break;
-				cut.push_back({flag, nbytes}); // flag was changed by dchar2bytes
-				ofx += flag;
-				bytes = nbytes;
-			}
+	uint prev_cut_size = cut.size();
+	uint cur_byte = x + ofx + it.offset;
+
+	while (cur_byte < t_byte + it.offset) {
+		if (x >= maxx - 1) { // inverted order to prevent extra check
+			cut.push_back({x, cur_byte - it.offset});
+			x = 0;
 		}
-		if (t_byte != it.len()) {
-			mvprint_line(y, 0, &it, bytes, 0);
-			if (!overflows[y])
-				clean_mark(y);
-			x = bytes2dchar(t_byte, bytes, &it) - 1;
-		} else {
-			mvprint_line(y, 0, &it, bytes, t_byte);
-			clean_mark(y);
-			x = (flag == maxx - 1 ? flag : flag - 1);
-		}
-		if (x + (uint)ofx > t_byte)
-			ofx = t_byte - x + 1;
+		get_off(x, cur_byte, *it.orig);
+	}
+	ofx = (long)t_byte - (long)x;
+	x--;
+	if (prev_cut_size == cut.size()) { // line didn't get cut
+		wmove(text_win, y, x);
+	} else {
+		clean_mark(y);
+		mvprint_line(y, 0, &it, cut.back().byte, 0);
 		wmove(text_win, y, x);
 	}
 }

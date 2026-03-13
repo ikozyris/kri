@@ -19,7 +19,7 @@ uint dchar2bytes(uint disp_x, uint from, const iter *i)
 {
 	from += i->offset;
 	uint x = 0;
-	while (x < disp_x && from < i->orig->len())
+	while (x < disp_x && from - i->offset < i->len())
 		get_off(x, from, *i->orig);
 	flag = x;
 	return from - i->offset;
