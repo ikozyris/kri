@@ -49,6 +49,7 @@ int main(int argc, char *argv[])
 	}
 	text.head = create_chunk();
 	text.tail = create_chunk();
+	text.tail->num_lines = pow2(30); // large enough to avoid out of bounds iteration
 	text.nodes = 1;
 {
 	chunk *new_chunk_tmp = create_chunk();

@@ -27,14 +27,10 @@ static match index2yx(uint index, iter *it)
 {
 	uint cbyte = 0;
 	const chunk *ch = it->parent();
-	uint len_i = ch->len ? ch->len[0] : ch->merged_lines.len();
+	uint len_i = ch->len ? ch->len[0] : ch->merged_lines.len(); // for standalone lines
 	for (uint i = 0; i < ch->num_lines; len_i = ch->len[++i]) {
-		if (index < cbyte + len_i) {
-			uint dx = bytes2dchar(index, cbyte, it);
-			if (dx >= maxx - 1) // if it's outside of visible range we don't need it
-				dx = index;
-			return {i, dx, index - cbyte};
-		}
+		if (index < cbyte + len_i)
+			return {i, bytes2dchar(index, cbyte, it), index - cbyte};
 		cbyte += len_i;
 	}
 	return {0, bytes2dchar(index, 0, it), index}; // only one line is in chunk
@@ -116,11 +112,15 @@ void find(const char *str, uint from, uint to, char mode)
 		occurrences[i].set_len(0); // cleanup for next search
 	}
 
+	iterate_fw(&it, matches[0].y - from);
 	scroll2(matches[0].y + 1);
 	uint cur_occ = 0; // current occurrence
 	highlight_occ(matches, 0);
 
 	y = 0;
+	ry = ofy;
+	if (matches[0].x >= maxx)
+		mvr_scurs(matches[0].byte);
 	curs_set(0);
 	int ch;
 	while ((ch = wgetch(text_win))) {
@@ -159,6 +159,8 @@ void find(const char *str, uint from, uint to, char mode)
 				cur_occ--;
 			scroll2(matches[cur_occ].y + 1);
 			iterate_bw(&it, ry - ofy);
+			if (matches[cur_occ].x >= maxx)
+				mvr_scurs(matches[cur_occ].byte);
 			break;
 
 		default:

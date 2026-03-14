@@ -110,7 +110,7 @@ void command()
 void scroll2(uint a)
 {
 	ofy = a - 1;
-	ofx = 0;
+	x = ofx = 0;
 	cut.clear();
 	print_lines();
 	wrefresh(ln_win);
@@ -193,11 +193,17 @@ void mvr_scurs(uint t_byte)
 
 void mvl_scurs(uint t_byte)
 {
-	while (cut.back().byte > t_byte) {
-		ofx -= cut.back().dchar;
+	uint cur = cut.empty() ? 0 : cut.back().byte;
+	while (cur > t_byte) {
 		cut.pop_back();
+		cur = cut.empty() ? 0 : cut.back().byte;
 	}
-	mvprint_line(y, 0, &it, cut.back().byte, 0);
+	mvprint_line(y, 0, &it, cur, 0);
+
+	x = bytes2dchar(t_byte, cur, &it);
+	ofx = (long)flag - (long)x;
+
+	wmove(text_win, y, x);
 }
 
 // go to start-of-line, uncut line if needed
