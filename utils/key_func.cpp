@@ -182,13 +182,11 @@ void mvr_scurs(uint t_byte)
 	}
 	ofx = (long)t_byte - (long)x;
 	x--;
-	if (prev_cut_size == cut.size()) { // line didn't get cut
-		wmove(text_win, y, x);
-	} else {
+	if (prev_cut_size != cut.size()) { // line got cut
 		clean_mark(y);
 		mvprint_line(y, 0, &it, cut.back().byte, 0);
-		wmove(text_win, y, x);
 	}
+	wmove(text_win, y, x);
 }
 
 void mvl_scurs(uint t_byte)

@@ -112,18 +112,13 @@ void find(const char *str, uint from, uint to, char mode)
 		occurrences[i].set_len(0); // cleanup for next search
 	}
 
-	iterate_fw(&it, matches[0].y - from);
 	scroll2(matches[0].y + 1);
 	uint cur_occ = 0; // current occurrence
-	highlight_occ(matches, 0);
 
 	y = 0;
-	ry = ofy;
-	if (matches[0].x >= maxx)
-		mvr_scurs(matches[0].byte);
 	curs_set(0);
-	int ch;
-	while ((ch = wgetch(text_win))) {
+	int ch = 0;
+	do {
 		switch (ch) {
 		case KEY_RIGHT: // next occurrence in the same line
 			if (cur_occ == matches.size() - 1 || matches[cur_occ + 1].y != matches[cur_occ].y)
@@ -147,7 +142,7 @@ void find(const char *str, uint from, uint to, char mode)
 				break;
 			scroll2(matches[cur_occ].y + 1);
 			iterate_fw(&it, ofy - ry);
-			if (matches[cur_occ].x >= maxx)	
+			if (matches[cur_occ].x >= maxx)
 				mvr_scurs(matches[cur_occ].byte);
 			break;
 
@@ -164,11 +159,12 @@ void find(const char *str, uint from, uint to, char mode)
 			break;
 
 		default:
-			goto exit;
+			if (ch != 0)
+				goto exit;
 		}
 		highlight_occ(matches, cur_occ);
 		ry = ofy;
-	}
+	} while ((ch = wgetch(text_win)));
 exit:
 	curs_set(1);
 	reset_view();
