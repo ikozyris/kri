@@ -70,7 +70,7 @@ void iterate_fw(iter *it, uint dist)
 		do {
 			dist -= a->num_lines;
 			a = a->next;
-		} while (dist > a->num_lines);
+		} while (dist >= a->num_lines);
 		point2chunk(it, a);
 	}
 	line_offset(it, dist);
