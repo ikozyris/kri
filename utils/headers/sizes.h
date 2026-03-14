@@ -11,5 +11,17 @@ inline long calc_offset_act(ulong pos, ulong from, const gap_buf &buf) { // offs
 	long i = bytes2dchar(pos, from, buf);
 	return (long)flag - i;
 }
+// helper function for calc_offset_[dis|act](), dchar2bytes()
+inline void get_off(ulong &x, ulong &i, const gap_buf &buf)
+{
+	char ch = at(buf, i);
+	if (ch == '\t')
+		x += 8 - x % 8 - 1; // -1 due to x++ at end
+	else if (ch < 0)
+		i++; // assumes this utf8 code point is 2 bytes
+	x++;
+	i++;
+}
+
 ulong mbcnt(const char *str, ulong len); // count multi-byte characters in string
 uint prevdchar(); // left arrow on end of tab; update offset and move cursor

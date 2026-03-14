@@ -102,7 +102,7 @@ void command()
 void scroll2(uint a)
 {
 	ofy = a - 1;
-	ofx = 0;
+	x = ofx = 0;
 	cut.clear();
 	print_lines();
 	wrefresh(ln_win);
@@ -148,52 +148,38 @@ void enter()
 // go to target byte, if necessary cut line
 void mvr_scurs(ulong t_byte)
 {
-	ofx = calc_offset_act(t_byte, 0, *it);
-	if (t_byte - ofx <= maxx) // line fits in screen
-		wmove(text_win, y, t_byte - ofx - 1);
-	else { // cut line 
-		cut.clear();
-		ulong bytes = 0;
-		if (ofx == 0 && t_byte > (uint)5e8) {
-			while (bytes + maxx < t_byte) {
-				bytes += maxx - 1;
-				cut.push_back({maxx - 1, (uint)bytes});
-				ofx += maxx - 1;
-			}
-			flag = t_byte % (maxx - 1);
-		} else {
-			while (1) {
-				const ulong nbytes = dchar2bytes(maxx - 1, bytes, *it);
-				if (nbytes >= t_byte - 1)
-					break;
-				cut.push_back({flag, (uint)nbytes}); // flag was changed by dchar2bytes
-				ofx += flag;
-				bytes = nbytes;
-			}
+	ulong prev_cut_size = cut.size();
+	ulong cur_byte = x + ofx, cx = x;
+
+	while (cur_byte < t_byte) {
+		if (cx >= maxx - 1) { // inverted order to prevent extra check
+			cut.push_back({(uint)cx, (uint)cur_byte});
+			cx = 0;
 		}
-		if (t_byte != it->len()) {
-			mvprint_line(y, 0, *it, bytes, 0);
-			if (!overflows[y])
-				clean_mark(y);
-			x = bytes2dchar(t_byte, bytes, *it) - 1;
-		} else {
-			mvprint_line(y, 0, *it, bytes, t_byte);
-			clean_mark(y);
-			x = (flag == maxx - 1 ? flag : flag - 1);
-		}
-		if (x + (uint)ofx > t_byte) 
-			ofx = t_byte - x + 1;
-		wmove(text_win, y, x);
+		get_off(cx, cur_byte, *it);
 	}
+	ofx = (long)t_byte - (long)cx;
+	x = cx - 1;
+	if (prev_cut_size != cut.size()) { // line didn't get cut
+		clean_mark(y);
+		mvprint_line(y, 0, *it, cut.back().byte, 0);
+	}
+	wmove(text_win, y, x);
 }
 
 void mvl_scurs(uint t_byte)
 {
-	while (cut.back().byte > t_byte) {
-		ofx -= cut.back().dchar;
+	uint cur = cut.empty() ? 0 : cut.back().byte;
+	while (cur > t_byte) {
 		cut.pop_back();
+		cur = cut.empty() ? 0 : cut.back().byte;
 	}
-	mvprint_line(y, 0, *it, cut.back().byte, 0);
+	mvprint_line(y, 0, *it, cur, 0);
+
+	x = bytes2dchar(t_byte, cur, *it);
+	ofx = (long)flag - (long)x;
+
+	wmove(text_win, y, x);
 }
 
 // go to start-of-line, uncut line if needed

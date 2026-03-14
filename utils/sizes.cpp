@@ -16,18 +16,6 @@ char hrsize(size_t bytes, char *dest, ushort dest_cpt)
 	return suffix[i];
 }
 
-// helper function for calc_offset_[dis|act](), dchar2bytes()
-static void get_off(ulong &x, ulong &i, const gap_buf &buf)
-{
-	char ch = at(buf, i);
-	if (ch == '\t')
-		x += 8 - x % 8 - 1; // -1 due to x++ at end
-	else if (ch < 0)
-		i++; // assumes this utf8 code point is 2 bytes
-	x++;
-	i++;
-}
-
 // displayed characters to bytes, flag -> disp_x where counting stopped at
 ulong dchar2bytes(ulong disp_x, ulong from, const gap_buf &buf)
 {

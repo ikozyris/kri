@@ -127,6 +127,8 @@ void find(const char *str, uint from, uint to, char mode)
 				cur_occ--;
 			scroll2(matches[cur_occ].y + 1);
 			advance(it, (long)ry - ofy);
+			if (matches[cur_occ].x >= maxx)	
+				mvr_scurs(matches[cur_occ].byte);
 			break;
 
 		default:
