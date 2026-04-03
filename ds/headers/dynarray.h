@@ -4,24 +4,21 @@
 struct dynarray {
 	uint *array;
 
-	void set_len(uint n) { (*(array - 1)) = n; }
-	void incr_len() { (*(array - 1))++; }
-	uint len() { return *(array - 1); }
+	void incr_len() { array[0]++; }
+	uint len() { return array[0]; }
 	uint cpt() { return __bit_ceil(len()); }
 
 	dynarray() {
 		// cannot be more as __bit_ceil(0) == 1
 		array = (uint*)malloc(2 * sizeof(uint));
 		array[0] = 0;
-		array++;
 	}
 
 	void append(uint elem) {
-		uint length = len();
 		uint capacity = cpt();
-		if (length >= capacity)
-			array = (uint*)realloc(array - 1, (capacity * 2 + 1) * sizeof(uint)) + 1;
-		array[length] = elem;
+		if (array[0] >= capacity)
+			array = (uint*)realloc(array, (capacity * 2 + 1) * sizeof(uint));
 		incr_len();
+		array[array[0]] = elem;
 	}
 };

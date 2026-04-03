@@ -58,8 +58,8 @@ void command()
 	} else if (strncmp(tmp, "find", 4) == 0) { // example: find string
 		uint from = 0, to = text.lines;
 		char mode = 'h';
-		char *pr2 = input_header("range/mode: "); // 5-10 h
-		sscanf(pr2, "%u-%u %c", &from, &to, &mode);
+		char *pr2 = input_header("range/mode: "); // h 5-10
+		sscanf(pr2, "%c %u-%u", &mode, &from, &to);
 		free(pr2);
 		find(tmp + 5, from, to, mode);
 	} else if (strncmp(tmp, "replace", 7) == 0) {
@@ -81,7 +81,7 @@ void command()
 		iter tmp_it;
 		point2begin(&tmp_it);
 		for (uint i = 0; i < occurrences.size(); ++i) { // occurrences in each chunk
-			for (uint j = 0; j < occurrences[i].len(); ++j) {
+			for (uint j = 1; j <= occurrences[i].len(); ++j) {
 				uint index = occurrences[i].array[j];
 				mv_curs(*tmp_it.orig, index + offset * (int)j);
 				tmp_it.orig->gpe = tmp_it.orig->gpe + old_len;
@@ -93,7 +93,7 @@ void command()
 				}
 			}
 			tmp_it.orig = &tmp_it.parent()->next->merged_lines;
-			occurrences[i].set_len(0); // cleanup for next search
+			occurrences[i].array[0] = 0; // cleanup for next search
 		}
 		tmp = (char*)malloc(128);
 		sprintf(tmp, "Replaced %u occurences of \"%s\" with \"%s\" from line %u to %u", count, old, newst, from, to);
