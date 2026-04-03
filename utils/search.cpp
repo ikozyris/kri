@@ -10,6 +10,7 @@ static iter first_line;
 static iter last_line;
 
 // TODO: give hint of left/right bound based on cur_occ
+// find the first element that is >= y
 static uint ln_start(const vector<match> &yx, uint y) {
 	uint lo = 0, hi = yx.size() - 1, mid;
 	while (lo < hi) {
@@ -23,17 +24,25 @@ static uint ln_start(const vector<match> &yx, uint y) {
 }
 
 // convert index of chunk buffer to 2d position relative to the start of chunk
-static match index2yx(uint index, iter *it)
+static match index2yx(uint index, iter *it, uint &prev_byte, uint &prev_x)
 {
 	uint cbyte = 0;
 	const chunk *ch = it->parent();
-	uint len_i = ch->len ? ch->len[0] : ch->merged_lines.len(); // for standalone lines
-	for (uint i = 0; i < ch->num_lines; len_i = ch->len[++i]) {
-		if (index < cbyte + len_i)
-			return {i, bytes2dchar(index, cbyte, it), index - cbyte};
-		cbyte += len_i;
+	uint ln_len = ch->len ? ch->len[0] : ch->merged_lines.len(); // for standalone lines
+	uint y = 1;
+	for (; y < ch->num_lines; ++y) {
+		if (index < cbyte + ln_len)
+			break;
+		cbyte += ln_len;
+		ln_len = ch->len[y];
 	}
-	return {0, bytes2dchar(index, 0, it), index}; // only one line is in chunk
+	if (prev_byte < cbyte) {
+		prev_byte = cbyte;
+		prev_x = 0;
+	}
+	prev_x += bytes2dchar(index, prev_byte, it);
+	prev_byte = index;
+	return {y - 1, prev_x, index - cbyte};
 }
 
 static void highlight_occ(const vector<match> &matches, uint cur_occ)
@@ -91,6 +100,10 @@ void find(const char *str, uint from, uint to, char mode)
 	iterate_fw(&tmp_it, from);
 	it = tmp_it;
 
+	if (mode == 'c' && total > 0)
+		for (uint i = 0; i < occurrences.size(); ++i)
+			occurrences[i].array[0] = 0;
+
 	if (mode == 'c' || total == 0)
 		return;
 	str_len -= mbcnt(str, str_len); // get displayed characters
@@ -98,18 +111,20 @@ void find(const char *str, uint from, uint to, char mode)
 	bool after_first_chunk = first_line.parent() == text.head->next;
 	uint cline = after_first_chunk ? 0 : from - 1; // cumulative line up to previous chunk
 	vector<match> matches; // y, x, byte (in line not chunk)
+	matches.reserve(total);
 	for (uint i = 0; i < occurrences.size(); ++i) { // occurrences in each chunk
-		for (uint j = 0; j < occurrences[i].len(); ++j) { // i.len() may be 0
+		uint prev_byte = 0, prev_x = 0;
+		for (uint j = 1; j <= occurrences[i].len(); ++j) {
 			uint index = occurrences[i].array[j];
 			if (i == 0)
 				index += first_line.offset;
-			matches.emplace_back(index2yx(index, &first_line));
+			matches.emplace_back(index2yx(index, &first_line, prev_byte, prev_x));
 			if (i != 0 || after_first_chunk == 0)
 				matches.back().y += cline;
 		}
 		cline += first_line.parent()->num_lines;
 		first_line.orig = &first_line.parent()->next->merged_lines;
-		occurrences[i].set_len(0); // cleanup for next search
+		occurrences[i].array[0] = 0; // cleanup for next search
 	}
 
 	scroll2(matches[0].y + 1);
@@ -176,11 +191,11 @@ static void bitap_search(const uchar *buf, uint blen, uint offset, dynarray *mat
 	if (blen < plen)
 		return;
 
-	// for each byte value, 0 where the str has match
+	// 0 where the str matches
 	ulong mask[256];
 	memset(mask, -1, sizeof(mask));
 
-	// for each position i in buf, bit i = 0 in mask[buf[i]]
+	// buf_i = 0 in mask[buf[i]]
 	for (uint i = 0; i < plen; i++)
 		mask[(uchar)string[i]] &= ~(1ul << i);
 
@@ -268,7 +283,7 @@ static void search_mt_common(uint from, uint to, void *search_fn(void*))
 			dist -= a->num_lines;
 			a = a->next;
 			num_chunks++;
-		} while (dist > a->num_lines);
+		} while (dist >= a->num_lines);
 		point2chunk(&last_line, a);
 	}
 	line_offset(&last_line, dist);
@@ -287,8 +302,8 @@ static void search_mt_common(uint from, uint to, void *search_fn(void*))
 		return;
 	}
 
-	uint nthreads = num_chunks < 256 ? 1 : sysconf(_SC_NPROCESSORS_ONLN);
-	occurrences.resize(append ? num_chunks : nthreads);
+	uint nthreads = num_chunks < 256 ? 1 : (sysconf(_SC_NPROCESSORS_ONLN) - 1);
+	occurrences.resize(append ? num_chunks : nthreads + 1);
 	num_chunks--; // first and last chunk are processed independently
 	uint chunk_sz = num_chunks / nthreads;
 	uint remainder = num_chunks % nthreads;
@@ -296,7 +311,7 @@ static void search_mt_common(uint from, uint to, void *search_fn(void*))
 	pthread_t *threads = (pthread_t*)malloc(nthreads * sizeof(pthread_t));
 	struct args_str *args = (struct args_str*)malloc(nthreads * sizeof(struct args_str));
 	for (uint i = 0; i < nthreads; ++i) {
-		uint st = i * chunk_sz;
+		uint st = i * (append ? chunk_sz : 1);
 		uint size = chunk_sz + (i == nthreads - 1 ? remainder : 0);
 
 		args[i].count = size;
@@ -310,7 +325,7 @@ static void search_mt_common(uint from, uint to, void *search_fn(void*))
 
 	// first and last lines are special cases and thus processed by main thread
 	ranged_searchstr(&occurrences[0], first_line.orig, first_line.offset, first_line.orig->len() - 1);
-	ranged_searchstr(&occurrences[num_chunks], last_line.orig, 0, last_line.offset + last_line.len() - 1);
+	ranged_searchstr(&occurrences.back(), last_line.orig, 0, last_line.offset + last_line.len() - 1);
 
 	for (uint i = 0; i < nthreads; ++i)
 		pthread_join(threads[i], nullptr);
@@ -322,15 +337,11 @@ static void search_mt_common(uint from, uint to, void *search_fn(void*))
 static void *_search_lc(void *args)
 {
 	struct args_str *a = (struct args_str*)args;
-	uint count = 0;
 
 	for (uint i = 0; i < a->count; ++i) {
-		occurrences[a->out].set_len(0); // reset previous search
 		searchstr(&occurrences[a->out], &a->lines->merged_lines);
-		count += occurrences[a->out].array[0];
 		a->lines = a->lines->next;
 	}
-	occurrences[a->out].set_len(count);
 	return nullptr;
 }
 
@@ -340,7 +351,7 @@ static void *_search_la(void *arg)
 	struct args_str *a = (struct args_str*)arg;
 
 	for (uint i = 0; i < a->count; ++i) {
-		occurrences[a->out].set_len(0); // reset previous search
+		occurrences[a->out].array[0] = 0; // reset previous search
 		searchstr(&occurrences[a->out], &a->lines->merged_lines);
 		a->out++; // next chunk in occurrences[]
 		a->lines = a->lines->next;
