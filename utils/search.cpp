@@ -2,6 +2,7 @@
 
 // global is occurrences, each local is matches
 vector<dynarray> occurrences(2);
+ulong mask[256];
 // shared parameters
 static const char *string;
 static uint str_len;
@@ -185,33 +186,37 @@ exit:
 	reset_view();
 }
 
+static void init_bitap()
+{
+	memset(mask, -1, sizeof(mask));
+	for (uint i = 0; i < str_len; i++)
+		mask[(uchar)string[i]] &= ~(1ul << i);
+}
+
 static void bitap_search(const uchar *buf, uint blen, uint offset, dynarray *matches)
 {
 	uint plen = str_len; // pascal string
 	if (blen < plen)
 		return;
 
-	// 0 where the str matches
-	ulong mask[256];
-	memset(mask, -1, sizeof(mask));
-
-	// buf_i = 0 in mask[buf[i]]
-	for (uint i = 0; i < plen; i++)
-		mask[(uchar)string[i]] &= ~(1ul << i);
-
 	ulong state = ~1; // no matches
-	ulong accept_bit = 1ul << plen;
+	ulong accept_bit = 1ul << plen; // 0 for match
 
-	for (uint i = 0; i < blen; i++) {
-		state = (state | mask[buf[i]]) << 1ul;
-
-		// matched all plen bits in sequence
-		if ((state & accept_bit) == 0) {
-			if (append)
+	if (append) { // split loops
+		for (uint i = 0; i < blen; i++) {
+			state = (state | mask[buf[i]]) << 1ul;
+			// last bit matches
+			if ((state & accept_bit) == 0)
 				matches->append(i + 1 + offset - plen);
-			else
-				matches->incr_len();
 		}
+	} else {
+		uint count = 0;
+		for (uint i = 0; i < blen; i++) {
+			state = (state | mask[buf[i]]) << 1ul;
+			if ((state & accept_bit) == 0)
+				count++;
+		}
+		matches->array[0] += count;
 	}
 }
 
@@ -289,6 +294,7 @@ static void search_mt_common(uint from, uint to, void *search_fn(void*))
 	line_offset(&last_line, dist);
 }
 
+	init_bitap();
 	if (num_chunks == 0) {
 		ranged_searchstr(&occurrences[0], first_line.orig, first_line.offset, last_line.offset + last_line.len() - 1);
 		return;
