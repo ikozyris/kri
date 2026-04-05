@@ -16,9 +16,9 @@ struct dynarray {
 
 	void append(uint elem) {
 		uint capacity = cpt();
-		if (array[0] >= capacity)
+		if (len() >= capacity)
 			array = (uint*)realloc(array, (capacity * 2 + 1) * sizeof(uint));
 		incr_len();
-		array[array[0]] = elem;
+		array[len()] = elem;
 	}
 };
