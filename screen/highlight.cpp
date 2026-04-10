@@ -57,10 +57,12 @@ static bool binary_search(const char *arr, const uchar *len_arr, uint size, cons
 }
 
 static bool is_separator(char ch) { return (ch > 31 && ch < 48) || (ch > 57 && ch < 65) || (ch > 90 && ch < 95) || ch > 122; }
-static inline uint lookup2(const gap_buf &buf, uint i) { // len = 2, boyer-moore is not useful
-	while (i < buf.len() && !(at(buf, i) == '*' && at(buf, i + 1) == '/'))
-		++i;
-	return i;
+static inline uint lookup2(const iter *cur_ln, uint start, uint len) {
+	for (uint i = start + cur_ln->offset; i + 1 < len + cur_ln->offset; ++i) {
+		if (at(*cur_ln->orig, i) == '*' && at(*cur_ln->orig, i + 1) == '/')
+			return i - cur_ln->offset;
+	}
+	return len;
 }
 #define nelems(x) (sizeof(x) / sizeof((x)[0]))
 #define lookup(x) while (i < len - 1 && lnbuf[i] != x) ++i
@@ -81,12 +83,22 @@ static res_t get_category(const char *line)
 	return res;
 }
 
+static vector<pair<uint, uint>> comment_blocks;
 static char continued; // string/comment/directive etc. continued after cut/ in next line
 // highight line
 static void apply(uint line, const iter *cur_ln)
 {
-	if (line == 0) // there is no previous line visible
+	if (line == 0) { // there is no previous line visible
 		continued = 0;
+
+		if (comment_blocks.size() && comment_blocks.back().first > cur_ln->global_pos)
+			comment_blocks.pop_back();
+		if (comment_blocks.size()) {
+			auto &last_block = comment_blocks.back();
+			if (cur_ln->global_pos >= last_block.first && cur_ln->global_pos <= last_block.second)
+				continued = COMMENT;
+		}
+	}
 	wmove(text_win, line, 0);
 
 	const uint len = min(maxx - 1, bytes2dchar(cur_ln->len(), 0, cur_ln));
@@ -100,14 +112,16 @@ static void apply(uint line, const iter *cur_ln)
 
 	// previous line was a multi-line comment, this might be too
 	if (continued == COMMENT) {
-		uint pos = lookup2(*cur_ln->orig, cur_ln->offset);
-		pos -= cur_ln->offset;
+		uint pos = lookup2(cur_ln, 0, cur_ln->len());
 		if (pos == cur_ln->len()) { // still a comment
 			wchgat(text_win, len, 0, COMMENT, 0);
 			return;
 		}
 
-		continued = 0;
+		continued = 0; // found the end of this block
+		if (comment_blocks.size() && comment_blocks.back().second == UINT_MAX)
+			comment_blocks.back().second = cur_ln->global_pos;
+
 		if (pos > len) { // ends after len
 			wchgat(text_win, len, 0, COMMENT, 0);
 			return;
@@ -128,12 +142,15 @@ static void apply(uint line, const iter *cur_ln)
 		} else if (lnbuf[i] == '/' && lnbuf[i + 1] == '*') {
 			previ = i;
 			i += 2;
-			uint pos = lookup2(*cur_ln->orig, i + cur_ln->offset); // comment might end in this line
-			pos -= cur_ln->offset;
+			uint pos = lookup2(cur_ln, i, cur_ln->len());
 
-			i = min(pos + 1, len);
-			if (i >= len - 1) // comment continues in next line
-				continued = COMMENT;
+			if (pos == cur_ln->len()) { // comment continues in next line
+				continued = COMMENT; // start of new block
+				if (comment_blocks.empty() || comment_blocks.back().second != UINT_MAX)
+					comment_blocks.push_back({cur_ln->global_pos, UINT_MAX});
+				wchgat(text_win, len - previ, 0, COMMENT, 0);
+				return;
+			}
 
 			wchgat(text_win, i - previ + 1, 0, COMMENT, 0);
 		} else if (lnbuf[i] == '\'') { // string / char

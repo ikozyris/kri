@@ -10,5 +10,6 @@
 #include <sys/stat.h>
 #include <linux/mman.h>
 #include <fcntl.h>
+#include <climits>
 typedef uint8_t uchar;
 using namespace std;
