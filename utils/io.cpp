@@ -164,24 +164,40 @@ void read_file2(FILE *in)
 	char *buf = (char*)(buffer == MAP_FAILED ? malloc(SZ) : buffer);
 	uint ln_sz = 0, ch_sz = 0; // current line size, current chunk size
 
-	while (const uint bytes_read = fgets_ret(buf, in)) {
-		ln_sz += bytes_read;
+	while (uint bytes_read = fread_unlocked(buf, 1, SZ, in)) {
+		char *cur_ln = buf;
+		while (bytes_read > 0) {
+			char *new_ln = (char*)memchr(cur_ln, '\n', bytes_read);
+			uint piece_size = new_ln ? (new_ln - cur_ln + 1) : bytes_read;
+			ln_sz += piece_size;
 
-		// line won't fit in the current (non empty) chunk and hasn't been written yet
-		if (ch_sz + ln_sz >= MAX_CHUNK_SIZE && ln_sz == bytes_read && ch_sz > 0) {
-			chnk = new_chunk(chnk);
-			ch_sz = 0;
+			// line won't fit in the current (non empty) chunk and hasn't been written yet
+			if (ch_sz + ln_sz >= MAX_CHUNK_SIZE && ln_sz == piece_size && ch_sz > 0) {
+				chnk = new_chunk(chnk);
+				ch_sz = 0;
+			}
+			ch_sz += piece_size;
+
+			if (new_ln) { // found the end of this line
+				if (ln_sz < MAX_CHUNK_SIZE) // line can be merged in a chunk
+					append_len(chnk, ln_sz);
+				text.lines++;
+				ln_sz = 0;
+			} 
+			apnd_s(chnk->merged_lines, cur_ln, piece_size); // write the line piece
+
+			cur_ln = new_ln + 1;
+			bytes_read -= piece_size;
 		}
-		ch_sz += bytes_read;
-
-		if (bytes_read < SZ - 1 || buf[bytes_read - 1] == '\n') { // found the end of this line
-			if (ln_sz < MAX_CHUNK_SIZE) // line can be merged in a chunk
-				append_len(chnk, ln_sz);
-			text.lines++;
-			ln_sz = 0;
-		} 
-		apnd_s(chnk->merged_lines, buf, bytes_read); // write the line
 	}
+	if (ln_sz > 0) { // final line may not end with a newline
+		if (ln_sz < MAX_CHUNK_SIZE)
+			append_len(chnk, ln_sz);
+		// all functions think there is a newline at EOL, emulate it
+		apnd_c(*it.orig, 0);
+		it.parent()->len[it.parent()->num_lines - 1]++;		
+	}
+
 	if (buffer == MAP_FAILED)
 		free(buf);
 	else
