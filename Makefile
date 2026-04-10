@@ -49,7 +49,7 @@ install:
 
 clean:
 	rm $(OBJS) $(TARGET)
-	rm $(SRCS:.cpp=.gcno) $(SRCS:.cpp=.gcda)
+#	rm $(SRCS:.cpp=.gcno) $(SRCS:.cpp=.gcda)
 
 # phony targets
 .PHONY: build install clean
