@@ -54,8 +54,8 @@ void command()
 		uint a;
 		sscanf(tmp + 7, "%u", &a);
 		if (a <= curnum) {
+			advance(it, (long)(a - 1) - (long)ry);
 			scroll2(a);
-			advance(it, ofy - ry);
 		}
 	} else if (strncmp(tmp, "find", 4) == 0) { // example: find string
 		uint from = 0, to = curnum;
@@ -91,6 +91,7 @@ void command()
 		char *tmp_buff = (char*)malloc(128);
 		sprintf(tmp_buff, "Replaced %u occurences of \"%s\" with \"%s\" from line %u to %u", count, tmp, newst, from, to);
 		print2header(tmp_buff, 1);
+		ry = 0;
 		print_text(0);
 		free(newst);
 		free(tmp_buff);
@@ -101,7 +102,7 @@ void command()
 
 void scroll2(uint a)
 {
-	ofy = a - 1;
+	ry = ofy = a - 1;
 	x = ofx = 0;
 	cut.clear();
 	print_lines();
@@ -130,17 +131,19 @@ void enter()
 	--it;
 	free(t);
 	cut.clear();
-	print_text(y);
-	if (y < maxy - 1)
+	if (y < maxy - 1) {
+		ry++;
+		print_text(y);
 		wmove(text_win, y + 1, 0);
-	else { // y = maxy; scroll
+	} else { // y = maxy; scroll
+		wclrtoeol(text_win);
 		wscrl(ln_win, 1);
 		mvwprintw(ln_win, maxy - 1, 0, "%3lu", ry + 2);
 		wnoutrefresh(ln_win);
 		wscrl(text_win, 1);
 		++ofy;
 		mvprint_line(maxy - 1, 0, *it, 0, 0);
-		wmove(text_win, maxy - 1, x);
+		wmove(text_win, maxy - 1, 0);
 	}
 	ofx = 0;
 }
@@ -305,7 +308,7 @@ void prnxt_word(ushort func(void))
 
 void reset_view()
 {
-	ofy = ofx = 0;
+	ry = ofy = ofx = 0;
 	cut.clear();
 	it = text.begin();
 	print_text(0);

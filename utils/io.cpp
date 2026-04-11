@@ -64,8 +64,8 @@ uint print_line(const gap_buf &buffer, uint from, uint to, uint y)
 // print text starting from line
 void print_text(uint line)
 {
-	list<gap_buf>::iterator i = text.begin();
-	advance(i, ofy + line);
+	list<gap_buf>::iterator i = it;
+	advance(i, (long)(ofy + line) - (long)ry);
 	wmove(text_win, line, 0);
 	wclrtobot(text_win);
 	wmove(text_win, line, 0);

@@ -76,14 +76,14 @@ void find(const char *str, uint from, uint to, char mode)
 
 	vector<match> matches; // y, x, byte
 	for (uint i = 0; i < occurrences.size(); ++i) { // occurrences in each node
-		for (uint j = 0; j < occurrences[i].size(); ++j) { // i.len() may be 0
+		for (uint j = 0; j < occurrences[i].size(); ++j) {
 			uint index = occurrences[i][j];
-			matches.push_back({i, (uint)bytes2dchar(index, 0, *tmp_it), index});
+			matches.push_back({from + i, (uint)bytes2dchar(index, 0, *tmp_it), index});
 		}
 		occurrences[i].clear();
 		tmp_it++;
 	}
-
+	ry = from;
 	scroll2(matches[0].y + 1);
 	uint cur_occ = 0; // current occurrence
 	highlight_occ(matches, 0, str_len);
@@ -111,10 +111,10 @@ void find(const char *str, uint from, uint to, char mode)
 			if (cur_occ == matches.size() - 1 || matches[cur_occ].y == matches.back().y)
 				break;
 			cur_occ = ln_start(matches, matches[cur_occ].y + 1);
-			if (matches[cur_occ].y >= curnum || ry + ofy - ry >= curnum)
+			if (matches[cur_occ].y >= curnum || ofy >= curnum)
 				break;
+			advance(it, matches[cur_occ].y - ry);
 			scroll2(matches[cur_occ].y + 1);
-			advance(it, ofy - ry);
 			if (matches[cur_occ].x >= maxx)	
 				mvr_scurs(matches[cur_occ].byte);
 			break;
@@ -125,8 +125,8 @@ void find(const char *str, uint from, uint to, char mode)
 			cur_occ = ln_start(matches, matches[cur_occ].y - 1);
 			if (matches[cur_occ].y == ry)
 				cur_occ--;
+			advance(it, (long)matches[cur_occ].y - (long)ry); // negative = back
 			scroll2(matches[cur_occ].y + 1);
-			advance(it, (long)ry - ofy);
 			if (matches[cur_occ].x >= maxx)	
 				mvr_scurs(matches[cur_occ].byte);
 			break;

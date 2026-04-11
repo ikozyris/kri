@@ -11,7 +11,7 @@ char s2[4], *filename;
 cchar_t mark;
 ulong ry, rx, curnum;
 uint y, x, maxy, maxx, flag;
-long ofy;
+uint ofy;
 
 int main(int argc, char *argv[])
 {
@@ -84,10 +84,9 @@ init:
 	// all functions think there is a newline at EOL, emulate it
 	if (it->buffer()[it->len()] != '\n')
 		apnd_c(*it, 0);
-	print_text(0);
-//loop:
-	wmove(text_win, 0, 0);
 	it = text.begin();
+	print_text(0);
+	wmove(text_win, 0, 0);
 	while (1) {
 		getyx(text_win, y, x);
 		ry = y + ofy;
@@ -194,6 +193,7 @@ init:
 				apnd_s(*it, lnbuf, curln->len()); // merge
 				text.erase(curln); // delete actual line
 				--curnum;
+				--ry;
 				print_text(--y);
 				wmove(text_win, y, 0);
 				mvr_scurs(tmp + 1);
