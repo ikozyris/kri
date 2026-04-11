@@ -128,8 +128,11 @@ void find(const char *str, uint from, uint to, char mode)
 		occurrences[i].array[0] = 0; // cleanup for next search
 	}
 
+	iterate_fw(&it, matches[0].y - from);
 	scroll2(matches[0].y + 1);
 	uint cur_occ = 0; // current occurrence
+	if (matches[0].x >= maxx)
+		mvr_scurs(matches[0].byte);
 
 	y = 0;
 	curs_set(0);

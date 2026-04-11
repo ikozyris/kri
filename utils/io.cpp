@@ -67,7 +67,7 @@ void print_text(uint line)
 	if (ofy + line < i.global_pos) // after inserting \n
 		iterate_bw(&i, i.global_pos - (ofy + line)); 
 	else if (ofy + line > i.global_pos) // just in case
-		iterate_fw(&it, ofy + line - i.global_pos);
+		iterate_fw(&i, ofy + line - i.global_pos);
 	wmove(text_win, line, 0);
 	wclrtobot(text_win);
 	mvprint_line(line, 0, &i, 0, 0);
