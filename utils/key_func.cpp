@@ -146,10 +146,10 @@ void enter()
 		}
 	} else { // worst case; lines > 256B; create new chunk for the new line
 		chunk *t = create_chunk();
-		data(*it.orig, rx + 1, it.len() + 1);
-		apnd_s(t->merged_lines, lnbuf, it.len() - rx - 1);
+		data(*it.orig, rx + 1, it.orig->len() + 1);
+		apnd_s(t->merged_lines, lnbuf, it.orig->len() - rx - 1);
 		it.orig->gps = rx + 1;
-		it.orig->gpe = it.cpt() - 1;
+		it.orig->gpe = it.orig->cpt() - 1;
 
 		insc_after(&text, it.parent(), t);
 		point2chunk(&it, t);
@@ -273,9 +273,9 @@ ushort left()
 	} else if (x > 0) { // go left
 		wmove(text_win, y, x - 1);
 		// handle special characters causing offsets
-		if (it.buffer()[it.gps() - 1] == '\t')
+		if (it.orig->buffer()[it.orig->gps - 1] == '\t')
 			ofx += prevdchar();
-		else if (it.buffer()[it.gps() - 1] < 0)
+		else if (it.orig->buffer()[it.orig->gps - 1] < 0)
 			--ofx;
 		return NORMAL;
 	} else if (y > 0) { // x = 0
@@ -310,12 +310,12 @@ cut_line:
 		return CUT;
 	} else if (rx < it.len()) { // go right
 		wmove(text_win, y, x + 1);
-		if (it.buffer()[it.gpe() + 1] == '\t') {
+		if (it.orig->buffer()[it.orig->gpe + 1] == '\t') {
 			if (x >= maxx - 7)
 				goto cut_line;
 			ofx -= 8 - x % 8 - 1;
 			wmove(text_win, y, x + 8 - x % 8);
-		} else if (it.buffer()[it.gpe() + 1] < 0)
+		} else if (it.orig->buffer()[it.orig->gpe + 1] < 0)
 			++ofx;
 		return NORMAL;
 	}
