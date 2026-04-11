@@ -205,7 +205,7 @@ init:
 			break;
 
 		case DELETE:
-			if (it.buffer()[it.gpe() + 1] == '\n') { // similar to backspace
+			if (it.orig->buffer()[it.orig->gpe + 1] == '\n') { // similar to backspace
 				iter b = it;
 				iterate_fw(&b, 1);
 				mv_curs(*it.orig, rx + it.offset + 1);
@@ -217,10 +217,10 @@ init:
 				if (it.parent()->len)
 					it.parent()->len[it.relative_pos]--;
 				// or mblen(it->buffer + it->gpe + 1, 3);
-				uint len = it.buffer()[it.gpe() + 1] < 0 ? 2 : 1;
+				uint len = it.orig->buffer()[it.orig->gpe + 1] < 0 ? 2 : 1;
 				mveras(*it.orig, rx + len);
 				ofx += len - 1;
-				if (it.buffer()[it.gps()] == '\t') {
+				if (it.orig->buffer()[it.orig->gps] == '\t') {
 					wclrtoeol(text_win);
 					mvprint_line(y, x, &it, rx, 0);
 				} else {
@@ -328,7 +328,7 @@ init:
 				print_line(&it, ofx, 0, y);
 				wmove(text_win, y, x = 0);
 				rx = ofx;
-			} if (it.buffer()[it.gpe() + 1] == '\t') { // next character is a tab
+			} if (it.orig->buffer()[it.orig->gpe + 1] == '\t') { // next character is a tab
 				waddnwstr(text_win, s, 1);
 				if (x % 8 >= 7) // filled the empty tab space; reprint tab
 					winsch(text_win, '\t');
