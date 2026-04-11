@@ -156,8 +156,8 @@ void find(const char *str, uint from, uint to, char mode)
 			cur_occ = ln_start(matches, matches[cur_occ].y + 1);
 			if (matches[cur_occ].y >= text.lines || it.global_pos + ofy - ry >= text.lines)
 				break;
+			iterate_fw(&it, matches[cur_occ].y - ry);
 			scroll2(matches[cur_occ].y + 1);
-			iterate_fw(&it, ofy - ry);
 			if (matches[cur_occ].x >= maxx)
 				mvr_scurs(matches[cur_occ].byte);
 			break;
@@ -168,8 +168,8 @@ void find(const char *str, uint from, uint to, char mode)
 			cur_occ = ln_start(matches, matches[cur_occ].y - 1);
 			if (matches[cur_occ].y == ry)
 				cur_occ--;
+			iterate_bw(&it, ry - matches[cur_occ].y);
 			scroll2(matches[cur_occ].y + 1);
-			iterate_bw(&it, ry - ofy);
 			if (matches[cur_occ].x >= maxx)
 				mvr_scurs(matches[cur_occ].byte);
 			break;
