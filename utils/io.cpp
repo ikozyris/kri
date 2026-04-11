@@ -63,11 +63,11 @@ uint print_line(const iter *i, uint from, uint to, uint y)
 // print text starting from line
 void print_text(uint line)
 {
-	iter i;
-	point2chunk(&i, text.head->next);
-	i.global_pos = 0;
-	if (ofy + line)
-		iterate_fw(&i, ofy + line);
+	iter i = it;
+	if (ofy + line < i.global_pos) // after inserting \n
+		iterate_bw(&i, i.global_pos - (ofy + line)); 
+	else if (ofy + line > i.global_pos) // just in case
+		iterate_fw(&it, ofy + line - i.global_pos);
 	wmove(text_win, line, 0);
 	wclrtobot(text_win);
 	mvprint_line(line, 0, &i, 0, 0);

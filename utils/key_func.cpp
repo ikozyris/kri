@@ -52,8 +52,11 @@ void command()
 		uint a;
 		sscanf(tmp + 7, "%u", &a);
 		if (a <= text.lines) {
+			if (a < ry)
+				iterate_bw(&it, ry - a);
+			else
+				iterate_fw(&it, a - ry);
 			scroll2(a);
-			iterate_fw(&it, ofy - ry);
 		}
 	} else if (strncmp(tmp, "find", 4) == 0) { // example: find string
 		uint from = 0, to = text.lines;
@@ -136,8 +139,11 @@ void enter()
 
 		it.offset = it.orig->gps;
 		it.relative_pos++;
-		if (it.orig->len() > MAX_CHUNK_SIZE)
+		if (it.orig->len() > MAX_CHUNK_SIZE) {
 			split_mline(&text, it.parent());
+			if (it.relative_pos == it.parent()->num_lines) // last line of chunk
+				point2chunk(&it, it.parent()->next);
+		}
 	} else { // worst case; lines > 256B; create new chunk for the new line
 		chunk *t = create_chunk();
 		data(*it.orig, rx + 1, it.len() + 1);
@@ -147,23 +153,24 @@ void enter()
 
 		insc_after(&text, it.parent(), t);
 		point2chunk(&it, t);
-		it.global_pos++;
 	}
 
+	it.global_pos++;
 	text.lines++;
 	ofx = 0;
 	cut.clear();
-	print_text(y);
-	if (y < maxy - 1)
+	if (y < maxy - 1)  {
+		print_text(y);
 		wmove(text_win, y + 1, 0);
-	else { // y = maxy; scroll
+	} else { // y = maxy; scroll
+		wclrtoeol(text_win);
 		wscrl(ln_win, 1);
 		mvwprintw(ln_win, maxy - 1, 0, "%3u", ry + 2);
 		wnoutrefresh(ln_win);
 		wscrl(text_win, 1);
 		++ofy;
 		mvprint_line(maxy - 1, 0, &it, 0, 0);
-		wmove(text_win, maxy - 1, x);
+		wmove(text_win, maxy - 1, 0);
 	}
 }
 

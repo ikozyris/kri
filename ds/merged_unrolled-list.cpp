@@ -90,13 +90,13 @@ void rm_mline(chunk *ch, uint pos, iter *it) { // FIXME: broken
 }
 
 // moves actual cursor to last line
-void goto_last_mline(chunk *a) { mv_curs(a->merged_lines, a->merged_lines.len() - a->len[a->num_lines]); }
+//void goto_last_mline(chunk *a) { mv_curs(a->merged_lines, a->merged_lines.len() - a->len[a->num_lines - 1]); }
 
 // merged line has grown too much; split last line by moving it to next node (or create new to fit)
 // (it doesn't matter which of the merged lines is split as they are <= 256B)
 void split_mline(llist *list, chunk *a)
 {
-	uint last_length = a->len[a->num_lines];
+	uint last_length = a->len[a->num_lines - 1];
 
 	chunk *next_chunk; // may be newly allocated
 	// create new chunk if last line doesn't fit in next chunk
@@ -108,7 +108,8 @@ void split_mline(llist *list, chunk *a)
 		memmove(&next_chunk->len[1], &next_chunk->len[0], next_chunk->num_lines);
 	}
 	a->num_lines--;
-	apnd_s(next_chunk->merged_lines, a->merged_lines.buffer() + a->merged_lines.len() - last_length, last_length);
+	mv_curs(a->merged_lines, a->merged_lines.len() - last_length);
+	apnd_s(next_chunk->merged_lines, a->merged_lines.buffer() + a->merged_lines.cpt() - last_length, last_length);
 	append_len(next_chunk, last_length);
 	// delete last line
 	a->merged_lines.gpe = a->merged_lines.cpt() - 1;
