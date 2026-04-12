@@ -53,9 +53,9 @@ void command()
 		sscanf(tmp + 7, "%u", &a);
 		if (a <= text.lines) {
 			if (a < ry)
-				iterate_bw(&it, ry - a);
+				iterate_bw(&it, ry - a + 1);
 			else
-				iterate_fw(&it, a - ry);
+				iterate_fw(&it, a - ry - 1);
 			scroll2(a);
 		}
 	} else if (strncmp(tmp, "find", 4) == 0) { // example: find string
@@ -113,7 +113,7 @@ void command()
 void scroll2(uint a)
 {
 	ofy = a - 1;
-	x = ofx = 0;
+	y = x = ofx = 0;
 	cut.clear();
 	print_lines();
 	wrefresh(ln_win);

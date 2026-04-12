@@ -34,9 +34,9 @@ void init_text()
 // print line numbering (ln_win)
 void print_lines()
 {
-	short i = maxy;
+	int i = maxy;
 	do
-		mvwprintw(ln_win, i - 1, 0, "%3ld", i + ofy);
+		mvwprintw(ln_win, i - 1, 0, "%3u", i + ofy);
 	while (--i != 0);
 }
 

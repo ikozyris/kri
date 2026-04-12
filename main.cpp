@@ -11,7 +11,7 @@ char s2[4], *filename;
 cchar_t mark;
 uint ry, rx;
 uint y, x, maxy, maxx, flag;
-long ofy;
+uint ofy;
 
 int main(int argc, char *argv[])
 {

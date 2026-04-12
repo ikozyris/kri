@@ -65,7 +65,6 @@ static inline uint lookup2(const iter *cur_ln, uint start, uint len) {
 	return len;
 }
 #define nelems(x) (sizeof(x) / sizeof((x)[0]))
-#define lookup(x) while (i < len - 1 && lnbuf[i] != x) ++i
 
 // identify color to use
 static res_t get_category(const char *line)
@@ -141,7 +140,7 @@ static void apply(uint line, const iter *cur_ln)
 			return;
 		} else if (lnbuf[i] == '/' && lnbuf[i + 1] == '*') {
 			previ = i;
-			i += 2;
+			i = dchar2bytes(i + 2, 0, cur_ln);
 			uint pos = lookup2(cur_ln, i, cur_ln->len());
 
 			if (pos == cur_ln->len()) { // comment continues in next line
@@ -152,14 +151,12 @@ static void apply(uint line, const iter *cur_ln)
 				return;
 			}
 
+			i = bytes2dchar(pos + 2, 0, cur_ln);
 			wchgat(text_win, i - previ + 1, 0, COMMENT, 0);
-		} else if (lnbuf[i] == '\'') { // string / char
+		} else if (lnbuf[i] == '\'' || lnbuf[i] == '\"') {  // string / char
 			previ = i++;
-			lookup('\'');
-			wchgat(text_win, i - previ + 1, 0, STR, 0);
-		} else if (lnbuf[i] == '\"') {
-			previ = i++;
-			lookup('\"');
+			while (i < len - 1 && lnbuf[i] != lnbuf[previ])
+				++i;
 			wchgat(text_win, i - previ + 1, 0, STR, 0);
 		} else { // type (int, char) / keyword (if, return) / operator (=, +)
 			res_t res = get_category(lnbuf + i);
