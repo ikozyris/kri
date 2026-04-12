@@ -21,3 +21,5 @@
 #define CMD		'c'
 #define SWITCH		'r'
 #define DELLINE		ctrl('K')
+#define SWAP_UP		KEY_SR
+#define SWAP_DOWN	KEY_SF

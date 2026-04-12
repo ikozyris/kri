@@ -319,3 +319,45 @@ void reset_view()
 	wnoutrefresh(header_win);
 	doupdate();
 }
+
+void swap_up()
+{
+	list<gap_buf>::iterator prev_it = prev(it);
+	text.splice(prev_it, text, it);
+
+	ry--;
+	if (y > 0)
+		y--;
+	else {
+		ofy--;
+		wscrl(text_win, -1);
+		wscrl(ln_win, -1);
+		mvwprintw(ln_win, 0, 0, "%3lu", ry + 1);
+		wnoutrefresh(ln_win);
+	}
+	print_text(y);
+	cut.clear();
+	ofx = 0;
+	wmove(text_win, y, x);
+}
+
+void swap_down()
+{
+	list<gap_buf>::iterator next_it = next(it);
+	text.splice(next(next_it), text, it);
+
+	ry++;
+	if (y < maxy - 1)
+		y++;
+	else {
+		ofy++;
+		wscrl(text_win, 1);
+		wscrl(ln_win, 1);
+		mvwprintw(ln_win, maxy - 1, 0, "%3lu", ry + 1);
+		wnoutrefresh(ln_win);
+	}
+	print_text(y - 1);
+	cut.clear();
+	ofx = 0;
+	wmove(text_win, y, x);
+}

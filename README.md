@@ -34,6 +34,7 @@ kri # ask for filename on save file operation
 * Go to end of line: Ctrl-E
 * Open other file Alt-R
 * Delete line: Ctrl-K
+* Swap line with prev/next:  Shift-Up/Down arrow
 * Go to previous/next word: Shift + Left/Right arrow
 * Enter built-in terminal: Alt-C
 * Show info: Alt-I (also command _stats_ in built-in terminal)

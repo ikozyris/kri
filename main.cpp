@@ -34,7 +34,8 @@ int main(int argc, char *argv[])
 		"Built-in terminal:	Alt-C\n"
 		"Delete line:		Ctrl-K\n"
 		"Open other file:	Alt-R\n"
-		"Previous/Next word	Shift + Left/Right arrow\n"
+		"Swap line prev/next:   Shift-Up/Down arrow\n"
+		"Previous/Next word:	Shift + Left/Right arrow\n"
 		"Show debbuging info:	Alt-I (also command stats in built-in terminal)\n\n"
 		"Built-in terminal commands:\n"
 		"scroll		Scroll to line\n"
@@ -161,6 +162,16 @@ init:
 
 		case KEY_SRIGHT:
 			prnxt_word(right);
+			break;
+
+		case SWAP_UP:
+			if (ry > 0)
+				swap_up();
+			break;
+
+		case SWAP_DOWN:
+			if (ry < curnum)
+				swap_down();
 			break;
 
 		case BACKSPACE:

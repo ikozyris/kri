@@ -17,3 +17,5 @@ ushort left(); // arrow left (returns enum status)
 ushort right(); // arrow right (return enum status)
 void prnxt_word(ushort func(void)); // go to next->right() previous->left() word
 void reset_view(); // reprint text, go to 0,0
+void swap_up(); // swap current line with previous line
+void swap_down(); // swap current line with next line
