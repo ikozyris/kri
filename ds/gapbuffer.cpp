@@ -27,13 +27,12 @@ void _resize_common(gap_buf &a, uint nsz, uint psz)
 
 void resize2fit(gap_buf &a, uint sz)
 {
-	uint target;
+	uint psz = a.cpt();
 	if (sz > 29 * 0x1000000)
-		target = sz / 0x1000000;
+		a.set_cpt((sz + 0xFFFFFF) / 0x1000000);
 	else
-		target = log2(sz);
-	_resize_common(a, sz, a.cpt());
-	a.set_cpt(target);
+		a.set_cpt(log2(__bit_ceil(sz)));
+	_resize_common(a, a.cpt(), psz);
 }
 
 void resize_up(gap_buf &a)
@@ -70,7 +69,7 @@ void insert_c(gap_buf &a, char ch)
 void insert_s(gap_buf &a, const char *str, uint len)
 {
 	if (a.gps + len >= a.gpe + 1) [[unlikely]]
-		resize2fit(a, __bit_ceil(a.len() + len + 2));
+		resize2fit(a, a.len() + len + 2);
 	memcpy(a.buffer() + a.gps, str, len);
 	a.gps += len;
 }
@@ -85,7 +84,7 @@ void apnd_c(gap_buf &a, char ch)
 void apnd_s(gap_buf &a, const char *str, uint size)
 {
 	if (a.gps + size >= a.cpt()) [[unlikely]]
-		resize2fit(a, __bit_ceil(a.len() + size + 2));
+		resize2fit(a, a.len() + size + 2);
 	memcpy(a.buffer() + a.gps, str, size);
 	a.gps += size;
 }
@@ -110,27 +109,24 @@ void eras(gap_buf &a)
 	a.gps--;
 }
 
-#define error_check {\
-	if (src.len() == 0 || from == to)\
-		return lnbuf[0] = 0;\
-	/* error checking and recovery */\
-	if (from > src.len())\
-		from = 0;\
-	if (to < from || to > src.len())\
-		to = src.len();\
-	if (lnbf_cpt < to - from + 1) {\
-		free(lnbuf);\
-		lnbf_cpt = __bit_ceil(to - from + 1);\
-		lnbuf = (char*)malloc(lnbf_cpt);\
-	}\
-}
-
 // TODO: this is a mess
 // NOTE: destination buffer is lnbuf
 // extract data from src buffer, returns length extracted (to - from)
 uint data(const gap_buf &src, uint from, uint to)
 {
-	error_check;
+	if (src.len() == 0 || from == to)
+		return lnbuf[0] = 0;
+	// error checking and recovery
+	if (from > src.len())
+		from = 0;
+	if (to < from || to > src.len())
+		to = src.len();
+	if (lnbf_cpt < to - from + 1) {
+		free(lnbuf);
+		lnbf_cpt = __bit_ceil(to - from + 1);
+		lnbuf = (char*)malloc(lnbf_cpt);
+	}
+
 	// try some special cases where 1 copy is required
 	if (src.gpe >= src.cpt() - 1) // gap ends at end
 		memcpy(lnbuf, src.buffer() + from, min(to - from, src.gps));
