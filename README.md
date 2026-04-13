@@ -7,9 +7,8 @@ More information is available on the [wiki](https://github.com/ikozyris/kri/wiki
 
 
 ## Install
-The 0.8.2 release has been packaged for:
- - Arch Linux: [AUR package](https://aur.archlinux.org/packages/kri/).
- - Debian/Ubuntu: [deb package](https://github.com/ikozyris/kri/releases/download/v0.8.2/kri_0.8.2_x64-v2.deb)
+The 0.8.3 release has been packaged for:
+ - Arch Linux: [AUR package](https://aur.archlinux.org/packages/kri/)
 
 ## Build
 ```sh
@@ -45,7 +44,7 @@ kri # ask for filename on save file operation
 
 ### How fast is it?
 kri is several times faster than any other text editor at reading files, searching, editing and other operations.
-See the [benchmarks](https://github.com/ikozyris/kri/wiki/Performance-&-Benchmarks) for more.
+See the [benchmarks](https://github.com/ikozyris/kri/wiki/Benchmarks-&-Performance) for more.
 
 ### License
 
