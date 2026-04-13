@@ -161,7 +161,7 @@ static void _search_la(uint from, uint to, list<gap_buf>::iterator it, const cha
 static void partition_chunks(uint &nthreads, uint &chunk, uint from, uint to)
 {
 	nthreads = thread::hardware_concurrency();
-	if (nthreads == 0 || to - from < (uint)1e6)
+	if (nthreads == 0 || to - from < (uint)3e3)
 		nthreads = 1;
 	chunk = (to - from + 1) / nthreads;
 }

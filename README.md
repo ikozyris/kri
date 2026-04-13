@@ -7,9 +7,9 @@ More information is available on the [wiki](https://github.com/ikozyris/kri/wiki
 
 
 ## Install
-The 0.8.2 release has been packaged for:
+The 0.8.3 release has been packaged for:
  - Arch Linux: [AUR package](https://aur.archlinux.org/packages/kri/).
- - Debian/Ubuntu: [deb package](https://github.com/ikozyris/kri/releases/download/v0.8.2/kri_0.8.2_x64-v2.deb)
+ - x86_64-v2 Linux executable (statically linked, musl libc): [GitHub release artifact](https://github.com/ikozyris/kri/releases/download/v0.8.3/kri_0.8.3_x64-v2)
 
 ## Build
 ```sh
@@ -34,17 +34,17 @@ kri # ask for filename on save file operation
 * Go to end of line: Ctrl-E
 * Open other file Alt-R
 * Delete line: Ctrl-K
-* Swap line with prev/next:  Shift-Up/Down arrow
+* Swap line with prev/next: Shift-Up/Down arrow
 * Go to previous/next word: Shift + Left/Right arrow
 * Enter built-in terminal: Alt-C
 * Show info: Alt-I (also command _stats_ in built-in terminal)
 * Search: command _find_ in builtin terminal, parameters in seperate(\n) queries, example:
-	- find str>
-	- find 1-5 c (\n) str  --> count occurences of string on lines [1,5]
-	- find 3-10 h (\n) str  --> highlight occurences of sring on lines [3,10]
+	- find str  --> highlight occurrences of string on all lines
+	- find str (\n) c 1-5  --> count occurrences of string on lines [1,5]
+	- find str (\n) h 3-10  --> highlight occurrences of string on lines [3,10]
 * Replace: command _replace_ :
 	- replace (\n) str1 (\n) str2  -->  replace all str1 with str2
-	- replace 0-20 (\n) str1 (\n) str2 (\n)  -->  in range [0,20]
+	- replace 0-20 (\n) str1 (\n) str2 -->  in range [0,20]
 
 ### How fast is it?
 kri is several times faster than any other text editor at reading files, searching, and other operations.
@@ -52,7 +52,7 @@ See the [benchmarks](https://github.com/ikozyris/kri/wiki/Performance-&-Benchmar
 
 ### License
 
-Copyright (C) 2025  ikozyris
+Copyright (C) 2026  ikozyris
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

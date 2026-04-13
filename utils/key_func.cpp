@@ -61,7 +61,7 @@ void command()
 		uint from = 0, to = curnum;
 		char mode = 'h';
 		char *pr2 = input_header("range/mode: "); // 5-10 h
-		sscanf(pr2, "%u-%u %c", &from, &to, &mode);
+		sscanf(pr2, "%c %u-%u", &mode, &from, &to);
 		free(pr2);
 		find(tmp + 5, from, to + 1, mode); // we want closed interval, function is open
 	} else if (strncmp(tmp, "replace", 7) == 0) {
@@ -75,10 +75,11 @@ void command()
 		long offset = 0;
 		uint count = 0;
 
+		vector<vector<uint>> occurrences = search_la(from, to + 1, tmp, tmp_len);
+
 		list<gap_buf>::iterator iter = text.begin();
 		advance(iter, from);
-		for (uint i = from; i <= to; ++i, ++iter) {
-			vector<uint> matches = search_a(*iter, tmp, tmp_len);
+		for (const auto &matches : occurrences) {
 			count += matches.size();
 			for (uint j = 0; j < matches.size(); ++j) {
 				mv_curs(*iter, (long)matches[j] + offset);
@@ -87,6 +88,7 @@ void command()
 				offset += (long)newst_len - (long)tmp_len;
 			}
 			offset = 0;
+			++iter;
 		}
 		char *tmp_buff = (char*)malloc(128);
 		sprintf(tmp_buff, "Replaced %u occurences of \"%s\" with \"%s\" from line %u to %u", count, tmp, newst, from, to);

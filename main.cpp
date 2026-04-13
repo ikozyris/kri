@@ -40,14 +40,13 @@ int main(int argc, char *argv[])
 		"Built-in terminal commands:\n"
 		"scroll		Scroll to line\n"
 		"suspend	Suspend and wait for signal\n"
-		"find		Find string, takes 2 parameters, can be combined\n"
-		"	 	2 other prompts follow asking for old and new string\n"
-		"		  find <string> \\n \\n -> highlight on all lines\n"
-		"		  find <string> \\n 0-10 c -> count on lines [0-10]\n"
-		"replace 	Replace string, 2 parameters from, to (default 0, max)\n"
+		"find		Find string, takes 2 parameters\n"
+		"		  find <str> \\n \\n -> highlight on all lines\n"
+		"		  find <str> \\n c 0-10 -> count on lines [0,10] (or h for highlight)\n"
+		"replace 	Replace string, 2 parameters: from, to (default 0, max)\n"
+		"	 	    2 other queries follow asking for old and new string\n"
 		"		  replace \\n <str1> \\n <str2> -> replace all str1 with str2\n"
-		"		  replace 0 20 \\n <str1> \\n <str2> \\n -> in range [0,20]\n"
-		"		  replace_thi \\n <str1> \\n <str> -> only in current line\n"
+		"		  replace 0-20 \\n <str1> \\n <str2> -> in range [0,20]\n"
 		"help		List commands");
 		return 0;
 	}
