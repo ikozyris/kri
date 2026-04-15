@@ -109,7 +109,7 @@ void split_mline(llist *list, chunk *a)
 	}
 	a->num_lines--;
 	mv_curs(a->merged_lines, a->merged_lines.len() - last_length);
-	apnd_s(next_chunk->merged_lines, a->merged_lines.buffer() + a->merged_lines.cpt() - last_length, last_length);
+	insert_s(next_chunk->merged_lines, a->merged_lines.buffer() + a->merged_lines.cpt() - last_length, last_length);
 	append_len(next_chunk, last_length);
 	// delete last line
 	a->merged_lines.gpe = a->merged_lines.cpt() - 1;
@@ -151,9 +151,9 @@ void merge_lines(llist *list, iter *a, iter *b)
 		else { // 3rd case: none fits; create new chunk
 			chunk *new_chunk = create_chunk();
 			// combine a and b's lines (remove a's last char as a newline)
-			apnd_s(new_chunk->merged_lines, a_ch->merged_lines.buffer() + a->offset, a->len() - 1);
+			insert_s(new_chunk->merged_lines, a_ch->merged_lines.buffer() + a->offset, a->len() - 1);
 			rm_mline(a_ch, a->relative_pos, nullptr);
-			apnd_s(new_chunk->merged_lines, b_ch->merged_lines.buffer() + b->offset, b->len());
+			insert_s(new_chunk->merged_lines, b_ch->merged_lines.buffer() + b->offset, b->len());
 			rm_mline(b_ch, b->relative_pos, nullptr);
 
 			append_len(new_chunk, a->len() + b->len() - 1);

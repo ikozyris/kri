@@ -74,32 +74,6 @@ void insert_s(gap_buf &a, const char *str, uint len)
 	a.gps += len;
 }
 
-void apnd_c(gap_buf &a, char ch)
-{
-	if (a.gps >= a.gpe + 1) [[unlikely]]
-		resize_up(a);
-	a[a.len()] = ch;
-	a.gps++;
-}
-void apnd_s(gap_buf &a, const char *str, uint size)
-{
-	if (a.gps + size >= a.cpt()) [[unlikely]]
-		resize2fit(a, a.len() + size + 2);
-	memcpy(a.buffer() + a.gps, str, size);
-	a.gps += size;
-}
-
-void apnd_s(gap_buf &a, const char *str)
-{
-	uint i = a.len();
-	while (str[i - a.len()] != 0) {
-		a[i] = str[i - a.len()];
-		if (++i == a.cpt())
-			resize_up(a); 
-	}
-	a.gps += i;
-}
-
 void eras(gap_buf &a)
 {
 	if (a[a.gps - 1] < 0) { // unicode

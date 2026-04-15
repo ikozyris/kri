@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
 		fclose(in);
 	} else {
 init:
-		apnd_c(*it.orig, 0);
+		insert_c(*it.orig, 0);
 		append_len(it.parent(), 1);
 	}
 

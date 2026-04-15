@@ -40,9 +40,6 @@ void resize_up(gap_buf &a); // increase
 void mv_curs(gap_buf &a, uint pos); // move the cursor to position
 void insert_c(gap_buf &a, char ch); // insert character at cursor position
 void insert_s(gap_buf &a, const char *str, uint len); // insert string with given length at cursor pos
-void apnd_c(gap_buf &a, char ch); // append character
-void apnd_s(gap_buf &a, const char *str, uint size); // append string with given size
-void apnd_s(gap_buf &a, const char *str); // append null-terminated string
 void eras(gap_buf &a); // erase the character at current cursor position
 uint data(const gap_buf &src, uint from, uint to); // copy buffer with range to lnbuf
 void prepare_iteration(const gap_buf *src, uint from, uint to, uint &st1, uint &end1, uint &st2, uint &end2);
