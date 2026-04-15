@@ -184,7 +184,7 @@ void read_file2(FILE *in)
 				text.lines++;
 				ln_sz = 0;
 			} 
-			apnd_s(chnk->merged_lines, cur_ln, piece_size); // write the line piece
+			insert_s(chnk->merged_lines, cur_ln, piece_size); // write the line piece
 
 			cur_ln = new_ln + 1;
 			bytes_read -= piece_size;
@@ -194,7 +194,7 @@ void read_file2(FILE *in)
 		if (ln_sz < MAX_CHUNK_SIZE)
 			append_len(chnk, ln_sz);
 		// all functions think there is a newline at EOL, emulate it
-		apnd_c(*it.orig, 0);
+		insert_c(*it.orig, 0);
 		it.parent()->len[it.parent()->num_lines - 1]++;		
 	}
 

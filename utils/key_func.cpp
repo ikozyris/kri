@@ -86,12 +86,12 @@ void command()
 		for (uint i = 0; i < occurrences.size(); ++i) { // occurrences in each chunk
 			for (uint j = 1; j <= occurrences[i].len(); ++j) {
 				uint index = occurrences[i].array[j];
-				mv_curs(*tmp_it.orig, index + offset * (int)j);
+				mv_curs(*tmp_it.orig, index + offset * (int)(j - 1));
 				tmp_it.orig->gpe = tmp_it.orig->gpe + old_len;
 				insert_s(*tmp_it.orig, newst, newst_len);
 
 				if (tmp_it.parent()->len) {
-					uint n = line_pos(tmp_it.parent(), index + offset * (int)j);
+					uint n = line_pos(tmp_it.parent(), index + offset * (int)(j - 1));
 					tmp_it.parent()->len[n] += offset;
 				}
 			}
@@ -147,7 +147,7 @@ void enter()
 	} else { // worst case; lines > 256B; create new chunk for the new line
 		chunk *t = create_chunk();
 		data(*it.orig, rx + 1, it.orig->len() + 1);
-		apnd_s(t->merged_lines, lnbuf, it.orig->len() - rx - 1);
+		insert_s(t->merged_lines, lnbuf, it.orig->len() - rx - 1);
 		it.orig->gps = rx + 1;
 		it.orig->gpe = it.orig->cpt() - 1;
 
