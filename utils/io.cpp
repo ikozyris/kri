@@ -168,15 +168,15 @@ void read_file2(FILE *in)
 		char *cur_ln = buf;
 		while (bytes_read > 0) {
 			char *new_ln = (char*)memchr(cur_ln, '\n', bytes_read);
-			uint piece_size = new_ln ? (new_ln - cur_ln + 1) : bytes_read;
-			ln_sz += piece_size;
+			uint frag_sz = new_ln ? (new_ln - cur_ln + 1) : bytes_read;
+			ln_sz += frag_sz;
 
 			// line won't fit in the current (non empty) chunk and hasn't been written yet
-			if (ch_sz + ln_sz >= MAX_CHUNK_SIZE && ln_sz == piece_size && ch_sz > 0) {
+			if (ch_sz + ln_sz >= MAX_CHUNK_SIZE && ln_sz == frag_sz && ch_sz > 0) {
 				chnk = new_chunk(chnk);
 				ch_sz = 0;
 			}
-			ch_sz += piece_size;
+			ch_sz += frag_sz;
 
 			if (new_ln) { // found the end of this line
 				if (ln_sz < MAX_CHUNK_SIZE) // line can be merged in a chunk
@@ -184,18 +184,17 @@ void read_file2(FILE *in)
 				text.lines++;
 				ln_sz = 0;
 			} 
-			insert_s(chnk->merged_lines, cur_ln, piece_size); // write the line piece
+			insert_s(chnk->merged_lines, cur_ln, frag_sz); // write the line fragment
 
 			cur_ln = new_ln + 1;
-			bytes_read -= piece_size;
+			bytes_read -= frag_sz;
 		}
 	}
 	if (ln_sz > 0) { // final line may not end with a newline
 		if (ln_sz < MAX_CHUNK_SIZE)
-			append_len(chnk, ln_sz);
+			append_len(chnk, ln_sz + 1);
 		// all functions think there is a newline at EOL, emulate it
 		insert_c(*it.orig, 0);
-		it.parent()->len[it.parent()->num_lines - 1]++;		
 	}
 
 	if (buffer == MAP_FAILED)
