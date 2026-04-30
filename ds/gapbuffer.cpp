@@ -97,7 +97,7 @@ uint data(const gap_buf &src, uint from, uint to)
 		to = src.len();
 	if (lnbf_cpt < to - from + 1) {
 		free(lnbuf);
-		lnbf_cpt = __bit_ceil(to - from + 1);
+		lnbf_cpt = __bit_ceil(to - from + 8);
 		lnbuf = (char*)malloc(lnbf_cpt);
 	}
 
