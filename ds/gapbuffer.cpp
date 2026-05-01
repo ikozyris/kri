@@ -74,6 +74,18 @@ void insert_s(gap_buf &a, const char *str, uint len)
 	a.gps += len;
 }
 
+// range copy gap buffer
+void copy_buffer(const gap_buf &src, gap_buf &dest, uint from, uint to)
+{
+	uint st1, end1, st2, end2;
+	prepare_iteration(&src, from, to, st1, end1, st2, end2);
+	uint len1 = end1 - st1;
+	uint len2 = end2 - st2;
+
+	insert_s(dest, src.buffer() + st1, len1);
+	insert_s(dest, src.buffer() + st2, len2);
+}
+
 void eras(gap_buf &a)
 {
 	if (a[a.gps - 1] < 0) { // unicode
@@ -124,11 +136,11 @@ void prepare_iteration(const gap_buf *src, uint from, uint to, uint &st1, uint &
 	st1 = from; end1 = to; st2 = end2 = 0; // range before gap; 1 it (default)
 	const uint t_gpe = src->gpe + 1;
 	if (from >= src->gps) { // range is after gap; 1 iteration needed
-		st1 = t_gpe + from;
-		end1 = t_gpe + to;
-	} else if (to >= src->gps) { // range starts before gap and ends after; 2 it
+		st1 = t_gpe + from - src->gps;
+		end1 = t_gpe + to - src->gps;
+	} else if (to > src->gps) { // range starts before gap and ends after; 2 it
 		end1 = src->gps;
 		st2 = t_gpe;
-		end2 = t_gpe + to - from + 1 - src->gps;
+		end2 = t_gpe + to - src->gps;
 	}
 }

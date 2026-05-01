@@ -77,14 +77,15 @@ void iterate_fw(iter *it, uint dist)
 }
 
 // remove a line from a chunk
-void rm_mline(chunk *ch, uint pos, iter *it) { // FIXME: broken
+void rm_mline(chunk *ch, uint pos, iter *it) {
 	if (ch->num_lines == 1) {
 		connect(ch->prev, ch->next);
 		free(ch);
 	} else {
-		if (it)
-			it->orig->gpe = it->offset + it->len();
-		memmove(&ch->len[pos], &ch->len[pos + 1], ch->num_lines - pos);
+		mv_curs(ch->merged_lines, it->offset);
+		ch->merged_lines.gpe += it->len();
+		if (pos < ch->num_lines - 1)
+			memmove(&ch->len[pos], &ch->len[pos + 1], ch->num_lines - pos - 1);
 		ch->num_lines--;
 	}
 }
@@ -115,13 +116,21 @@ void split_mline(llist *list, chunk *a)
 	a->merged_lines.gpe = a->merged_lines.cpt() - 1;
 }
 
-// merge b into a
-void mergeba(iter *a, iter *b)
+// merge src into dest
+void merge_chunks(iter *src, iter *dest, bool append)
 {
-	chunk *a_ch = a->parent(), *b_ch = b->parent();
-	insert_s(a_ch->merged_lines, b_ch->merged_lines.buffer(), b->len() - 1);
-	a_ch->len[a->relative_pos] = a->len() + b->len() - 1;
-	rm_mline(b_ch, b->relative_pos, nullptr);
+	chunk *dest_ch = dest->parent(), *src_ch = src->parent();
+	if (append) { // append src to dest
+		mv_curs(dest_ch->merged_lines, dest->offset + dest->len());
+		eras(dest_ch->merged_lines);
+		copy_buffer(*src->orig, dest_ch->merged_lines, src->offset, src->offset + src->len());
+	} else { // prepend src to dest
+		mv_curs(dest_ch->merged_lines, dest->offset);
+		copy_buffer(*src->orig, dest_ch->merged_lines, src->offset, src->offset + src->len() - 1);
+	}
+	if (dest_ch->len)
+		dest_ch->len[dest->relative_pos] = dest->len() + src->len() - 1;
+	rm_mline(src_ch, src->relative_pos, src);
 }
 
 // TODO: this is a mess
@@ -129,36 +138,41 @@ void mergeba(iter *a, iter *b)
 void merge_lines(llist *list, iter *a, iter *b)
 {
 	chunk *a_ch = a->parent(), *b_ch = b->parent();
-	if (a_ch == b_ch) {
+	uint len_a = a->len(), len_b = b->len();
+
+	// merge b into a in-place
+	if (a_ch == b_ch && len_a + len_b - 1 < MAX_CHUNK_SIZE) {
 		eras(a_ch->merged_lines);
 		uint rel_pos = b->relative_pos;
 		a_ch->len[rel_pos] += a_ch->len[rel_pos - 1] - 1;
 		memmove(&a_ch->len[rel_pos - 1], &a_ch->len[rel_pos], a_ch->num_lines - rel_pos);
 		a_ch->num_lines--;
 	} else { // need to move at least one line to another chunk
-		bool use_a = a_ch->merged_lines.len() + b->len() < MAX_CHUNK_SIZE || a_ch->num_lines <= 1;
-		bool use_b = b_ch->merged_lines.len() + a->len() < MAX_CHUNK_SIZE || b_ch->num_lines <= 1;
-		if (use_a && use_b) { // merge small into large
-			if (a_ch->merged_lines.len() < b_ch->merged_lines.len())
-				use_b = false;
-			else
-				use_a = false;
-		}
-		if (use_a)
-			mergeba(b, a);
-		else if (use_b)
-			mergeba(a, b);
-		else { // 3rd case: none fits; create new chunk
+		bool use_a = a_ch->merged_lines.len() + len_b < MAX_CHUNK_SIZE || a_ch->num_lines <= 1;
+		bool use_b = b_ch->merged_lines.len() + len_a < MAX_CHUNK_SIZE || b_ch->num_lines <= 1;
+		// prefer merging small into large when both are possible
+		if (use_a && (!use_b || a_ch->merged_lines.len() >= b_ch->merged_lines.len()))
+			merge_chunks(b, a, true);
+		else if (use_b) {
+			merge_chunks(a, b, false);
+			*a = *b;
+			a->global_pos--;
+		} else { // create new chunk
 			chunk *new_chunk = create_chunk();
-			// combine a and b's lines (remove a's last char as a newline)
-			insert_s(new_chunk->merged_lines, a_ch->merged_lines.buffer() + a->offset, a->len() - 1);
-			rm_mline(a_ch, a->relative_pos, nullptr);
-			insert_s(new_chunk->merged_lines, b_ch->merged_lines.buffer() + b->offset, b->len());
-			rm_mline(b_ch, b->relative_pos, nullptr);
-
-			append_len(new_chunk, a->len() + b->len() - 1);
 			insc_after(list, a_ch, new_chunk);
-			point2chunk(a, a_ch);
+
+			copy_buffer(*a->orig, new_chunk->merged_lines, a->offset, a->offset + len_a - 1);
+			copy_buffer(*b->orig, new_chunk->merged_lines, b->offset, b->offset + len_b);
+
+			rm_mline(b_ch, b->relative_pos, b);
+			rm_mline(a_ch, a->relative_pos, a);
+
+			if (len_a + len_b - 1 < MAX_CHUNK_SIZE) // in a merged line
+				append_len(new_chunk, len_a + len_b - 1);
+			else // standalone line
+				new_chunk->num_lines = 1;
+
+			point2chunk(a, new_chunk);
 		}
 	}
 }

@@ -52,7 +52,8 @@ uint print_line(const iter *i, uint from, uint to, uint y)
 		}
 	}
 	uint rlen = data(*i->orig, from + i->offset, to + i->offset);
-	if (lnbuf[rlen - 1] == '\n' || lnbuf[rlen - 1] == '\t')
+	char last_char = rlen ? lnbuf[rlen - 1] : 0;
+	if (last_char == '\n' || last_char == '\t')
 		--rlen;
 	waddnstr(text_win, lnbuf, rlen);
 	wclrtoeol(text_win);
@@ -97,7 +98,7 @@ void print_new_mark()
 	else if (chp > 0)
 		mvwaddch(text_win, y, maxx - 2, chp);
 	else if (chp < 0) { // 2 bytes to print
-		char chp2 = at(*it.orig, char_pos + 1);
+		char chp2 = at(*it.orig, char_pos + it.offset + 1);
 		const char tmp[2] = {chp, chp2};
 		mvwaddnstr(text_win, y, maxx - 2, tmp, 2);
 	}
@@ -194,7 +195,7 @@ void read_file2(FILE *in)
 		if (ln_sz < MAX_CHUNK_SIZE)
 			append_len(chnk, ln_sz + 1);
 		// all functions think there is a newline at EOL, emulate it
-		insert_c(*it.orig, 0);
+		insert_c(chnk->merged_lines, 0);
 	}
 
 	if (buffer == MAP_FAILED)

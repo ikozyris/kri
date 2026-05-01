@@ -146,6 +146,7 @@ void enter()
 		}
 	} else { // worst case; lines > 256B; create new chunk for the new line
 		chunk *t = create_chunk();
+		t->num_lines = 1;
 		data(*it.orig, rx + 1, it.orig->len() + 1);
 		insert_s(t->merged_lines, lnbuf, it.orig->len() - rx - 1);
 		it.orig->gps = rx + 1;

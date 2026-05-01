@@ -210,7 +210,9 @@ init:
 				mv_curs(*it.orig, rx + it.offset + 1);
 				merge_lines(&text, &it, &b);
 				--text.lines;
-				print_text(y);
+				mvprint_line(y, 0, &it, cut.empty() ? 0 : cut.back().byte, 0);
+				highlight(y, &it);
+				print_text(y + 1);
 				wmove(text_win, y, x);
 			} else if (rx + 1 < it.len()) {
 				if (it.parent()->len)
