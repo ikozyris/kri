@@ -117,8 +117,6 @@ void find(const char *str, uint from, uint to, char mode)
 		uint prev_byte = 0, prev_x = 0;
 		for (uint j = 1; j <= occurrences[i].len(); ++j) {
 			uint index = occurrences[i].array[j];
-			if (i == 0)
-				index += first_line.offset;
 			matches.emplace_back(index2yx(index, &first_line, prev_byte, prev_x));
 			if (i != 0 || after_first_chunk == 0)
 				matches.back().y += cline;
@@ -226,10 +224,11 @@ static void bitap_search(const uchar *buf, uint blen, uint offset, dynarray *mat
 // find hello in he_llo given gap length when an occurrence may be split between gap start and gap end
 static void mid_search(const gap_buf *gbuf, dynarray *matches)
 {
-        uint gaplen = gaplen(*gbuf);
+	uint gaplen = gaplen(*gbuf);
 	const char *buf = gbuf->buffer();
+	uint start = gbuf->gps >= str_len ? gbuf->gps - str_len + 1 : 0;
 
-	for (uint i = gbuf->gps - str_len + 1; i < gbuf->gps; ++i) {
+	for (uint i = start; i < gbuf->gps; ++i) {
 		int a, b = 1;
 		// start by comparing the first bytes up to the gap start ("he")
 		a = memcmp(buf + i, string, gbuf->gps - i);
@@ -250,10 +249,10 @@ static void ranged_searchstr(dynarray *matches, const gap_buf *buf, uint from, u
 		return;
 	uint from1, from2, to1, to2;
 	prepare_iteration(buf, from, to, from1, to1, from2, to2);
-	bitap_search((uchar*)buf->buffer() + from1, to1 - from1, 0, matches);
+	bitap_search((uchar*)buf->buffer() + from1, to1 - from1, from, matches);
 	if (from2 > to1 && to2 - from2 >= str_len) {
 		mid_search(buf, matches);
-		bitap_search((uchar*)buf->buffer() + from2, to2 - from2, from2 - 2, matches);
+		bitap_search((uchar*)buf->buffer() + from2, to2 - from2, buf->gps, matches);
 	}
 }
 

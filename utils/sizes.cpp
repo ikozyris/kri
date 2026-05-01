@@ -31,7 +31,7 @@ uint dchar2bytes(uint disp_x, uint from, const iter *i)
 uint bytes2dchar(uint bytes, uint from, const iter *i)
 {
 	from += i->offset;
-	bytes = min(bytes, i->len()) + i->offset;
+	bytes += i->offset;
 	uint x = 0;
 	while (from < bytes)
 		get_off(x, from, *i->orig);
