@@ -14,8 +14,8 @@ typedef struct chunk {
 	// should be unallocated unless there are 2 lines merged
 	uchar *len; // array of lengths of each merged line
 	uint num_lines; // count of lines in this chunk
-	uchar len_cpt; // capacity of len array (initialized to 1)
-	// 3-bytes padding (45 / 48 bytes)
+	uint len_cpt; // capacity of len array (initialized to 1)
+	// padding can be 6 bytes (48-42), TODO: len array inside struct
 } chunk;
 
 typedef struct llist {
@@ -41,18 +41,17 @@ typedef struct iter {
 	char *buffer() { return orig->buffer() + offset; }
 } iter;
 
-uint line_pos(chunk *ch, uint offset);
+uint line_pos(const chunk *ch, uint offset);
 void line_offset(iter *it, uint n);
 void iterate_bw(iter *it, uint dist); // backward
 void iterate_fw(iter *it, uint dist); // forward
-void rm_mline(chunk *ch, uint pos, iter *it);
+void rm_mline(chunk *ch, uint pos, const iter *it);
 void split_mline(llist *list, chunk *cur_chunk);
 void merge_lines(llist *list, iter *a, iter *b);
 void insc_after(llist *list, chunk *previous, chunk *new_chunk);
 chunk *create_chunk();
-void goto_last_line(chunk *a);
 void append_len(chunk *a, uint len);
-void point2chunk(iter *it, chunk *a);
+void point2chunk(iter *it, const chunk *a);
 
 extern llist text;
 #pragma GCC diagnostic push

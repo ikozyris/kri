@@ -139,14 +139,6 @@ void save()
 
 #define SZ 2*1024*1024
 
-uint fgets_ret(char *buf, FILE *in)
-{
-	uint prev = ftell(in);
-	fgets_unlocked(buf, SZ, in);
-	uint next = ftell(in);
-	return next - prev;
-}
-
 chunk *new_chunk(chunk *chnk) {
 	if (!chnk->len) // chunks have 1 line if not merged
 		chnk->num_lines = 1; // from 0

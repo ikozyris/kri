@@ -14,12 +14,14 @@ char hrsize(size_t bytes, char *dest, ushort dest_cpt)
 	return suffix[i];
 }
 
+// TODO: make both functions __attrubute__ ((const)) by also returning flag
 // displayed characters to bytes, flag -> disp_x where counting stopped at
 uint dchar2bytes(uint disp_x, uint from, const iter *i)
 {
 	from += i->offset;
+	uint max_len = i->len() - 1 + i->offset; // without this line's newline
 	uint x = 0;
-	while (x < disp_x && from < i->orig->len() - 1) // don't read the newline
+	while (x < disp_x && from < max_len)
 		get_off(x, from, *i->orig);
 	flag = x;
 	return from - i->offset;

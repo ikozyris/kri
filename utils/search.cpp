@@ -25,7 +25,7 @@ static uint ln_start(const vector<match> &yx, uint y) {
 }
 
 // convert index of chunk buffer to 2d position relative to the start of chunk
-static match index2yx(uint index, iter *it, uint &prev_byte, uint &prev_x)
+static match index2yx(uint index, const iter *it, uint &prev_byte, uint &prev_x)
 {
 	uint cbyte = 0;
 	const chunk *ch = it->parent();

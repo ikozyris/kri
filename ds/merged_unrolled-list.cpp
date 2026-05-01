@@ -1,10 +1,10 @@
 #include "headers/merged_unrolled-list.h"
 
 // point iterator to chunk (global_pos not updated)
-void point2chunk(iter *it, chunk *a)
+void point2chunk(iter *it, const chunk *a)
 {
 	// *it = {.orig = x} not used as it zeroes global_pos
-	it->orig = &a->merged_lines;
+	it->orig = const_cast<gap_buf*>(&a->merged_lines);
 	it->relative_pos = it->offset = 0;
 }
 
@@ -20,7 +20,7 @@ void append_len(chunk *a, uint len)
 }
 
 // given offset find position
-uint line_pos(chunk *ch, uint offset)
+uint line_pos(const chunk *ch, uint offset)
 {
 	uint sum = 0, n = 0;
 	while (sum < offset && n < ch->num_lines) {
@@ -33,7 +33,7 @@ uint line_pos(chunk *ch, uint offset)
 // given position find offset
 void line_offset(iter *it, uint n)
 {
-	chunk *a = it->parent();
+	const chunk *a = it->parent();
 	uint i = it->relative_pos;
 	for (; i < it->relative_pos + n; ++i)
 		it->offset += a->len[i];
@@ -77,7 +77,7 @@ void iterate_fw(iter *it, uint dist)
 }
 
 // remove a line from a chunk
-void rm_mline(chunk *ch, uint pos, iter *it) {
+void rm_mline(chunk *ch, uint pos, const iter *it) {
 	if (ch->num_lines == 1) {
 		connect(ch->prev, ch->next);
 		free(ch);
@@ -117,7 +117,7 @@ void split_mline(llist *list, chunk *a)
 }
 
 // merge src into dest
-void merge_chunks(iter *src, iter *dest, bool append)
+void merge_chunks(const iter *src, iter *dest, bool append)
 {
 	chunk *dest_ch = dest->parent(), *src_ch = src->parent();
 	if (append) { // append src to dest
@@ -191,8 +191,8 @@ chunk *create_chunk()
 	// len is actually unallocated, but len_cpt=1 makes 1st realloc easier
 	new_chunk->len_cpt = 1;
 	new_chunk->len = nullptr;
-	new_chunk->num_lines = 0;
-	//*new_chunk = {.len_cpt = 1, .num_lines = 1}; // TODO: use this in C
+	new_chunk->num_lines = 0; // cannot be 1 as it breaks append_len during reading
+	//*new_chunk = {.len_cpt = 1, .num_lines = 0}; // TODO: use this in C
 	init(new_chunk->merged_lines);
 	return new_chunk;
 }
