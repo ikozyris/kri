@@ -57,3 +57,12 @@ uint prevdchar()
 	wmove(text_win, y, x - diff - 1);
 	return diff;
 }
+
+bool starts_with(const char *str, const char *prefix)
+{
+	while (*prefix)
+		if (*str++ != *prefix++)
+			return false;
+	return true;
+}
+

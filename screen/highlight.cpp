@@ -1,15 +1,8 @@
 #include "headers/highlight.h"
+#include "headers/syntax-tables.h"
 
 bool eligible; // is syntax highlighting enabled
-// each array and its element length has to be sorted (for binary search)
-static const char types[] = {"bool""char""const""double""enum""float""int""int16_t""int32_t""int64_t""long""short"
-	"signed""size_t""uchar""uint""uint16_t""uint32_t""uint64_t""uint8_t""ulong""unsigned""ushort""void"};
-// prefix sum of array
-static uchar types_len[] = {4, 8, 13, 19, 23, 28, 31, 38, 45, 52, 56, 61, 67, 73, 78, 82, 90, 98, 106, 113, 118, 126, 132, 136};
-static const char keywords[] = {"break""case""continue""default""do""else""extern""false""for""goto""if""inline"
-	"return""sizeof""static""struct""switch""true""while"};
-static uchar keywords_len[] = {5, 9, 17, 24, 26, 30, 36, 41, 44, 48, 50, 56, 62, 68, 74, 80, 86, 90, 95};
-static const char oper[] = {'!', '%', '&', '*', '+', '-', '/', ':', '<', '=', '>', '?', '[', ']', '^', '|', '~', 0};
+static const lang_t *lang;
 
 #define DEFINC	COLOR_CYAN
 #define COMMENT	COLOR_GREEN
@@ -19,16 +12,37 @@ static const char oper[] = {'!', '%', '&', '*', '+', '-', '/', ':', '<', '=', '>
 #define STR	COLOR_MAGENTA
 // TODO: color for numbers?
 
-// checks if file is C source code
-bool isc(const char *str)
+static const struct {
+	const char *ext;
+	const lang_t *l;
+} ext_map[] = {
+	// TODO: separate C with C++
+	{"c",   &lang_c}, {"cpp", &lang_c}, {"cc", &lang_c}, {"h", &lang_c}, {"hpp", &lang_c},
+	{"mk", &lang_make}
+};
+
+// detect language from filename, TODO: check first line content (shebang etc.)
+bool detect_lang(const char *str)
 {
-	const char *res = strrchr(str, '.');
-	if (res == 0)
-		return false;
-	str = res + 1;
-	if (!strcmp(str, "c") || !strcmp(str, "cpp") || !strcmp(str, "cc")
-		|| !strcmp(str, "h") || !strcmp(str, "hpp"))
+	// special-case: basename match (e.g. "Makefile")
+	const char *base = strrchr(str, '/');
+	base = base ? base + 1 : str;
+	if (strcmp(base, "Makefile") == 0) {
+		lang = &lang_make;
 		return true;
+	}
+
+	const char *dot = strrchr(str, '.');
+	if (dot == 0)
+		goto none;
+	for (uint i = 0; i < nelems(ext_map); ++i) {
+		if (strcmp(dot + 1, ext_map[i].ext) == 0) {
+			lang = ext_map[i].l;
+			return true;
+		}
+	}
+none:
+	lang = &lang_none;
 	return false;
 }
 
@@ -58,13 +72,14 @@ static bool binary_search(const char *arr, const uchar *len_arr, uint size, cons
 
 static bool is_separator(char ch) { return (ch > 31 && ch < 48) || (ch > 57 && ch < 65) || (ch > 90 && ch < 95) || ch > 122; }
 static inline uint lookup2(const iter *cur_ln, uint start, uint len) {
-	for (uint i = start + cur_ln->offset; i + 1 < len + cur_ln->offset; ++i) {
-		if (at(*cur_ln->orig, i) == '*' && at(*cur_ln->orig, i + 1) == '/')
+	uint line_end = len + cur_ln->offset, j;
+	for (uint i = start + cur_ln->offset; i + lang->comm_clen <= line_end; ++i) {
+		for (j = 0; j < lang->comm_clen && at(*cur_ln->orig, i + j) == lang->comm_cl[j]; ++j);
+		if (j == lang->comm_clen)
 			return i - cur_ln->offset;
 	}
 	return len;
 }
-#define nelems(x) (sizeof(x) / sizeof((x)[0]))
 
 // identify color to use
 static res_t get_category(const char *line)
@@ -73,9 +88,9 @@ static res_t get_category(const char *line)
 	res.len = 0;
 	res.type = COLOR_WHITE;
 
-	if (binary_search(types, types_len, nelems(types_len), line, res, TYPE));
-	else if (binary_search(keywords, keywords_len, nelems(keywords_len), line, res, KEYWORD));
-	else if (memchr(oper, line[0], sizeof(oper))) { // above binary search would require an array of the form {1,2,3..}
+	if (binary_search(lang->types, lang->types_len, lang->types_cnt, line, res, TYPE));
+	else if (binary_search(lang->keywords, lang->keywords_len, lang->keywords_cnt, line, res, KEYWORD));
+	else if (memchr(lang->oper, line[0], lang->oper_sz)) {
 		res.len = 1;
 		res.type = OPER;
 	}
@@ -126,21 +141,21 @@ static void apply(uint line, const iter *cur_ln)
 			return;
 		}
 
-		i = bytes2dchar(pos + 2, 0, cur_ln); // continue from end of comment
+		i = bytes2dchar(pos + lang->comm_clen, 0, cur_ln); // continue from end of comment
 		wchgat(text_win, i, 0, COMMENT, 0);
 	}
 
 	for (; i < len; ++i) {
 		wmove(text_win, line, i);
-		if (lnbuf[i] == '#') { // define / include
+		if (lnbuf[i] == lang->preproc) { // preprocessor
 			wchgat(text_win, maxx - i - 1, 0, DEFINC, 0);
 			return;
-		} else if (lnbuf[i] == '/' && lnbuf[i + 1] == '/') { // comments
+		} else if (lang->coms && starts_with(lnbuf + i, lang->coms)) { // comments
 			wchgat(text_win, maxx - i - 1, 0, COMMENT, 0);
 			return;
-		} else if (lnbuf[i] == '/' && lnbuf[i + 1] == '*') {
+		} else if (lang->comm && starts_with(lnbuf + i, lang->comm)) {
 			previ = i;
-			i = dchar2bytes(i + 2, 0, cur_ln);
+			i = dchar2bytes(i + strlen(lang->comm), 0, cur_ln);
 			uint pos = lookup2(cur_ln, i, cur_ln->len());
 
 			if (pos == cur_ln->len()) { // comment continues in next line
@@ -151,9 +166,9 @@ static void apply(uint line, const iter *cur_ln)
 				return;
 			}
 
-			i = bytes2dchar(pos + 2, 0, cur_ln);
+			i = bytes2dchar(pos + lang->comm_clen, 0, cur_ln);
 			wchgat(text_win, i - previ + 1, 0, COMMENT, 0);
-		} else if (lnbuf[i] == '\'' || lnbuf[i] == '\"') {  // string / char
+		} else if (lang->has_strings && (lnbuf[i] == '\'' || lnbuf[i] == '\"')) {  // string / char
 			previ = i++;
 			while (i < len - 1 && lnbuf[i] != lnbuf[previ])
 				++i;

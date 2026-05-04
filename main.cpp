@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
 		filename = argv[1];
 		FILE *in = fopen(argv[1], "r");
 #ifdef HIGHLIGHT
-		eligible = isc(argv[1]); // syntax highlighting
+		eligible = detect_lang(argv[1]); // syntax highlighting
 #endif
 		if (!in) {
 			print2header("New file", 1);
