@@ -2,21 +2,14 @@
 #include "headers/syntax-tables.h"
 
 bool eligible; // is syntax highlighting enabled
-static const lang_t *lang;
-
-#define DEFINC	COLOR_CYAN
-#define COMMENT	COLOR_GREEN
-#define TYPE	COLOR_RED
-#define OPER	COLOR_YELLOW
-#define KEYWORD	COLOR_BLUE
-#define STR	COLOR_MAGENTA
+static const lang_t *lang; // tables are dynamically swapped for each language
 // TODO: color for numbers?
 
 static const struct {
 	const char *ext;
 	const lang_t *l;
 } ext_map[] = {
-	// TODO: separate C with C++
+	// TODO: separate C and C++
 	{"c",   &lang_c}, {"cpp", &lang_c}, {"cc", &lang_c}, {"h", &lang_c}, {"hpp", &lang_c},
 	{"mk", &lang_make}
 };
@@ -59,7 +52,7 @@ static bool binary_search(const char *arr, const uchar *len_arr, uint size, cons
 		mid = (hi + lo) / 2;
 		int cmp = strncmp(arr + len_arr[mid - 1], line, len_arr[mid] - len_arr[mid - 1]);
 		if (cmp == 0) {
-			res.len = len_arr ? (len_arr[mid] - len_arr[mid - 1]) : 1;
+			res.len = len_arr[mid] - len_arr[mid - 1];
 			res.type = type;
 			return true;
 		} else if (cmp < 0)
@@ -71,10 +64,13 @@ static bool binary_search(const char *arr, const uchar *len_arr, uint size, cons
 }
 
 static bool is_separator(char ch) { return (ch > 31 && ch < 48) || (ch > 57 && ch < 65) || (ch > 90 && ch < 95) || ch > 122; }
-static inline uint lookup2(const iter *cur_ln, uint start, uint len) {
+static inline uint lookup2(const iter *cur_ln, uint start, uint len)
+{
 	uint line_end = len + cur_ln->offset, j;
 	for (uint i = start + cur_ln->offset; i + lang->comm_clen <= line_end; ++i) {
-		for (j = 0; j < lang->comm_clen && at(*cur_ln->orig, i + j) == lang->comm_cl[j]; ++j);
+		for (j = 0; j < lang->comm_clen; ++j)
+			if (at(*cur_ln->orig, i + j) != lang->comm_cl[j])
+				break;
 		if (j == lang->comm_clen)
 			return i - cur_ln->offset;
 	}
@@ -84,20 +80,18 @@ static inline uint lookup2(const iter *cur_ln, uint start, uint len) {
 // identify color to use
 static res_t get_category(const char *line)
 {
-	res_t res;
-	res.len = 0;
-	res.type = COLOR_WHITE;
+	res_t res = {0, COLOR_WHITE};
 
-	if (binary_search(lang->types, lang->types_len, lang->types_cnt, line, res, TYPE));
-	else if (binary_search(lang->keywords, lang->keywords_len, lang->keywords_cnt, line, res, KEYWORD));
-	else if (memchr(lang->oper, line[0], lang->oper_sz)) {
-		res.len = 1;
-		res.type = OPER;
-	}
+	for (uchar i = 0; i < lang->wordgr_cnt; ++i)
+		if (binary_search(lang->words[i].words, lang->words[i].lens, lang->words[i].cnt, line, res, lang->words[i].color))
+			return res;
+
 	return res;
 }
 
 static vector<pair<uint, uint>> comment_blocks;
+const char COMMENT = COLOR_GREEN; // color doesn't really matter
+const char OPER = COLOR_YELLOW; // here it does
 static char continued; // string/comment/directive etc. continued after cut/ in next line
 // highight line
 static void apply(uint line, const iter *cur_ln)
@@ -147,15 +141,28 @@ static void apply(uint line, const iter *cur_ln)
 
 	for (; i < len; ++i) {
 		wmove(text_win, line, i);
-		if (lnbuf[i] == lang->preproc) { // preprocessor
-			wchgat(text_win, maxx - i - 1, 0, DEFINC, 0);
-			return;
-		} else if (lang->coms && starts_with(lnbuf + i, lang->coms)) { // comments
-			wchgat(text_win, maxx - i - 1, 0, COMMENT, 0);
-			return;
-		} else if (lang->comm && starts_with(lnbuf + i, lang->comm)) {
+
+		for (uint j = 0; j < lang->lntrait_cnt; ++j)
+			if (strncmp(lnbuf + i, lang->ln_traits[j].mark, lang->ln_traits[j].len) == 0) {
+				wchgat(text_win, maxx - i - 1, 0, lang->ln_traits[j].color, 0);
+				return;
+			}
+
+		for (uint j = 0; j < lang->delim_cnt; ++j) {
+			if (strncmp(lnbuf + i, lang->delims[j].delim, lang->delims[j].len) != 0)
+				continue;
 			previ = i;
-			i = dchar2bytes(i + strlen(lang->comm), 0, cur_ln);
+			for (i += lang->delims[j].len; i + lang->delims[j].len <= len; ++i)
+				if (strncmp(lnbuf + i, lang->delims[j].delim, lang->delims[j].len) == 0)
+					break;
+			i += lang->delims[j].len - 1; // last char of closing delim
+			wchgat(text_win, i - previ + 1, 0, lang->delims[j].color, 0);
+			goto next;
+		}
+
+		if (lang->comm_op && starts_with(lnbuf + i, lang->comm_op)) {
+			previ = i;
+			i = dchar2bytes(i + strlen(lang->comm_op), 0, cur_ln);
 			uint pos = lookup2(cur_ln, i, cur_ln->len());
 
 			if (pos == cur_ln->len()) { // comment continues in next line
@@ -168,11 +175,6 @@ static void apply(uint line, const iter *cur_ln)
 
 			i = bytes2dchar(pos + lang->comm_clen, 0, cur_ln);
 			wchgat(text_win, i - previ + 1, 0, COMMENT, 0);
-		} else if (lang->has_strings && (lnbuf[i] == '\'' || lnbuf[i] == '\"')) {  // string / char
-			previ = i++;
-			while (i < len - 1 && lnbuf[i] != lnbuf[previ])
-				++i;
-			wchgat(text_win, i - previ + 1, 0, STR, 0);
 		} else { // type (int, char) / keyword (if, return) / operator (=, +)
 			res_t res = get_category(lnbuf + i);
 			if (res.len == 0)
@@ -186,6 +188,7 @@ static void apply(uint line, const iter *cur_ln)
 				wchgat(text_win, res.len, 0, res.type, 0);
 			i += res.len - 1;
 		}
+next:; // continue; but for when inside other loop
 	}
 }
 
