@@ -11,7 +11,7 @@ static const struct {
 } ext_map[] = {
 	// TODO: separate C and C++
 	{"c",   &lang_c}, {"cpp", &lang_c}, {"cc", &lang_c}, {"h", &lang_c}, {"hpp", &lang_c},
-	{"mk", &lang_make}
+	{"mk", &lang_make}, {"md", &lang_md}
 };
 
 // detect language from filename, TODO: check first line content (shebang etc.)
@@ -42,18 +42,20 @@ none:
 typedef struct res_s {
 	uchar len;
 	char type;
+	attr_t attr;
 } res_t;
 
 // helper binary search
-static bool binary_search(const char *arr, const uchar *len_arr, uint size, const char *line, res_t &res, char type)
+static bool binary_search(const char *arr, const uchar *len_arr, uint size, const char *line, res_t &res, char type, attr_t attr)
 {
 	int lo = 0, hi = size - 1, mid;
 	while (lo <= hi) {
 		mid = (hi + lo) / 2;
-		int cmp = strncmp(arr + len_arr[mid - 1], line, len_arr[mid] - len_arr[mid - 1]);
+		int cmp = strncmp(arr + len_arr[mid], line, len_arr[mid + 1] - len_arr[mid]);
 		if (cmp == 0) {
-			res.len = len_arr[mid] - len_arr[mid - 1];
+			res.len = len_arr[mid + 1] - len_arr[mid];
 			res.type = type;
+			res.attr = attr;
 			return true;
 		} else if (cmp < 0)
 			lo = mid + 1;
@@ -80,10 +82,10 @@ static inline uint lookup2(const iter *cur_ln, uint start, uint len)
 // identify color to use
 static res_t get_category(const char *line)
 {
-	res_t res = {0, COLOR_WHITE};
+	res_t res = {0, COLOR_WHITE, 0};
 
 	for (uchar i = 0; i < lang->wordgr_cnt; ++i)
-		if (binary_search(lang->words[i].words, lang->words[i].lens, lang->words[i].cnt, line, res, lang->words[i].color))
+		if (binary_search(lang->words[i].words, lang->words[i].lens, lang->words[i].cnt, line, res, lang->words[i].color, lang->words[i].attr))
 			return res;
 
 	return res;
@@ -144,7 +146,9 @@ static void apply(uint line, const iter *cur_ln)
 
 		for (uint j = 0; j < lang->lntrait_cnt; ++j)
 			if (strncmp(lnbuf + i, lang->ln_traits[j].mark, lang->ln_traits[j].len) == 0) {
-				wchgat(text_win, maxx - i - 1, 0, lang->ln_traits[j].color, 0);
+				if (lang->ln_traits[j].start && i != 0)
+					continue;
+				wchgat(text_win, maxx - i - 1, lang->ln_traits[j].attr, lang->ln_traits[j].color, 0);
 				return;
 			}
 
@@ -156,7 +160,7 @@ static void apply(uint line, const iter *cur_ln)
 				if (strncmp(lnbuf + i, lang->delims[j].delim, lang->delims[j].len) == 0)
 					break;
 			i += lang->delims[j].len - 1; // last char of closing delim
-			wchgat(text_win, i - previ + 1, 0, lang->delims[j].color, 0);
+			wchgat(text_win, i - previ + 1, lang->delims[j].attr, lang->delims[j].color, 0);
 			goto next;
 		}
 
@@ -185,7 +189,7 @@ static void apply(uint line, const iter *cur_ln)
 			bool prev = i == 0 ? true : is_separator(lnbuf[i - 1]);
 			// except for operators which are separators
 			if ((next && prev) || res.type == OPER)
-				wchgat(text_win, res.len, 0, res.type, 0);
+				wchgat(text_win, res.len, res.attr, res.type, 0);
 			i += res.len - 1;
 		}
 next:; // continue; but for when inside other loop

@@ -27,18 +27,18 @@ kri # ask for filename on save file operation
 ```
 
 ### Keybindings
-* Save: Ctrl-S
-* Exit: Ctrl-X
-* Go to start of line: Ctrl-A
-* Go to end of line: Ctrl-E
-* Go to previous/next word: Shift + Left/Right arrow
-* Enter built-in terminal: Alt-C
-* Show info: Alt-I (also command _stats_ in built-in terminal)
-* Search: command _find_ in builtin terminal, parameters in seperate(\n) queries, example:
+ - Save: Ctrl-S
+ - Exit: Ctrl-X
+ - Go to start of line: Ctrl-A
+ - Go to end of line: Ctrl-E
+ - Go to previous/next word: Shift + Left/Right arrow
+ - Enter built-in terminal: Alt-C
+ - Show info: Alt-I (also command _stats_ in built-in terminal)
+ - Search: command _find_ in builtin terminal, parameters in seperate(\n) queries, example:
 	- find str
 	- find c 1-5 (\n) str  --> count occurences of string on lines [1,5]
 	- find h 3-10 (\n) str  --> highlight occurences of sring on lines [3,10]
-* Replace: command _replace_ :
+ - Replace: command _replace_ :
 	- replace (\n) str1 (\n) str2  -->  replace all str1 with str2
 	- replace 0-20 (\n) str1 (\n) str2 (\n)  -->  in range [0,20]
 
