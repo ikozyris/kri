@@ -183,12 +183,14 @@ void read_file2(FILE *in)
 			bytes_read -= frag_sz;
 		}
 	}
-	if (ln_sz > 0) { // final line may not end with a newline
-		if (ln_sz < MAX_CHUNK_SIZE)
-			append_len(chnk, ln_sz + 1);
-		// all functions think there is a newline at EOL, emulate it
-		insert_c(chnk->merged_lines, 0);
-	}
+
+	// if EOF == \n; create a last empty line
+	// otherwise emulate a newline
+	if (ln_sz == 0 && ch_sz >= MAX_CHUNK_SIZE)
+		chnk = new_chunk(chnk);
+	if (ln_sz < MAX_CHUNK_SIZE)
+		append_len(chnk, ln_sz + 1);
+	insert_c(chnk->merged_lines, 0);
 
 	if (buffer == MAP_FAILED)
 		free(buf);
