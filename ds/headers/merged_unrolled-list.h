@@ -52,6 +52,14 @@ void insc_after(llist *list, chunk *previous, chunk *new_chunk);
 chunk *create_chunk();
 void append_len(chunk *a, uint len);
 void point2chunk(iter *it, const chunk *a);
+inline void erase_ch(iter *it)
+{
+	uint len = it->orig->buffer()[it->orig->gps - 1] < 0 ? 2 : 1;
+	it->orig->gps -= len;
+	if (it->parent()->len)
+		it->parent()->len[it->relative_pos]-= len;
+	ofx -= len - 1;
+}
 
 extern llist text;
 #pragma GCC diagnostic push

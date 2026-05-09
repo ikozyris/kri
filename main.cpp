@@ -171,9 +171,7 @@ init:
 
 		case BACKSPACE:
 			if (x > 0) {
-				eras(*it.orig);
-				if (it.parent()->len)
-					it.parent()->len[it.relative_pos]--;
+				erase_ch(&it);
 				if (it.orig->buffer()[it.orig->gps] == '\t') { // deleted a tab
 					ofx += prevdchar();
 					x = getcurx(text_win);
@@ -188,9 +186,7 @@ init:
 				highlight(y, &it);
 				wmove(text_win, y, x);
 			} else if (!cut.empty()) { // delete x_-1 on cut line
-				eras(*it.orig);
-				if (it.parent()->len)
-					it.parent()->len[it.relative_pos]--;
+				erase_ch(&it);
 				left();
 			} else if (y != 0) { // x = 0 && cut.empty(); merge lines
 				iter b = it;
@@ -215,12 +211,12 @@ init:
 				print_text(y + 1);
 				wmove(text_win, y, x);
 			} else if (rx + 1 < it.len()) {
-				if (it.parent()->len)
-					it.parent()->len[it.relative_pos]--;
 				// or mblen(it->buffer + it->gpe + 1, 3);
 				uint len = it.orig->buffer()[it.orig->gpe + 1] < 0 ? 2 : 1;
-				mveras(*it.orig, rx + len);
-				ofx += len - 1;
+				if (it.parent()->len)
+					it.parent()->len[it.relative_pos] -= len;
+				it.orig->gpe += len; // delete forward
+
 				if (it.orig->buffer()[it.orig->gps] == '\t') {
 					wclrtoeol(text_win);
 					mvprint_line(y, x, &it, rx, 0);

@@ -8,7 +8,6 @@ extern uint lnbf_cpt; // lnbuf capacity
 #define array_size 8
 #define gaplen(a) ((a).gpe - (a).gps + 1u)
 #define ingap(a, pos) (((pos) >= (a).gps && (pos) <= (a).gpe) ? true : false)
-#define mveras(a, pos) (mv_curs(a, pos), eras(a))
 
 inline uint pow2(uint n) { return 1u << n; }
 inline uint log2(uint n) { return 31u - __builtin_clz(n); }

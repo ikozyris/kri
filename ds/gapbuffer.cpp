@@ -88,11 +88,11 @@ void copy_buffer(const gap_buf &src, gap_buf &dest, uint from, uint to)
 
 void eras(gap_buf &a)
 {
-	if (a[a.gps - 1] < 0) { // unicode
-		a.gps--;
-		--ofx; // assumes this UTF-8 point is 2 bytes
-	}
 	a.gps--;
+	if (a[a.gps] < 0) { // unicode
+		a.gps--;
+		ofx--; // assumes this UTF-8 point is 2 bytes
+	}
 }
 
 // TODO: this is a mess

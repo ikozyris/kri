@@ -122,7 +122,7 @@ void merge_chunks(const iter *src, iter *dest, bool append)
 	chunk *dest_ch = dest->parent(), *src_ch = src->parent();
 	if (append) { // append src to dest
 		mv_curs(dest_ch->merged_lines, dest->offset + dest->len());
-		eras(dest_ch->merged_lines);
+		dest_ch->merged_lines.gps--; // delete newline
 		copy_buffer(*src->orig, dest_ch->merged_lines, src->offset, src->offset + src->len());
 	} else { // prepend src to dest
 		mv_curs(dest_ch->merged_lines, dest->offset);
@@ -142,7 +142,7 @@ void merge_lines(llist *list, iter *a, iter *b)
 
 	// merge b into a in-place
 	if (a_ch == b_ch && len_a + len_b - 1 < MAX_CHUNK_SIZE) {
-		eras(a_ch->merged_lines);
+		a_ch->merged_lines.gps--; // delete newline
 		uint rel_pos = b->relative_pos;
 		a_ch->len[rel_pos] += a_ch->len[rel_pos - 1] - 1;
 		memmove(&a_ch->len[rel_pos - 1], &a_ch->len[rel_pos], a_ch->num_lines - rel_pos);
