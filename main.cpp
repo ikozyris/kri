@@ -135,11 +135,13 @@ init:
 			break;
 
 		case UP:
+			if (y == 0)
+				break;
 			if (!cut.empty()) // revert cut
 				mvprint_line(y, 0, &it, 0, 0);
-			if (y == 0 && ofy != 0)
+			if (ofy != 0)
 				scrollup();
-			else if (y != 0) {
+			else {
 				iterate_bw(&it, 1);
 				ofx = calc_offset_dis(x, 0, &it);
 				if (flag < maxx)
