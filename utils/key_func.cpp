@@ -166,9 +166,7 @@ void enter()
 		wmove(text_win, y + 1, 0);
 	} else { // y = maxy; scroll
 		wclrtoeol(text_win);
-		wscrl(ln_win, 1);
-		mvwprintw(ln_win, maxy - 1, 0, "%3u", ry + 2);
-		wnoutrefresh(ln_win);
+		line_scroll(1);
 		wscrl(text_win, 1);
 		++ofy;
 		mvprint_line(maxy - 1, 0, &it, 0, 0);
@@ -232,9 +230,7 @@ void scrolldown()
 	cut.clear();
 	ofx = 0;
 	wscrl(text_win, 1);
-	wscrl(ln_win, 1);
-	mvwprintw(ln_win, maxy - 1, 0, "%3u", ry + 2);
-	wnoutrefresh(ln_win);
+	line_scroll(1);
 	mvprint_line(y, 0, &it, 0, 0);
 	highlight(y, &it);
 	wmove(text_win, y, 0);
@@ -248,9 +244,7 @@ void scrollup()
 	cut.clear();
 	ofx = 0;
 	wscrl(text_win, -1);
-	wscrl(ln_win, -1);
-	mvwprintw(ln_win, 0, 0, "%3u", ry);
-	wnoutrefresh(ln_win);
+	line_scroll(-1);
 	mvprint_line(0, 0, &it, 0, 0);
 	highlight(0, &it);
 	wmove(text_win, 0, 0);

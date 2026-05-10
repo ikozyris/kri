@@ -4,7 +4,7 @@
 
 void stats(); // print statistics in header
 void command(); // prompt for command
-void enter(); // insert enter at *it,rx and create new node for line
+void enter();	// insert enter at *it,rx and create new node for line
 void scroll2(uint a);
 void mvl_scurs(uint t_byte);
 void mvr_scurs(uint t_byte); // move right screen cursor
@@ -17,3 +17,11 @@ ushort left(); // arrow left (returns enum status)
 ushort right(); // arrow right (return enum status)
 void prnxt_word(ushort func(void)); // go to next->right() previous->left() word
 void reset_view(); // reprint text, go to 0,0
+inline void line_scroll(int dir)
+{
+#ifndef NO_LINES
+	wscrl(ln_win, dir);
+	mvwprintw(ln_win, maxy - 1, 0, "%3u", ry + 1 + dir);
+	wnoutrefresh(ln_win);
+#endif
+}

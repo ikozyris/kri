@@ -1,5 +1,4 @@
 #include "utils/headers/key_func.h"
-#include "headers/keybindings.h"
 
 llist text;
 iter it;

@@ -4,14 +4,13 @@ CXX = g++ --std=c++20
 
 # Compiler flags:
 #  -O3			Safe as no floating point arithmetic is done
-#  -DHIGHLIGHT		Enable syntax highlighting
 #  -DRELEASE		Don't show debugging info
 #  -lncursesw		Links to ncurses library for wide characters (unicode)
 
 OPTIM = -O3 -s -flto -march=native -DRELEASE
 DEBUG = -g #-DDEBUG
-#CXXFLAGS = -Wall -Wextra -pedantic $(DEBUG) -DHIGHLIGHT # Debug only
-CXXFLAGS = -Wall -Wextra -pedantic $(OPTIM) -DHIGHLIGHT
+#CXXFLAGS = -Wall -Wextra -pedantic $(DEBUG) # Debug only
+CXXFLAGS = -Wall -Wextra -pedantic $(OPTIM)
 
 # the build target executable
 TARGET = kri

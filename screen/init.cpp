@@ -25,7 +25,11 @@ void init_curses()
 // initialize text window
 void init_text()
 {
-	text_win = newwin(maxy - 1, maxx - 4, 1, 4);
+	uint ln_width = 4;
+#ifdef NO_LINES
+	ln_width = 0;
+#endif
+	text_win = newwin(maxy - 1, maxx - ln_width, 1, ln_width);
 	scrollok(text_win, TRUE);
 	keypad(text_win, TRUE);
 	wmove(text_win, 0, 0);
@@ -34,20 +38,24 @@ void init_text()
 // print line numbering (ln_win)
 void print_lines()
 {
+#ifndef NO_LINES
 	int i = maxy;
 	do
 		mvwprintw(ln_win, i - 1, 0, "%3u", i + ofy);
 	while (--i != 0);
+#endif
 }
 
 // initialize line numbering window (ln_win)
 void init_lines()
 {
+#ifndef NO_LINES
 	ln_win = newwin(maxy, 4, 1, 0);
 	wmove(ln_win, 0, 0);
 	wattrset(ln_win, A_DIM);
 	scrollok(ln_win, TRUE);
 	print_lines();
+#endif
 }
 
 // clear any text on header (header_win)

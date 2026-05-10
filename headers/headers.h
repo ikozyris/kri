@@ -11,5 +11,6 @@
 #include <linux/mman.h>
 #include <fcntl.h>
 #include <climits>
+#include "../configuration.h" // ensure all functions get the definitions
 typedef uint8_t uchar;
 using namespace std;

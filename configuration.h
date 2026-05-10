@@ -2,8 +2,11 @@
 #undef	KEY_ENTER
 #define KEY_ENTER       10 // overwrite default
 
-/* EDIT BELOW to change keybindings */
+/* Edit below to customize the editor
+ * All configurations are made at compile time
+ * to reduce perfomance and size overhead */
 
+// keybindings
 #define ENTER		KEY_ENTER
 #define SAVE		ctrl('S')
 #define EXIT		ctrl('X')
@@ -19,5 +22,8 @@
 #define REFRESH		ctrl('R')
 #define KEY_TAB		9
 #define CMD		'c'
-#define SWITCH		'r'
 #define DELLINE		ctrl('K')
+
+// customization options
+//#define NO_LINES	// disable line numbering
+#define HIGHLIGHT	// enable syntax highlighting

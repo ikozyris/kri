@@ -16,9 +16,6 @@ make build
 sudo make install
 ```
 
-Or use the user-friendly dialog utility `wizard.sh`
-which also supports configuring kri
-
 ## Usage
 ```sh
 kri text.txt # open existing file or create if it doesn't exist
@@ -41,6 +38,11 @@ kri # ask for filename on save file operation
  - Replace: command _replace_ :
 	- replace (\n) str1 (\n) str2  -->  replace all str1 with str2
 	- replace 0-20 (\n) str1 (\n) str2 (\n)  -->  in range [0,20]
+
+### Customization
+
+kri is configurable at compile-time to reduce code complexity since all users are expected to compile the editor locally.
+The `configuration.h` has entries for keybindings and customizations such as disabling line numbering.
 
 ### How fast is it?
 kri is several times faster than any other text editor at reading files, searching, editing and other operations.
