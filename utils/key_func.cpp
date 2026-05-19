@@ -53,11 +53,11 @@ void command()
 		uint a;
 		sscanf(tmp + 7, "%u", &a);
 		if (a <= text.lines) {
+			scroll2(a);
 			if (a < ry)
 				iterate_bw(&it, ry - a + 1);
 			else
 				iterate_fw(&it, a - ry - 1);
-			scroll2(a);
 		}
 	} else if (starts_with(tmp, "find")) { // example: find string
 		uint from = 0, to = text.lines;
@@ -113,6 +113,7 @@ void command()
 
 void scroll2(uint a)
 {
+	scan_comments(a - 1);
 	ofy = a - 1;
 	y = x = ofx = 0;
 	cut.clear();
@@ -167,10 +168,6 @@ void enter()
 	} else { // y = maxy; scroll
 		wclrtoeol(text_win);
 		line_scroll(1);
-		wscrl(text_win, 1);
-		++ofy;
-		mvprint_line(maxy - 1, 0, &it, 0, 0);
-		wmove(text_win, maxy - 1, 0);
 	}
 }
 
@@ -226,28 +223,18 @@ void sol()
 void scrolldown()
 {
 	iterate_fw(&it, 1);
-	++ofy;
 	cut.clear();
 	ofx = 0;
-	wscrl(text_win, 1);
 	line_scroll(1);
-	mvprint_line(y, 0, &it, 0, 0);
-	highlight(y, &it);
-	wmove(text_win, y, 0);
 }
 
 // scroll screen up, print first line
 void scrollup()
 {
-	--ofy;
 	iterate_bw(&it, 1);
 	cut.clear();
 	ofx = 0;
-	wscrl(text_win, -1);
 	line_scroll(-1);
-	mvprint_line(0, 0, &it, 0, 0);
-	highlight(0, &it);
-	wmove(text_win, 0, 0);
 }
 
 // left arrow

@@ -66,14 +66,15 @@ static bool binary_search(const char *arr, const uchar *len_arr, uint size, cons
 }
 
 static bool is_separator(char ch) { return (ch > 31 && ch < 48) || (ch > 57 && ch < 65) || (ch > 90 && ch < 95) || ch > 122; }
-static inline uint lookup2(const iter *cur_ln, uint start, uint len)
+// find marker from start position in line
+static inline uint find_marker(const iter *cur_ln, uint start, uint len, const char *mark, uchar mlen)
 {
 	uint line_end = len + cur_ln->offset, j;
-	for (uint i = start + cur_ln->offset; i + lang->comm_clen <= line_end; ++i) {
-		for (j = 0; j < lang->comm_clen; ++j)
-			if (at(*cur_ln->orig, i + j) != lang->comm_cl[j])
+	for (uint i = start + cur_ln->offset; i + mlen <= line_end; ++i) {
+		for (j = 0; j < mlen; ++j)
+			if (at(*cur_ln->orig, i + j) != mark[j])
 				break;
-		if (j == lang->comm_clen)
+		if (j == mlen)
 			return i - cur_ln->offset;
 	}
 	return len;
@@ -95,6 +96,40 @@ static vector<pair<uint, uint>> comment_blocks;
 const char COMMENT = COLOR_GREEN; // color doesn't really matter
 const char OPER = COLOR_YELLOW; // here it does
 static char continued; // string/comment/directive etc. continued after cut/ in next line
+
+// fill comment_block array
+void scan_comments(uint target_line)
+{
+	if (!eligible || !lang->comm_op)
+		return;
+
+	while (comment_blocks.size() && comment_blocks.back().first > target_line)
+		comment_blocks.pop_back();
+	iter tmp = it;
+	bool in_comment = comment_blocks.back().first < it.global_pos && it.global_pos < comment_blocks.back().second;
+
+	for (uint ln = it.global_pos; ln < target_line; ++ln, iterate_fw(&tmp, 1)) {
+		uint ln_len = tmp.len(), pos;
+		for (uint i = 0; i < ln_len; i = pos + ln_len) {
+			const char *comm_ptr = lang->comm_op; // usually find open comment
+			uint comm_len = lang->comm_olen;
+			if (in_comment) {
+				comm_len = lang->comm_clen; // close comment
+				comm_ptr = lang->comm_cl;
+			}
+			pos = find_marker(&tmp, i, ln_len, comm_ptr, comm_len);
+			if (pos == ln_len)
+				break;
+			// found comment
+			if (in_comment)
+				comment_blocks.back().second = ln; // end
+			else
+				comment_blocks.push_back({ln, UINT_MAX}); // until we find the end
+			in_comment = !in_comment;
+		}
+	}
+}
+
 // highight line
 static void apply(uint line, const iter *cur_ln)
 {
@@ -122,7 +157,7 @@ static void apply(uint line, const iter *cur_ln)
 
 	// previous line was a multi-line comment, this might be too
 	if (continued == COMMENT) {
-		uint pos = lookup2(cur_ln, 0, cur_ln->len());
+		uint pos = find_marker(cur_ln, 0, cur_ln->len(), lang->comm_cl, lang->comm_clen);
 		if (pos == cur_ln->len()) { // still a comment
 			wchgat(text_win, len, 0, COMMENT, 0);
 			return;
@@ -166,8 +201,8 @@ static void apply(uint line, const iter *cur_ln)
 
 		if (lang->comm_op && starts_with(lnbuf + i, lang->comm_op)) {
 			previ = i;
-			i = dchar2bytes(i + strlen(lang->comm_op), 0, cur_ln);
-			uint pos = lookup2(cur_ln, i, cur_ln->len());
+			i = dchar2bytes(i + lang->comm_olen, 0, cur_ln);
+			uint pos = find_marker(cur_ln, i, cur_ln->len(), lang->comm_cl, lang->comm_clen);
 
 			if (pos == cur_ln->len()) { // comment continues in next line
 				continued = COMMENT; // start of new block

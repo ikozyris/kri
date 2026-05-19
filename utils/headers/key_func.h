@@ -21,7 +21,12 @@ inline void line_scroll(int dir)
 {
 #ifndef NO_LINES
 	wscrl(ln_win, dir);
-	mvwprintw(ln_win, maxy - 1, 0, "%3u", ry + 1 + dir);
+	mvwprintw(ln_win, y, 0, "%3u", ry + 1 + dir);
 	wnoutrefresh(ln_win);
 #endif
+	wscrl(text_win, dir);
+	mvprint_line(y, 0, &it, 0, 0);
+	highlight(y, &it);
+	wmove(text_win, y, 0);
+	ofy += dir;
 }

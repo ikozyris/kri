@@ -34,6 +34,7 @@ struct lang_t {
 	uchar delim_cnt;
 	uchar lntrait_cnt;
 
+	uchar comm_olen;	// opening length
 	uchar comm_clen;	// closing length
 	const char *comm_op;	// multi-line comment open
 	const char *comm_cl;	// multi-line comment close
@@ -73,7 +74,7 @@ static const delim c_delims[] = {
 static const lang_t lang_c = {
 	c_words, c_delims, c_lntraits,
 	nelems(c_words), nelems(c_delims), nelems(c_lntraits),
-	2, "/*", "*/"
+	2, 2, "/*", "*/"
 };
 
 // Makefile
@@ -82,12 +83,12 @@ static const line_trait mk_lntraits[] = {{"#", 1, COLOR_GREEN, false, 0}};
 static const lang_t lang_make = {
 	mk_words, nullptr, mk_lntraits,
 	nelems(mk_words), 0, nelems(mk_lntraits),
-	0, nullptr, nullptr
+	0, 0, nullptr, nullptr
 };
 
 // Markdown
 static const word_group md_words[] = {
-	{"|", (const uchar[]){1}, 1, COLOR_YELLOW, 0}
+	{"|", (const uchar[]){0, 1}, 1, COLOR_YELLOW, 0}
 };
 
 static const delim md_delims[] = {
@@ -99,14 +100,14 @@ static const delim md_delims[] = {
 };
 
 static const line_trait md_lntraits[] = {
-	{"# ", 1, COLOR_BLUE, true, A_BOLD},
-	{"> ", 2, COLOR_GREEN, true, 0}
+	{"#", 1, COLOR_BLUE, true, A_BOLD},
+	{">", 1, COLOR_GREEN, true, 0}
 };
 
 static const lang_t lang_md = {
 	md_words, md_delims, md_lntraits,
 	nelems(md_words), nelems(md_delims), nelems(md_lntraits),
-	0, nullptr, nullptr // TODO: 3, "```", "```"
+	0, 0, nullptr, nullptr // TODO: 3, 3, "```", "```"
 };
 
 // default, no highlighting

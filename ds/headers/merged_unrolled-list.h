@@ -15,7 +15,9 @@ typedef struct chunk {
 	uchar *len; // array of lengths of each merged line
 	uint num_lines; // count of lines in this chunk
 	uint len_cpt; // capacity of len array (initialized to 1)
-	// padding can be 6 bytes (48-42), TODO: len array inside struct
+	/* len array could be static of size 8*x-1 (up to 23 lines for current 48 byte size)
+	 * but according to tests: github.com/users/ikozyris/projects/6/views/9?pane=issue&itemId=164144032
+	 * memory usage increases for any size len static array */
 } chunk;
 
 typedef struct llist {
