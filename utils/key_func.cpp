@@ -49,7 +49,7 @@ void command()
 		reset_view();
 	} else if (strcmp(tmp, "help")  == 0)
 		print2header("resetheader, shrink, stats, suspend, scroll, find, replace", 1);
-	else if (starts_with(tmp, "scroll")) {
+	else if (strncmp(tmp, "scroll", 6) == 0) {
 		uint a;
 		sscanf(tmp + 7, "%u", &a);
 		if (a <= text.lines) {
@@ -59,14 +59,14 @@ void command()
 			else
 				iterate_fw(&it, a - ry - 1);
 		}
-	} else if (starts_with(tmp, "find")) { // example: find string
+	} else if (strncmp(tmp, "find", 4) == 0) { // example: find string
 		uint from = 0, to = text.lines;
 		char mode = 'h';
 		char *pr2 = input_header("range/mode: "); // h 5-10
 		sscanf(pr2, "%c %u-%u", &mode, &from, &to);
 		free(pr2);
 		find(tmp + 5, from, to, mode);
-	} else if (starts_with(tmp, "replace")) {
+	} else if (strncmp(tmp, "replace", 7) == 0) {
 		uint from = 0, to = text.lines;
 		sscanf(tmp + 6, "%u-%u", &from, &to);
 		free(tmp);

@@ -179,6 +179,24 @@ static void apply(uint line, const iter *cur_ln)
 	for (; i < len; ++i) {
 		wmove(text_win, line, i);
 
+		// multi-line comment open must be before delimiters (e.g in markdown ``` checked before `)
+		if (lang->comm_op && strncmp(lnbuf + i, lang->comm_op, lang->comm_olen) == 0) {
+			previ = i;
+			i = dchar2bytes(i + lang->comm_olen, 0, cur_ln);
+			uint pos = find_marker(cur_ln, i, cur_ln->len(), lang->comm_cl, lang->comm_clen);
+
+			if (pos == cur_ln->len()) { // comment continues in next line
+				continued = COMMENT; // start of new block
+				if (comment_blocks.empty() || comment_blocks.back().second != UINT_MAX)
+					comment_blocks.push_back({cur_ln->global_pos, UINT_MAX});
+				wchgat(text_win, len - previ, 0, COMMENT, 0);
+				return;
+			}
+
+			i = bytes2dchar(pos + lang->comm_clen, 0, cur_ln);
+			wchgat(text_win, i - previ + 1, 0, COMMENT, 0);
+			continue;
+		}
 		for (uint j = 0; j < lang->lntrait_cnt; ++j)
 			if (strncmp(lnbuf + i, lang->ln_traits[j].mark, lang->ln_traits[j].len) == 0) {
 				if (lang->ln_traits[j].start && i != 0)
@@ -198,35 +216,19 @@ static void apply(uint line, const iter *cur_ln)
 			wchgat(text_win, i - previ + 1, lang->delims[j].attr, lang->delims[j].color, 0);
 			goto next;
 		}
+{		// keywords
+		res_t res = get_category(lnbuf + i);
+		if (res.len == 0)
+			continue;
 
-		if (lang->comm_op && starts_with(lnbuf + i, lang->comm_op)) {
-			previ = i;
-			i = dchar2bytes(i + lang->comm_olen, 0, cur_ln);
-			uint pos = find_marker(cur_ln, i, cur_ln->len(), lang->comm_cl, lang->comm_clen);
-
-			if (pos == cur_ln->len()) { // comment continues in next line
-				continued = COMMENT; // start of new block
-				if (comment_blocks.empty() || comment_blocks.back().second != UINT_MAX)
-					comment_blocks.push_back({cur_ln->global_pos, UINT_MAX});
-				wchgat(text_win, len - previ, 0, COMMENT, 0);
-				return;
-			}
-
-			i = bytes2dchar(pos + lang->comm_clen, 0, cur_ln);
-			wchgat(text_win, i - previ + 1, 0, COMMENT, 0);
-		} else { // type (int, char) / keyword (if, return) / operator (=, +)
-			res_t res = get_category(lnbuf + i);
-			if (res.len == 0)
-				continue;
-
-			// no highlight for non-separated matches
-			bool next = is_separator(lnbuf[i + res.len]);
-			bool prev = i == 0 ? true : is_separator(lnbuf[i - 1]);
-			// except for operators which are separators
-			if ((next && prev) || res.type == OPER)
-				wchgat(text_win, res.len, res.attr, res.type, 0);
-			i += res.len - 1;
-		}
+		// no highlight for non-separated matches
+		bool next = is_separator(lnbuf[i + res.len]);
+		bool prev = i == 0 ? true : is_separator(lnbuf[i - 1]);
+		// except for operators which are separators
+		if ((next && prev) || res.type == OPER)
+			wchgat(text_win, res.len, res.attr, res.type, 0);
+		i += res.len - 1;
+}
 next:; // continue; but for when inside other loop
 	}
 }

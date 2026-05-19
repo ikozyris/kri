@@ -22,4 +22,3 @@ inline void get_off(uint &x, uint &i, const gap_buf &buf) { // helper function f
 	x++;
 	i++;
 }
-bool starts_with(const char *str, const char *prefix) __attribute__ ((const));

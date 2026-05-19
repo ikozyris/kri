@@ -107,7 +107,7 @@ static const line_trait md_lntraits[] = {
 static const lang_t lang_md = {
 	md_words, md_delims, md_lntraits,
 	nelems(md_words), nelems(md_delims), nelems(md_lntraits),
-	0, 0, nullptr, nullptr // TODO: 3, 3, "```", "```"
+	3, 3, "```", "```"
 };
 
 // default, no highlighting
