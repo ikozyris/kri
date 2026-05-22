@@ -118,7 +118,7 @@ void scroll2(uint a)
 	y = x = ofx = 0;
 	cut.clear();
 	print_lines();
-	wrefresh(ln_win);
+	wnoutrefresh(ln_win);
 	print_text(0);
 }
 

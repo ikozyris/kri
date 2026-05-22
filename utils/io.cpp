@@ -13,7 +13,7 @@ void print2header(const char *msg, uchar pos)
 		mvwprintw(header_win, 0, hmx - 10, "                    ");
 		mvwprintw(header_win, 0, hmx - strlen(msg) / 2, "%s", msg);
 	}
-	wrefresh(header_win);
+	wnoutrefresh(header_win);
 }
 
 // Ask for input from header
