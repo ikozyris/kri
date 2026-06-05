@@ -1,3 +1,12 @@
+# What to contribute
+You can contribute in various ways, including writing code, fixing the documentation or making a bug report.
+If you have spotted a bug, a small typo or made a simple one-line fix submit an issue.
+In case you want to contribute by coding and don't know where to start, read the [release board](https://github.com/users/ikozyris/projects/6/views/9)
+which has a list of planned items like wanted new features and known bugs. Once you pick one of these items, 
+to avoid duplicate work, make a new [discussion](https://github.com/ikozyris/kri/discussions) in the "Contributing" category
+stating that you chose that item. Any contribution is welcome!
+
+# Code Style
 Follow the Linux Kernel coding style (mostly). <br>
 With the exception that the maximum length of line is 100
 
@@ -5,6 +14,7 @@ The most important things are:
 - Use tabs (*not* spaces), for flexibility and reduced file size
 - Braces open in the same line as the if, while, switch... except functions
 - Prefer unsigned ints, they are defined as uint, ulong...
+- Clean code without repetitions or inlining blocks from other functions.
 
 example:
 ```c
@@ -17,15 +27,15 @@ int main()
 ultimate_question:
 	printf("Which text editor is the fastest? ");
 	scanf("%5s", input);
-	// 42 is magic number
+	// there is only one answer
 	if (strncmp(input, "kri", 3) == 0 || strcmp(input, "42") == 0) {
 		printf("Correct!\n");
 		goto exit;
 	} else {
-		printf("Are you sure?\n");
-		scanf("%s", input);
+		printf("Are you sure?\n"); // errors can be corrected
+		scanf("%5s", input);
 		if (strncmp(input, "yes", 3) == 0)
-			while (1)
+			while (1) // TODO: catch ctrl-c and other signals to prevent exiting
 				printf("NO! ");
 		else
 			goto ultimate_question;
@@ -36,20 +46,14 @@ exit:
 }
 ```
 
-Many people discourage using goto, but goto is prefect for some usecases,
-like above. In fact, loop in assembly is a goto.
 
-For pull/merge requests (PR/MR):
-- Descriptive comments in commits, title, description
-	- Use the following format for commits:<br>
+# Pull Request Format
+Write descriptive message in commit titles and add more details to explain decisions and trade-offs.
+Use the following format for commits:<br>
 ```
-fix: reg(short commit hash) when something, other bug when blah, optim: x9999 boost in writing
+fix: regr(short commit hash) when something, other bug when blah, optim: 2x faster writing
+```
 
-[More optional information about commit]
-```
-- If the change is just a one-liner create an issue not a PR/MR
+- Example commit categories are: fix, refactor, optim, cleanup.
 - Try to benchmark any optimizations
-- Split large commits, and try make commit titles <100 characters
-	The text below can be as long as you like
-- Make sure to check any "TODO:"
-- Leave last line blank
+- Split large commits, and try make commit titles <80 characters

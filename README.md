@@ -40,11 +40,10 @@ kri # ask for filename on save file operation
 	- replace 0-20 (\n) str1 (\n) str2 (\n)  -->  in range [0,20]
 
 ### Customization
-
-kri is configurable at compile-time to reduce code complexity since all users are expected to compile the editor locally.
+Configurations are possible only at compile-time to reduce code complexity since all users are expected to compile the editor locally.
 The `configuration.h` has entries for keybindings and customizations such as disabling line numbering.
 
-### How fast is it?
+### Performance
 kri is several times faster than any other text editor at reading files, searching, editing and other operations.
 See the [benchmarks](https://github.com/ikozyris/kri/wiki/Benchmarks-&-Performance) for more.
 

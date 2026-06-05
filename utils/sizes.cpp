@@ -14,7 +14,7 @@ char hrsize(size_t bytes, char *dest, ushort dest_cpt)
 	return suffix[i];
 }
 
-// TODO: make both functions __attrubute__ ((const)) by also returning flag
+// TODO: make both functions __attribute__ ((const)) by also returning flag
 // displayed characters to bytes, flag -> disp_x where counting stopped at
 uint dchar2bytes(uint disp_x, uint from, const iter *i)
 {
