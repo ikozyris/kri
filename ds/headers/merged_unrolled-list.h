@@ -63,6 +63,15 @@ inline void erase_ch(iter *it)
 	ofx -= len - 1;
 }
 
+inline void resize_len(chunk *a)
+{
+	if (a->len_cpt <= a->num_lines + 1) {
+		a->len = (uchar*)realloc(a->len, a->len_cpt * 2);
+		memset(a->len + a->len_cpt - 1, 0, a->len_cpt + 1);
+		a->len_cpt *= 2;
+	}
+}
+
 extern llist text;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"

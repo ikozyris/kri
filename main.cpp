@@ -340,8 +340,14 @@ init:
 			insert_s(*it.orig, s2, len);
 			if (len > 1)
 				ofx += len - 1; // UTF-8 character
-			if (it.parent()->len)
+			if (it.parent()->len) {
 				it.parent()->len[it.relative_pos] += len;
+				if (it.orig->len() + 1 >= MAX_CHUNK_SIZE) {
+					split_mline(&text, it.parent());
+					if (it.relative_pos == it.parent()->num_lines) // last line of chunk
+						point2chunk(&it, it.parent()->next);
+				}
+			}
 			break;
 		}
 	}

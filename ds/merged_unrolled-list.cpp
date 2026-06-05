@@ -10,11 +10,7 @@ void point2chunk(iter *it, const chunk *a)
 
 void append_len(chunk *a, uint len)
 {
-	if (a->len_cpt <= a->num_lines + 1) {
-		a->len = (uchar*)realloc(a->len, a->len_cpt * 2);
-		memset(a->len + a->len_cpt - 1, 0, a->len_cpt + 1);
-		a->len_cpt *= 2;
-	}
+	resize_len(a);
 	a->len[a->num_lines] = len;
 	a->num_lines++;
 }
@@ -97,6 +93,13 @@ void rm_mline(chunk *ch, uint pos, const iter *it) {
 // (it doesn't matter which of the merged lines is split as they are <= 256B)
 void split_mline(llist *list, chunk *a)
 {
+	if (a->num_lines <= 1) { // convert to standalone line
+		free(a->len);
+		a->len = nullptr;
+		a->num_lines = 1;
+		return;
+	}
+
 	uint last_length = a->len[a->num_lines - 1];
 
 	chunk *next_chunk; // may be newly allocated
@@ -104,14 +107,23 @@ void split_mline(llist *list, chunk *a)
 	if (a->next == list->tail || a->next->merged_lines.len() + last_length > MAX_CHUNK_SIZE) {
 		next_chunk = create_chunk();
 		insc_after(list, a, next_chunk);
-	} else { // shift all lengths of next chunk by one to put this length in pos 0
+	} else
 		next_chunk = a->next;
+
+	bool was_standalone = (next_chunk->len == nullptr && next_chunk->num_lines == 1);
+	resize_len(next_chunk);
+	if (was_standalone)
+		next_chunk->len[1] = next_chunk->merged_lines.len();
+	else
 		memmove(&next_chunk->len[1], &next_chunk->len[0], next_chunk->num_lines);
-	}
+	next_chunk->len[0] = last_length;
+	next_chunk->num_lines++;
+
+	mv_curs(next_chunk->merged_lines, 0);
+
 	a->num_lines--;
 	mv_curs(a->merged_lines, a->merged_lines.len() - last_length);
 	insert_s(next_chunk->merged_lines, a->merged_lines.buffer() + a->merged_lines.cpt() - last_length, last_length);
-	append_len(next_chunk, last_length);
 	// delete last line
 	a->merged_lines.gpe = a->merged_lines.cpt() - 1;
 }

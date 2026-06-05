@@ -129,10 +129,7 @@ void enter()
 	insert_c(*it.orig, '\n');
 
 	if (ch->len) { // this chunk has multiple lines; just insert new length
-		if (ch->len_cpt < ch->num_lines + 1) {
-			ch->len_cpt *= 2;
-			ch->len = (uchar*)realloc(ch->len, ch->len_cpt);
-		}
+		resize_len(ch);
 		uint pos = it.relative_pos;
 		memmove(&ch->len[pos + 1], &ch->len[pos], ch->num_lines - pos);
 		ch->num_lines++;
@@ -141,7 +138,7 @@ void enter()
 
 		it.offset = it.orig->gps;
 		it.relative_pos++;
-		if (it.orig->len() > MAX_CHUNK_SIZE) {
+		if (it.orig->len() + 1 >= MAX_CHUNK_SIZE) {
 			split_mline(&text, it.parent());
 			if (it.relative_pos == it.parent()->num_lines) // last line of chunk
 				point2chunk(&it, it.parent()->next);
