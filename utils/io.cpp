@@ -66,7 +66,7 @@ void print_text(uint line)
 {
 	iter i = it;
 	if (ofy + line < i.global_pos) // after inserting \n
-		iterate_bw(&i, i.global_pos - (ofy + line)); 
+		iterate_bw(&i, i.global_pos - (ofy + line));
 	else if (ofy + line > i.global_pos) // just in case
 		iterate_fw(&i, ofy + line - i.global_pos);
 	wmove(text_win, line, 0);
@@ -115,21 +115,21 @@ void save()
 		wmove(text_win, y, x);
 		return;
 	}
-#define gpb i->merged_lines
+#define gpb i->merged_lines /*gap buffer*/
 	chunk *i = text.head->next;
 	for (uint j = 0; i != text.tail->prev && j < text.nodes; ++j, i = i->next) {
 		fwrite(gpb.buffer(), 1, gpb.gps, fo);
 		fwrite(gpb.buffer() + gpb.gpe + 1, 1, gpb.cpt() - gpb.gpe - 1, fo); // print remaining bytes
 	}
-	// last line may have a \0 byte at i->length, don't print it | TODO: simplify
-	uint end = gpb.gps;
-	if (end > 0 && gpb.buffer()[gpb.gps - 1] == 0)
-		end--;	
-	fwrite(gpb.buffer(), 1, end, fo);
-	end = gpb.cpt() - gpb.gpe - 1;
-	if (end > 0 && gpb.buffer()[gpb.cpt() - 1] == 0)
-		end--;
-	fwrite(gpb.buffer() + gpb.gpe + 1, 1, end, fo);
+	// last line may have a \0 byte at i->length, don't print it
+	uint size = gpb.gps;
+	if (size > 0 && gpb.buffer()[gpb.gps - 1] == 0)
+		size--;
+	fwrite(gpb.buffer(), 1, size, fo);
+	size = gpb.cpt() - gpb.gpe - 1;
+	if (size > 0 && gpb.buffer()[gpb.cpt() - 1] == 0)
+		size--;
+	fwrite(gpb.buffer() + gpb.gpe + 1, 1, size, fo);
 #undef gpb
 	fclose(fo);
 	reset_header();
@@ -176,7 +176,7 @@ void read_file2(FILE *in)
 					append_len(chnk, ln_sz);
 				text.lines++;
 				ln_sz = 0;
-			} 
+			}
 			insert_s(chnk->merged_lines, cur_ln, frag_sz); // write the line fragment
 
 			cur_ln = new_ln + 1;

@@ -101,7 +101,6 @@ void split_mline(llist *list, chunk *a)
 	}
 
 	uint last_length = a->len[a->num_lines - 1];
-
 	chunk *next_chunk; // may be newly allocated
 	// create new chunk if last line doesn't fit in next chunk
 	if (a->next == list->tail || a->next->merged_lines.len() + last_length > MAX_CHUNK_SIZE) {

@@ -35,7 +35,7 @@ struct gap_buf {
 
 void init(gap_buf &a); // initialize the gap buffer (should already be called by constructor)
 void resize2fit(gap_buf &a, uint sz); // resize the buffer to be >= than specified size
-void resize_up(gap_buf &a); // increase 
+void resize_up(gap_buf &a); // increase
 void mv_curs(gap_buf &a, uint pos); // move the cursor to position
 void insert_c(gap_buf &a, char ch); // insert character at cursor position
 void insert_s(gap_buf &a, const char *str, uint len); // insert string with given length at cursor pos

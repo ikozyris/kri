@@ -50,12 +50,12 @@ static const word_group c_words[] = {
 },
 {
 	"break""case""continue""default""do""else""extern""false""for""goto""if""inline"
-	"return""sizeof""static""struct""switch""true""while",
-	(const uchar[]){0, 5, 9, 17, 24, 26, 30, 36, 41, 44, 48, 50, 56, 62, 68, 74, 80, 86, 90, 95},
+	"return""sizeof""static""struct""switch""true""typedef""while",
+	(const uchar[]){0, 5, 9, 17, 24, 26, 30, 36, 41, 44, 48, 50, 56, 62, 68, 74, 80, 86, 90, 97, 102},
 	19, COLOR_BLUE, 0
 },
 {
-	"!%&*+-/:<=>?[]^|~", // memchr is better but this is versatile
+	"!%&*+-/:<=>?[]^|~", // memchr is better but this modular
 	(const uchar[]){0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17},
 	17, COLOR_YELLOW, 0
 }
