@@ -106,7 +106,9 @@ void scan_comments(uint target_line)
 	while (comment_blocks.size() && comment_blocks.back().first > target_line)
 		comment_blocks.pop_back();
 	iter tmp = it;
-	bool in_comment = comment_blocks.back().first < it.global_pos && it.global_pos < comment_blocks.back().second;
+	bool in_comment = false;
+	if (comment_blocks.size())
+		in_comment = comment_blocks.back().first < it.global_pos && it.global_pos < comment_blocks.back().second;
 
 	for (uint ln = it.global_pos; ln < target_line; ++ln, iterate_fw(&tmp, 1)) {
 		uint ln_len = tmp.len(), pos;
