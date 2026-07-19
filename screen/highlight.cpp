@@ -11,7 +11,7 @@ static const struct {
 } ext_map[] = {
 	// TODO: separate C and C++
 	{"c",   &lang_c}, {"cpp", &lang_c}, {"cc", &lang_c}, {"h", &lang_c}, {"hpp", &lang_c},
-	{"mk", &lang_make}, {"md", &lang_md}
+	{"mk", &lang_make}, {"md", &lang_md}, {"py", &lang_py}
 };
 
 // detect language from filename, TODO: check first line content (shebang etc.)

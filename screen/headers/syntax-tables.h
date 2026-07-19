@@ -110,5 +110,43 @@ static const lang_t lang_md = {
 	3, 3, "```", "```"
 };
 
+// Python
+static const word_group py_words[] = {
+{
+	"False""None""True""and""as""assert""async""await""break""case""class""continue""def""del"
+	"elif""else""except""finally""for""from""global""if""import""in""is""lambda""match""not"
+	"or""pass""raise""return""try""while""with""yield",
+	(const uchar[]){0, 5, 9, 13, 16, 18, 24, 29, 34, 39, 43, 48, 56, 59, 62, 66, 70, 76, 83, 86,
+		90, 96, 98, 104, 106, 108, 114, 119, 122, 124, 128, 133, 139, 142, 147, 151, 156},
+	36, COLOR_BLUE, 0
+},
+{
+	"abs""bool""dict""enumerate""filter""float""int""len""list""map""max""min""open""print"
+	"range""set""str""sum""tuple""zip",
+	(const uchar[]){3, 7, 11, 20, 26, 31, 34, 37, 41, 44, 47, 50, 54, 59, 64, 67, 70, 73, 78, 81},
+	19, COLOR_RED, 0
+},
+{
+	"+-*/%<>=!&|:^~.,()[]{}",
+	(const uchar[]){0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22},
+	22, COLOR_YELLOW, 0
+}
+};
+
+static const line_trait py_lntraits[] = {
+	{"#", 1, COLOR_GREEN, false, 0}
+};
+
+static const delim py_delims[] = {
+	{"'", 1, COLOR_MAGENTA, 0},
+	{"\"", 1, COLOR_MAGENTA, 0}
+};
+
+static const lang_t lang_py = {
+	py_words, py_delims, py_lntraits,
+	nelems(py_words), nelems(py_delims), nelems(py_lntraits),
+	3, 3, "\"\"\"", "\"\"\""
+};
+
 // default, no highlighting
 static const lang_t lang_none = {};
