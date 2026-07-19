@@ -43,16 +43,16 @@ struct lang_t {
 // C
 static const word_group c_words[] = {
 {
-	"bool""char""const""double""enum""float""int""int16_t""int32_t""int64_t""long""short"
+	"bool""char""const""double""enum""float""int""int16_t""int32_t""int64_t""int8_t""long""short"
 	"signed""size_t""uchar""uint""uint16_t""uint32_t""uint64_t""uint8_t""ulong""unsigned""ushort""void",
-	(const uchar[]){0, 4, 8, 13, 19, 23, 28, 31, 38, 45, 52, 56, 61, 67, 73, 78, 82, 90, 98, 106, 113, 118, 126, 132, 136},
-	24, COLOR_RED, 0
+	(const uchar[]){0, 4, 8, 13, 19, 23, 28, 31, 38, 45, 52, 58, 62, 67, 73, 79, 84, 88, 96, 104, 112, 119, 124, 132, 138, 142},
+	25, COLOR_RED, 0
 },
 {
 	"break""case""continue""default""do""else""extern""false""for""goto""if""inline"
 	"return""sizeof""static""struct""switch""true""typedef""while",
 	(const uchar[]){0, 5, 9, 17, 24, 26, 30, 36, 41, 44, 48, 50, 56, 62, 68, 74, 80, 86, 90, 97, 102},
-	19, COLOR_BLUE, 0
+	20, COLOR_BLUE, 0
 },
 {
 	"!%&*+-/:<=>?[]^|~", // memchr is better but this modular
@@ -93,7 +93,7 @@ static const word_group md_words[] = {
 
 static const delim md_delims[] = {
 	{"**", 2, COLOR_RED, A_BOLD},
-	{"~~", 2, COLOR_WHITE, A_DIM}, // ncurses for some weird reason doesn't have strikethrough
+	{"~~", 2, COLOR_WHITE, A_DIM}, // ncurses doesn't have strikethrough
 	{"`", 1, COLOR_CYAN, 0},
 	{"*", 1, COLOR_MAGENTA, A_ITALIC}, // why are there multiple syntaxes?
 	{"_", 1, COLOR_MAGENTA, A_ITALIC}
