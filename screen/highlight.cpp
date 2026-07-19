@@ -53,7 +53,13 @@ static bool binary_search(const char *arr, const uchar *len_arr, uint size, cons
 		mid = (hi + lo) / 2;
 		int cmp = strncmp(arr + len_arr[mid], line, len_arr[mid + 1] - len_arr[mid]);
 		if (cmp == 0) {
-			res.len = len_arr[mid + 1] - len_arr[mid];
+			uint best = mid; // prefer the longest match
+			for (; mid < size; ++mid) {
+				if (strncmp(arr + len_arr[mid], line, len_arr[mid + 1] - len_arr[mid]) != 0)
+					break;
+				best = mid;
+			}
+			res.len = len_arr[best + 1] - len_arr[best];
 			res.type = type;
 			res.attr = attr;
 			return true;
@@ -83,11 +89,12 @@ static inline uint find_marker(const iter *cur_ln, uint start, uint len, const c
 // identify color to use
 static res_t get_category(const char *line)
 {
-	res_t res = {0, COLOR_WHITE, 0};
+	res_t res = {0, COLOR_WHITE, 0}, tmp;
 
 	for (uchar i = 0; i < lang->wordgr_cnt; ++i)
-		if (binary_search(lang->words[i].words, lang->words[i].lens, lang->words[i].cnt, line, res, lang->words[i].color, lang->words[i].attr))
-			return res;
+		if (binary_search(lang->words[i].words, lang->words[i].lens, lang->words[i].cnt, line, tmp, lang->words[i].color, lang->words[i].attr))
+			if (tmp.len > res.len)
+				res = tmp;
 
 	return res;
 }
