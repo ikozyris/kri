@@ -86,7 +86,7 @@ init:
 	getmaxyx(text_win, maxy, maxx);
 	wnoutrefresh(ln_win);
 	wnoutrefresh(header_win);
-	overflows.resize(maxy, 0);
+	overflows.resize(maxy);
 
 	print_text(0);
 //loop:
@@ -114,8 +114,10 @@ init:
 		case DOWN:
 			if (ry >= text.lines) // do not scroll indefinetly
 				break;
-			if (!cut.empty()) // revert cut
+			if (!cut.empty()) { // revert cut
 				mvprint_line(y, 0, &it, 0, 0);
+				highlight(y, &it);
+			}
 			cut.clear();
 			ofx = 0; // invalidated
 			if (y == maxy - 1)
@@ -136,8 +138,10 @@ init:
 		case UP:
 			if (ofy == 0 && y == 0)
 				break;
-			if (!cut.empty()) // revert cut
+			if (!cut.empty()) { // revert cut
 				mvprint_line(y, 0, &it, 0, 0);
+				highlight(y, &it);
+			}
 			if (y == 0 && ofy != 0)
 				scrollup();
 			else {
@@ -312,6 +316,7 @@ init:
 			if (it.parent()->len)
 				it.parent()->len[it.relative_pos] += 1;
 			mvprint_line(y, x, &it, rx, 0);
+			highlight(y, &it);
 			ofx -= 7 - x % 8;
 			wmove(text_win, y, x + 8 - x % 8);
 			break;

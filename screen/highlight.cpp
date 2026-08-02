@@ -102,7 +102,7 @@ static res_t get_category(const char *line)
 static vector<pair<uint, uint>> comment_blocks;
 const char COMMENT = COLOR_GREEN; // color doesn't really matter
 const char OPER = COLOR_YELLOW; // here it does
-static char continued; // string/comment/directive etc. continued after cut/ in next line
+static char continued; // string/comment/directive etc. continued after cut/ in this line
 
 // fill comment_block array
 void scan_comments(uint target_line)

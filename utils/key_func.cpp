@@ -186,6 +186,7 @@ void mvr_scurs(uint t_byte)
 	if (prev_cut_size != cut.size()) { // line got cut
 		clean_mark(y);
 		mvprint_line(y, 0, &it, cut.back().byte, 0);
+		highlight(y, &it);
 	}
 	wmove(text_win, y, x);
 }
@@ -198,6 +199,7 @@ void mvl_scurs(uint t_byte)
 		cur = cut.empty() ? 0 : cut.back().byte;
 	}
 	mvprint_line(y, 0, &it, cur, 0);
+	highlight(y, &it);
 
 	x = bytes2dchar(t_byte, cur, &it);
 	ofx = (long)flag - (long)x;
@@ -274,8 +276,10 @@ ushort right() {
 		if (y == maxy - 1) {
 			scrolldown();
 			return SCROLL;
-		} else if (!cut.empty()) // revert cut
+		} else if (!cut.empty()) { // revert cut
 			mvprint_line(y, 0, &it, 0, 0);
+			highlight(y, &it);
+		}
 		wmove(text_win, y + 1, 0);
 		iterate_fw(&it, 1);
 		cut.clear();
@@ -286,6 +290,7 @@ cut_line:
 		clearline;
 		ofx += x;
 		cut.push_back({x, (cut.empty() ? 0 : cut.back().byte) + print_line(&it, ofx, 0, y)});
+		highlight(y, &it);
 		wmove(text_win, y, 0);
 		return CUT;
 	} else if (rx < it.len()) { // go right
