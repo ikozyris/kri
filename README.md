@@ -5,11 +5,6 @@ More information is available on the [wiki](https://github.com/ikozyris/kri/wiki
 
 ![A C++ file in kri](https://github.com/user-attachments/assets/7d221564-da5e-41de-a63b-ba5e31c257d1)
 
-
-## Install
-The 0.8.3 release has been packaged for:
- - Arch Linux: [AUR package](https://aur.archlinux.org/packages/kri/)
-
 ## Build
 ```sh
 make build
