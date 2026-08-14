@@ -7,7 +7,7 @@ char *input_header(const char *q); // return allocated 128 byte string, answer t
 #define mvprint_line(y, x, buffer, from, to) (wmove(text_win, y, x), print_line(buffer, from, to, y))
 uint print_line(const iter *i, uint from, uint to, uint y); // print substring of buffer, to = 0 -> fill line
 void print_text(uint line); // print text string from line
-#define clean_mark(line) (mvwaddch(text_win, (line), maxx - 1, ' '))
+#define clean_mark(line) (mvwdelch(text_win, (line), maxx - 1))
 #define print_del_mark(line) {if (overflows[line]) {mvwins_wch(text_win, (line), maxx - 1, &mark);}}
 void print_new_mark();
 void save(); // save buffer to filename
