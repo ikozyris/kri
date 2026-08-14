@@ -1,3 +1,4 @@
+#pragma once
 #include "gapbuffer.h"
 
 /* small lines are merged if they sum < 256 B (to reduce size of len array)

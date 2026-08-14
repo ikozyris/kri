@@ -68,6 +68,8 @@ static void search_mt_common(uint from, uint to, void *search_fn(void*));
 
 uint search(const char *str, uint len, uint from, uint to, char mode)
 {
+	for (uint i = 0; i < occurrences.size(); ++i)
+		occurrences[i].array[0] = 0;
 	string = str;
 	str_len = len;
 	append = mode == 'h';
@@ -100,10 +102,6 @@ void find(const char *str, uint from, uint to, char mode)
 	point2begin(&tmp_it);
 	iterate_fw(&tmp_it, from);
 	it = tmp_it;
-
-	if (mode == 'c' && total > 0)
-		for (uint i = 0; i < occurrences.size(); ++i)
-			occurrences[i].array[0] = 0;
 
 	if (mode == 'c' || total == 0)
 		return;
@@ -359,7 +357,6 @@ static void *_search_la(void *arg)
 	struct args_str *a = (struct args_str*)arg;
 
 	for (uint i = 0; i < a->count; ++i) {
-		occurrences[a->out].array[0] = 0; // reset previous search
 		searchstr(&occurrences[a->out], &a->lines->merged_lines);
 		a->out++; // next chunk in occurrences[]
 		a->lines = a->lines->next;
