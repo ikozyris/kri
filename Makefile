@@ -14,9 +14,9 @@ CXXFLAGS = -Wall -Wextra -pedantic $(OPTIM)
 
 # the build target executable
 TARGET = kri
-PATHT = /usr/bin/
 # root is not required to install
-#PATHT = ~/.local/bin/
+PATHT = ~/.local/bin/
+#PATHT = /usr/bin/
 
 # source files
 SRCS = main.cpp \
@@ -32,6 +32,16 @@ SRCS = main.cpp \
 # object files
 OBJS = $(SRCS:.cpp=.o)
 
+# run in sequence (workaround for -jN)
+all:
+	$(MAKE) clean
+	$(MAKE) build
+	$(MAKE) install
+
+clean:
+	- rm $(OBJS) $(TARGET)
+#	- rm $(SRCS:.cpp=.gcno) $(SRCS:.cpp=.gcda)
+
 # default target
 build: $(TARGET)
 
@@ -43,12 +53,8 @@ $(TARGET): $(OBJS)
 %.o: %.cpp
 	$(CXX) -c $< -o $@ $(CXXFLAGS)
 
-install:
+install: $(TARGET)
 	cp $(TARGET) $(PATHT)$(TARGET)
 
-clean:
-	rm $(OBJS) $(TARGET)
-#	rm $(SRCS:.cpp=.gcno) $(SRCS:.cpp=.gcda)
-
 # phony targets
-.PHONY: build install clean
+.PHONY: all clean build install
