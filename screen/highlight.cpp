@@ -176,12 +176,11 @@ static void apply(uint line, const iter *cur_ln)
 		if (comment_blocks.size() && comment_blocks.back().second == UINT_MAX)
 			comment_blocks.back().second = cur_ln->global_pos;
 
-		if (pos > len) { // ends after len
+		i = bytes2dchar(pos + lang->comm_clen, 0, cur_ln); // continue from end of comment
+		if (i > len) {
 			wchgat(text_win, len, 0, COMMENT, 0);
 			return;
 		}
-
-		i = bytes2dchar(pos + lang->comm_clen, 0, cur_ln); // continue from end of comment
 		wchgat(text_win, i, 0, COMMENT, 0);
 	}
 
@@ -202,7 +201,9 @@ static void apply(uint line, const iter *cur_ln)
 				return;
 			}
 
-			i = bytes2dchar(pos + lang->comm_clen, 0, cur_ln);
+			i = bytes2dchar(pos + lang->comm_clen, 0, cur_ln) - 1;
+			if (i >= len)
+				i = len - 1;
 			wchgat(text_win, i - previ + 1, 0, COMMENT, 0);
 			continue;
 		}
@@ -218,7 +219,7 @@ static void apply(uint line, const iter *cur_ln)
 			if (strncmp(lnbuf + i, lang->delims[j].delim, lang->delims[j].len) != 0)
 				continue;
 			previ = i;
-			for (i += lang->delims[j].len; i + lang->delims[j].len <= len; ++i)
+			for (i += lang->delims[j].len; i + lang->delims[j].len < len; ++i)
 				if (strncmp(lnbuf + i, lang->delims[j].delim, lang->delims[j].len) == 0)
 					break;
 			i += lang->delims[j].len - 1; // last char of closing delim
