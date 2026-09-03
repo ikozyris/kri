@@ -109,7 +109,8 @@ init:
 		wmove(text_win, y, x);
 #endif
 	//goto stop;
-		wget_wch(text_win, (wint_t*)s);
+		if (wget_wch(text_win, (wint_t*)s) == ERR)
+			continue;
 		switch (s[0]) {
 		case DOWN:
 			if (ry >= text.lines) // do not scroll indefinetly

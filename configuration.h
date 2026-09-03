@@ -26,4 +26,10 @@
 
 // customization options
 //#define NO_LINES	// disable line numbering
+#ifdef NO_LINES
+#define LN_WIDTH 0
+#else
+#define LN_WIDTH 4	// digits of line numbering
+#endif
+
 #define HIGHLIGHT	// enable syntax highlighting

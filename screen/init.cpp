@@ -25,10 +25,7 @@ void init_curses()
 // initialize text window
 void init_text()
 {
-	uint ln_width = 4;
-#ifdef NO_LINES
-	ln_width = 0;
-#endif
+	uint ln_width = LN_WIDTH;
 	text_win = newwin(maxy - 1, maxx - ln_width, 1, ln_width);
 	scrollok(text_win, TRUE);
 	keypad(text_win, TRUE);
