@@ -28,11 +28,11 @@ uint dchar2bytes(uint disp_x, uint from, const iter *i)
 }
 
 // bytes to displayed characters, flag -> bytes of x returned
-uint bytes2dchar(uint bytes, uint from, const iter *i)
+uint bytes2dchar(uint bytes, uint from, const iter *i, uint start_x)
 {
 	from += i->offset;
 	bytes += i->offset;
-	uint x = 0;
+	uint x = start_x;
 	while (from < bytes)
 		get_off(x, from, *i->orig);
 	flag = from - i->offset;

@@ -41,7 +41,7 @@ static match index2yx(uint index, const iter *it, uint &prev_byte, uint &prev_x)
 		prev_byte = cbyte;
 		prev_x = 0;
 	}
-	prev_x += bytes2dchar(index, prev_byte, it);
+	prev_x = bytes2dchar(index, prev_byte, it, prev_x);
 	prev_byte = index;
 	return {y - 1, prev_x, index - cbyte};
 }

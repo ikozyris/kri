@@ -3,7 +3,7 @@
 
 char hrsize(size_t bytes, char *dest, ushort dest_cpt) __attribute__ ((const)); // format bytes
 uint dchar2bytes(uint disp_x, uint from, const iter *i); // how many bytes are disp_x displayed chars
-uint bytes2dchar(uint bytes, uint from, const iter *i);
+uint bytes2dchar(uint bytes, uint from, const iter *i, uint start_x = 0);
 inline long calc_offset_dis(uint disp_x, uint from, const iter *i) { // offset until displayed character
 	return (long)dchar2bytes(disp_x, from, i) - (long)flag;
 }
