@@ -88,7 +88,8 @@ uint search(const char *str, uint len, uint from, uint to, char mode)
 void find(const char *str, uint from, uint to, char mode)
 {
 	str_len = strlen(str);
-	if (!str_len || to > text.lines || from > to) {
+	if (!str_len || to > text.lines || from > to || !(mode == 'h' || mode == 'c')) {
+		clear_header();
 		print2header("Invalid parameters", 1);
 		return;
 	}

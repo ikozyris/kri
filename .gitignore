@@ -9,3 +9,5 @@ microbench
 gmon.out
 *.o
 *.kdev4
+todo
+experiments

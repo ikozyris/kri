@@ -62,13 +62,13 @@ void command()
 	} else if (strncmp(tmp, "find", 4) == 0) { // example: find string
 		uint from = 0, to = text.lines;
 		char mode = 'h';
-		char *pr2 = input_header("range/mode: "); // h 5-10
+		char *pr2 = input_header("range/mode (h/c 5-10): "); // h 5-10
 		sscanf(pr2, "%c %u-%u", &mode, &from, &to);
 		free(pr2);
 		find(tmp + 5, from, to, mode);
 	} else if (strncmp(tmp, "replace", 7) == 0) {
 		uint from = 0, to = text.lines;
-		sscanf(tmp + 6, "%u-%u", &from, &to);
+		sscanf(tmp + 8, "%u-%u", &from, &to);
 		free(tmp);
 		if (to > text.lines || from > to) {
 			print2header("Invalid parameters", 1);
@@ -76,7 +76,10 @@ void command()
 		}
 
 		char *old = input_header("old: ");
-		if (old[0] == 0) return;
+		if (old[0] == 0) {
+			free(old);
+			return;
+		}
 		char *newst = input_header("new: ");
 		ushort old_len = strlen(old), newst_len = strlen(newst);
 		uint count = search(old, old_len, from, to, 'h');
@@ -84,7 +87,11 @@ void command()
 		int offset = (int)newst_len - (int)old_len;
 		iter tmp_it;
 		point2begin(&tmp_it);
+		iterate_fw(&tmp_it, from);
 		for (uint i = 0; i < occurrences.size(); ++i) { // occurrences in each chunk
+			if (offset > 0 && occurrences[i].len() > 0) // pre-allocate
+				resize2fit(*tmp_it.orig, tmp_it.orig->len() + occurrences[i].len() * offset + 2);
+
 			for (uint j = 1; j <= occurrences[i].len(); ++j) {
 				uint index = occurrences[i].array[j];
 				mv_curs(*tmp_it.orig, index + offset * (int)(j - 1));
@@ -99,8 +106,10 @@ void command()
 			tmp_it.orig = &tmp_it.parent()->next->merged_lines;
 			occurrences[i].array[0] = 0; // cleanup for next search
 		}
+		point2begin(&it); // TODO: add iterate_to which auto uses nearest iter
+		iterate_fw(&it, ry);
 		tmp = (char*)malloc(128);
-		sprintf(tmp, "Replaced %u occurences of \"%s\" with \"%s\" from line %u to %u", count, old, newst, from, to);
+		snprintf(tmp, 128, "Replaced %u occurences of \"%s\" with \"%s\" from line %u to %u", count, old, newst, from, to);
 		print2header(tmp, 1);
 		print_text(y);
 
