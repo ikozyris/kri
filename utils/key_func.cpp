@@ -33,14 +33,19 @@ void command()
 	if (strcmp(tmp, "resetheader") == 0)
 		reset_header();
 	else if (strcmp(tmp, "shrink") == 0) {
+		uint freed = 16;
+		// shrink line buffer
+		lnbf_cpt = 16;
+		lnbuf = (char*)realloc(lnbuf, lnbf_cpt);
+
+		// shrink search occurrences array
+
+
 		char buffer[64] = "";
 		snprintf(buffer, 64, "freed: %u B", lnbf_cpt);
 		clear_header();
 		print2header(buffer, 1);
 
-		// shrink line buffer
-		lnbf_cpt = 16;
-		lnbuf = (char*)realloc(lnbuf, lnbf_cpt);
 	} else if (strcmp(tmp, "stats") == 0)
 		stats();
 	else if (strcmp(tmp, "suspend") == 0) {
@@ -60,12 +65,12 @@ void command()
 				iterate_fw(&it, a - ry - 1);
 		}
 	} else if (strncmp(tmp, "find", 4) == 0) { // example: find string
-		uint from = 0, to = text.lines;
+		uint from = 1, to = text.lines;
 		char mode = 'h';
-		char *pr2 = input_header("range/mode (h/c 5-10): "); // h 5-10
+		char *pr2 = input_header("range/mode (h/c 1-10): "); // h 1-10
 		sscanf(pr2, "%c %u-%u", &mode, &from, &to);
 		free(pr2);
-		find(tmp + 5, from, to, mode);
+		find(tmp + 5, from - 1, to - 1, mode);
 	} else if (strncmp(tmp, "replace", 7) == 0) {
 		uint from = 0, to = text.lines;
 		sscanf(tmp + 8, "%u-%u", &from, &to);

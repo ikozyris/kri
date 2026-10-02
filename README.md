@@ -32,7 +32,7 @@ kri # ask for filename on save file operation
 	- find h 3-10 (\n) str  --> highlight occurences of sring on lines [3,10]
  - Replace: command _replace_ :
 	- replace (\n) str1 (\n) str2  -->  replace all str1 with str2
-	- replace 0-20 (\n) str1 (\n) str2 (\n)  -->  in range [0,20]
+	- replace 1-20 (\n) str1 (\n) str2 (\n)  -->  in range [1,20]
 
 ### Customization
 Configurations are possible only at compile-time to reduce code complexity since all users are expected to compile the editor locally.

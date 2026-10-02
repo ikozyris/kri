@@ -68,7 +68,7 @@ static void search_mt_common(uint from, uint to, void *search_fn(void*));
 
 uint search(const char *str, uint len, uint from, uint to, char mode)
 {
-	for (uint i = 0; i < occurrences.size(); ++i)
+	for (uint i = 0; i < occurrences.size(); ++i) // doesn't resize
 		occurrences[i].array[0] = 0;
 	string = str;
 	str_len = len;
@@ -84,7 +84,7 @@ uint search(const char *str, uint len, uint from, uint to, char mode)
 	return total;
 }
 
-// highlight or count occurrences of str in range [from, to]
+// highlight or count occurrences of str in range [from, to] (zero indexed)
 void find(const char *str, uint from, uint to, char mode)
 {
 	str_len = strlen(str);
@@ -96,7 +96,7 @@ void find(const char *str, uint from, uint to, char mode)
 	uint total = search(str, str_len, from, to, mode);
 
 	clear_header();
-	snprintf(lnbuf, lnbf_cpt, "%u matches on lines [%u, %u]", total, from, to);
+	snprintf(lnbuf, lnbf_cpt, "%u matches on lines [%u, %u]", total, from + 1, to + 1);
 	print2header(lnbuf, 1);
 
 	iter tmp_it;
