@@ -33,19 +33,22 @@ void command()
 	if (strcmp(tmp, "resetheader") == 0)
 		reset_header();
 	else if (strcmp(tmp, "shrink") == 0) {
-		uint freed = 16;
+		uint freed = lnbf_cpt - 16;
 		// shrink line buffer
-		lnbf_cpt = 16;
-		lnbuf = (char*)realloc(lnbuf, lnbf_cpt);
+		lnbuf = (char*)realloc(lnbuf, lnbf_cpt = 16);
 
 		// shrink search occurrences array
+		freed += occurrences.capacity() * sizeof(dynarray);
+		for (auto &dyn : occurrences) {
+			freed += dyn.cpt() * sizeof(uint);
+			free(dyn.array);
+		}
+		occurrences.resize(2);
+		occurrences.shrink_to_fit();
 
-
-		char buffer[64] = "";
-		snprintf(buffer, 64, "freed: %u B", lnbf_cpt);
+		snprintf(tmp, 128, "freed: %u B", freed);
 		clear_header();
-		print2header(buffer, 1);
-
+		print2header(tmp, 1);
 	} else if (strcmp(tmp, "stats") == 0)
 		stats();
 	else if (strcmp(tmp, "suspend") == 0) {

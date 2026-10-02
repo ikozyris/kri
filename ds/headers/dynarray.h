@@ -5,8 +5,8 @@ struct dynarray {
 	uint *array;
 
 	void incr_len() { array[0]++; }
-	uint len() { return array[0]; }
-	uint cpt() { return __bit_ceil(len()); }
+	uint len() const { return array[0]; }
+	uint cpt() const { return __bit_ceil(len()); }
 
 	dynarray() {
 		// cannot be more as __bit_ceil(0) == 1
