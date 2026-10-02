@@ -310,7 +310,7 @@ static void search_mt_common(uint from, uint to, void *search_fn(void*))
 	}
 
 	uint nthreads = num_chunks < 256 ? 1 : (sysconf(_SC_NPROCESSORS_ONLN) - 1);
-	occurrences.resize(append ? num_chunks : nthreads + 1);
+	occurrences.resize((append ? num_chunks : nthreads) + 1);
 	num_chunks--; // first and last chunk are processed independently
 	uint chunk_sz = num_chunks / nthreads;
 	uint remainder = num_chunks % nthreads;
