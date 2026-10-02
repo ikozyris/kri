@@ -118,10 +118,10 @@ void scan_comments(uint target_line)
 		in_comment = comment_blocks.back().first < it.global_pos && it.global_pos < comment_blocks.back().second;
 
 	for (uint ln = it.global_pos; ln < target_line; ++ln, iterate_fw(&tmp, 1)) {
-		uint ln_len = tmp.len(), pos;
-		for (uint i = 0; i < ln_len; i = pos + ln_len) {
+		uint ln_len = tmp.len(), pos, comm_len;
+		for (uint i = 0; i < ln_len; i = pos + comm_len) {
 			const char *comm_ptr = lang->comm_op; // usually find open comment
-			uint comm_len = lang->comm_olen;
+			comm_len = lang->comm_olen;
 			if (in_comment) {
 				comm_len = lang->comm_clen; // close comment
 				comm_ptr = lang->comm_cl;
@@ -149,7 +149,7 @@ static void apply(uint line, const iter *cur_ln)
 			comment_blocks.pop_back();
 		if (comment_blocks.size()) {
 			auto &last_block = comment_blocks.back();
-			if (cur_ln->global_pos >= last_block.first && cur_ln->global_pos <= last_block.second)
+			if (cur_ln->global_pos > last_block.first && cur_ln->global_pos <= last_block.second)
 				continued = COMMENT;
 		}
 	}
