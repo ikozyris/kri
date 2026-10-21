@@ -5,6 +5,7 @@
 void stats(); // print statistics in header
 void command(); // prompt for command
 void enter();	// insert enter at *it,rx and create new node for line
+void delete_line(); // delete line at *it
 void scroll2(uint a);
 void mvl_scurs(uint t_byte);
 void mvr_scurs(uint t_byte); // move right screen cursor

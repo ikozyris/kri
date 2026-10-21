@@ -31,6 +31,7 @@ int main(int argc, char *argv[])
 		"Go to start of line:	Ctrl-A\n"
 		"Go to end of line:	Ctrl-E\n"
 		"Built-in terminal:	Alt-C\n"
+		"Delete line:		Ctrl-D\n"
 		"Previous/Next word	Shift + Left/Right arrow\n"
 		"Show debbuging info:	Alt-I (also command stats in built-in terminal)\n\n"
 		"Built-in terminal commands:\n"
@@ -237,20 +238,9 @@ init:
 			}
 			break;
 
-		/*case DELLINE: // TODO: fix this
-			if (text.lines > 0 && text.nodes > 2) {
-				rm_mline(it.parent(), it.relative_pos, &it);
-				text.lines--;
-				print_text(y);
-				wmove(text_win, y, 0);
-			} else { // clear line buffer
-				it.orig->gps = 0;
-				it.orig->gpe = it.orig->cpt() - 1;
-				it.parent()->len[0] = 1;
-				it.parent()->num_lines = 1;
-				clearline;
-			}
-			break;*/
+		case DELLINE:
+			delete_line();
+			break;
 
 		case ENTER:
 			enter();

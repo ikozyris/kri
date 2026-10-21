@@ -73,9 +73,12 @@ void iterate_fw(iter *it, uint dist)
 }
 
 // remove a line from a chunk
-void rm_mline(chunk *ch, uint pos, const iter *it) {
-	if (ch->num_lines == 1) {
+void rm_mline(llist *list, chunk *ch, uint pos, const iter *it) {
+	if (ch->num_lines == 1) { // the whole chunk is removed
 		connect(ch->prev, ch->next);
+		list->nodes--; // the node is not counted anymore
+		free(ch->merged_lines.buffer());
+		free(ch->len);
 		free(ch);
 	} else {
 		mv_curs(ch->merged_lines, it->offset);
@@ -128,7 +131,7 @@ void split_mline(llist *list, chunk *a)
 }
 
 // merge src into dest
-void merge_chunks(const iter *src, iter *dest, bool append)
+void merge_chunks(llist *list, const iter *src, iter *dest, bool append)
 {
 	chunk *dest_ch = dest->parent(), *src_ch = src->parent();
 	if (append) { // append src to dest
@@ -141,7 +144,7 @@ void merge_chunks(const iter *src, iter *dest, bool append)
 	}
 	if (dest_ch->len)
 		dest_ch->len[dest->relative_pos] = dest->len() + src->len() - 1;
-	rm_mline(src_ch, src->relative_pos, src);
+	rm_mline(list, src_ch, src->relative_pos, src);
 }
 
 // TODO: this is a mess
@@ -163,9 +166,9 @@ void merge_lines(llist *list, iter *a, iter *b)
 		bool use_b = b_ch->merged_lines.len() + len_a < MAX_CHUNK_SIZE || b_ch->num_lines <= 1;
 		// prefer merging small into large when both are possible
 		if (use_a && (!use_b || a_ch->merged_lines.len() >= b_ch->merged_lines.len()))
-			merge_chunks(b, a, true);
+			merge_chunks(list, b, a, true);
 		else if (use_b) {
-			merge_chunks(a, b, false);
+			merge_chunks(list, a, b, false);
 			*a = *b;
 			a->global_pos--;
 		} else { // create new chunk
@@ -175,8 +178,8 @@ void merge_lines(llist *list, iter *a, iter *b)
 			copy_buffer(*a->orig, new_chunk->merged_lines, a->offset, a->offset + len_a - 1);
 			copy_buffer(*b->orig, new_chunk->merged_lines, b->offset, b->offset + len_b);
 
-			rm_mline(b_ch, b->relative_pos, b);
-			rm_mline(a_ch, a->relative_pos, a);
+			rm_mline(list, b_ch, b->relative_pos, b);
+			rm_mline(list, a_ch, a->relative_pos, a);
 
 			if (len_a + len_b - 1 < MAX_CHUNK_SIZE) // in a merged line
 				append_len(new_chunk, len_a + len_b - 1);

@@ -133,6 +133,30 @@ void command()
 	free(tmp);
 }
 
+void delete_line()
+{
+	chunk *ch = it.parent();
+	if (it.global_pos == text.lines) { // last line
+		mv_curs(*it.orig, it.offset);
+		it.orig->gpe = it.orig->cpt() - 1; // erase its content
+		insert_c(*it.orig, 0); // emulated end of file remains
+		if (ch->len)
+			ch->len[it.relative_pos] = 1;
+	} else {
+		chunk *next = ch->next;
+		bool freed = ch->num_lines == 1; // single line chunks are freed
+		rm_mline(&text, ch, it.relative_pos, &it);
+		if (freed) // line below belongs to next chunk
+			point2chunk(&it, next);
+		text.lines--;
+	}
+
+	cut.clear();
+	x = ofx = 0;
+	print_text(y);
+	wmove(text_win, y, 0);
+}
+
 void scroll2(uint a)
 {
 	scan_comments(a - 1);

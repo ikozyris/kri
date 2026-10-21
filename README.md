@@ -24,6 +24,7 @@ kri # ask for filename on save file operation
  - Go to start of line: Ctrl-A
  - Go to end of line: Ctrl-E
  - Go to previous/next word: Shift + Left/Right arrow
+ - Delete line: Ctrl-D
  - Enter built-in terminal: Alt-C
  - Show info: Alt-I (also command _stats_ in built-in terminal)
  - Search: command _find_ in builtin terminal, parameters in seperate(\n) queries, example:

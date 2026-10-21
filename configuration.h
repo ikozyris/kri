@@ -22,7 +22,7 @@
 #define REFRESH		ctrl('R')
 #define KEY_TAB		9
 #define CMD		'c'
-#define DELLINE		ctrl('K')
+#define DELLINE		ctrl('D')
 
 // customization options
 //#define NO_LINES	// disable line numbering

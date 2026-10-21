@@ -48,7 +48,7 @@ uint line_pos(const chunk *ch, uint offset);
 void line_offset(iter *it, uint n);
 void iterate_bw(iter *it, uint dist); // backward
 void iterate_fw(iter *it, uint dist); // forward
-void rm_mline(chunk *ch, uint pos, const iter *it);
+void rm_mline(llist *list, chunk *ch, uint pos, const iter *it);
 void split_mline(llist *list, chunk *cur_chunk);
 void merge_lines(llist *list, iter *a, iter *b);
 void insc_after(llist *list, chunk *previous, chunk *new_chunk);
