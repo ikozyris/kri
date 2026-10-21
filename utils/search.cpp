@@ -2,6 +2,7 @@
 
 // global is occurrences, each local is matches
 vector<dynarray> occurrences(2);
+uint occ_slots = 2; // slots in use
 ulong mask[256];
 // shared parameters
 static const char *string;
@@ -68,8 +69,6 @@ static void search_mt_common(uint from, uint to, void *search_fn(void*));
 
 uint search(const char *str, uint len, uint from, uint to, char mode)
 {
-	for (uint i = 0; i < occurrences.size(); ++i) // doesn't resize
-		occurrences[i].array[0] = 0;
 	string = str;
 	str_len = len;
 	append = mode == 'h';
@@ -79,8 +78,8 @@ uint search(const char *str, uint len, uint from, uint to, char mode)
 	else
 		search_mt_common(from, to, _search_lc);
 	ulong total = 0;
-	for (auto i : occurrences)
-		total += i.len();
+	for (uint i = 0; i < occ_slots; ++i)
+		total += occurrences[i].len();
 	return total;
 }
 
@@ -112,7 +111,7 @@ void find(const char *str, uint from, uint to, char mode)
 	uint cline = after_first_chunk ? 0 : from - 1; // cumulative line up to previous chunk
 	vector<match> matches; // y, x, byte (in line not chunk)
 	matches.reserve(total);
-	for (uint i = 0; i < occurrences.size(); ++i) { // occurrences in each chunk
+	for (uint i = 0; i < occ_slots; ++i) { // occurrences in each chunk
 		uint prev_byte = 0, prev_x = 0;
 		for (uint j = 1; j <= occurrences[i].len(); ++j) {
 			uint index = occurrences[i].array[j];
@@ -122,7 +121,6 @@ void find(const char *str, uint from, uint to, char mode)
 		}
 		cline += first_line.parent()->num_lines;
 		first_line.orig = &first_line.parent()->next->merged_lines;
-		occurrences[i].array[0] = 0; // cleanup for next search
 	}
 
 	iterate_fw(&it, matches[0].y - from);
@@ -295,6 +293,15 @@ static void search_mt_common(uint from, uint to, void *search_fn(void*))
 	line_offset(&last_line, dist);
 }
 
+	// slots:  append: num_chunks +1 , count: nthreads + 2
+	uint nthreads = num_chunks < 256 ? 1 : (sysconf(_SC_NPROCESSORS_ONLN) - 1);
+	uint slots = (append || num_chunks < 2) ? num_chunks + 1 : nthreads + 2;
+	if (occurrences.size() < slots)
+		occurrences.resize(slots);
+	occ_slots = slots;
+	for (uint i = 0; i < occ_slots; ++i)
+		occurrences[i].array[0] = 0;
+
 	init_bitap();
 	if (num_chunks == 0) {
 		ranged_searchstr(&occurrences[0], first_line.orig, first_line.offset, last_line.offset + last_line.len() - 1);
@@ -302,15 +309,12 @@ static void search_mt_common(uint from, uint to, void *search_fn(void*))
 	}
 	last_line.global_pos = to;
 	chi = first_line.parent()->next;
-	// it's probably better to directly call these than doing an ugly combination of goto and if
 	if (num_chunks == 1) {
 		ranged_searchstr(&occurrences[0], first_line.orig, first_line.offset, first_line.orig->len() - 1);
 		ranged_searchstr(&occurrences[1], last_line.orig, 0, last_line.offset + last_line.len() - 1);
 		return;
 	}
 
-	uint nthreads = num_chunks < 256 ? 1 : (sysconf(_SC_NPROCESSORS_ONLN) - 1);
-	occurrences.resize((append ? num_chunks : nthreads) + 1);
 	num_chunks--; // first and last chunk are processed independently
 	uint chunk_sz = num_chunks / nthreads;
 	uint remainder = num_chunks % nthreads;
@@ -332,7 +336,7 @@ static void search_mt_common(uint from, uint to, void *search_fn(void*))
 
 	// first and last lines are special cases and thus processed by main thread
 	ranged_searchstr(&occurrences[0], first_line.orig, first_line.offset, first_line.orig->len() - 1);
-	ranged_searchstr(&occurrences.back(), last_line.orig, 0, last_line.offset + last_line.len() - 1);
+	ranged_searchstr(&occurrences[occ_slots - 1], last_line.orig, 0, last_line.offset + last_line.len() - 1);
 
 	for (uint i = 0; i < nthreads; ++i)
 		pthread_join(threads[i], nullptr);

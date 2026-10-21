@@ -37,14 +37,20 @@ void command()
 		// shrink line buffer
 		lnbuf = (char*)realloc(lnbuf, lnbf_cpt = 16);
 
-		// shrink search occurrences array
+		// shrink search occurrences array: the tail slots are freed, the 2 kept
+		// slots release their storage, a search only grows the vector again
 		freed += occurrences.capacity() * sizeof(dynarray);
-		for (auto &dyn : occurrences) {
+		for (auto &dyn : occurrences)
 			freed += dyn.cpt() * sizeof(uint);
-			free(dyn.array);
+		for (uint i = 2; i < occurrences.size(); ++i)
+			free(occurrences[i].array);
+		for (uint i = 0; i < 2; ++i) {
+			occurrences[i].array = (uint*)realloc(occurrences[i].array, 2 * sizeof(uint));
+			occurrences[i].array[0] = 0;
 		}
-		occurrences.resize(2);
+		occurrences.resize(2); // the arrays of the removed slots are freed above
 		occurrences.shrink_to_fit();
+		occ_slots = 2;
 
 		snprintf(tmp, 128, "freed: %u B", freed);
 		clear_header();
@@ -96,7 +102,7 @@ void command()
 		iter tmp_it;
 		point2begin(&tmp_it);
 		iterate_fw(&tmp_it, from);
-		for (uint i = 0; i < occurrences.size(); ++i) { // occurrences in each chunk
+		for (uint i = 0; i < occ_slots; ++i) { // occurrences in each chunk
 			if (offset > 0 && occurrences[i].len() > 0) // pre-allocate
 				resize2fit(*tmp_it.orig, tmp_it.orig->len() + occurrences[i].len() * offset + 2);
 
@@ -112,7 +118,6 @@ void command()
 				}
 			}
 			tmp_it.orig = &tmp_it.parent()->next->merged_lines;
-			occurrences[i].array[0] = 0; // cleanup for next search
 		}
 		point2begin(&it); // TODO: add iterate_to which auto uses nearest iter
 		iterate_fw(&it, ry);
