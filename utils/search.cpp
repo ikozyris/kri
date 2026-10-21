@@ -273,6 +273,7 @@ static void search_mt_common(uint from, uint to, void *search_fn(void*))
 	last_line.offset = first_line.offset;
 
 	uint num_chunks = 0;
+	ulong bytes = first_line.orig->len() - first_line.offset; // total bytes to search
 { // inlined iterate_fw with counting chunks
 	chunk *a = last_line.parent();
 	uint dist = to - from;
@@ -282,14 +283,15 @@ static void search_mt_common(uint from, uint to, void *search_fn(void*))
 			dist -= a->num_lines;
 			a = a->next;
 			num_chunks++;
+			bytes += a->merged_lines.len();
 		} while (dist >= a->num_lines);
 		point2chunk(&last_line, a);
 	}
 	line_offset(&last_line, dist);
+	bytes += last_line.offset + last_line.len() - last_line.orig->len();
 }
 
-	// slots:  append: num_chunks +1 , count: nthreads + 2
-	uint nthreads = num_chunks < 256 ? 1 : (sysconf(_SC_NPROCESSORS_ONLN) - 1);
+	uint nthreads = bytes < SEARCH_MT_MIN_BYTES ? 1 : sysconf(_SC_NPROCESSORS_ONLN) - 1;
 	uint slots = (append || num_chunks < 2) ? num_chunks + 1 : nthreads + 2;
 	if (occurrences.size() < slots)
 		occurrences.resize(slots);

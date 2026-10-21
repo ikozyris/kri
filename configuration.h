@@ -33,3 +33,7 @@
 #endif
 
 #define HIGHLIGHT	// enable syntax highlighting
+
+// smallest range in bytes searched with threads
+#define SEARCH_MT_MIN_BYTES (1u << 20) // 1 MB
+
