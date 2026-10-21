@@ -3,7 +3,6 @@
 // global is occurrences, each local is matches
 vector<dynarray> occurrences(2);
 uint occ_slots = 2; // slots in use
-ulong mask[256];
 // shared parameters
 static const char *string;
 static uint str_len;
@@ -184,59 +183,54 @@ exit:
 	reset_view();
 }
 
-static void init_bitap()
+// search the pattern in the contiguous buf[0, blen), buf[0] is at logical offset
+// the matches are not overlapping, next is the index after the last one taken
+static uint seg_search(dynarray *matches, const char *buf, uint blen, uint offset, uint next)
 {
-	memset(mask, -1, sizeof(mask));
-	for (uint i = 0; i < str_len; i++)
-		mask[(uchar)string[i]] &= ~(1ul << i);
-}
-
-static void bitap_search(const uchar *buf, uint blen, uint offset, dynarray *matches)
-{
-	uint plen = str_len; // pascal string
-	if (blen < plen)
-		return;
-
-	ulong state = ~1; // no matches
-	ulong accept_bit = 1ul << plen; // 0 for match
-
-	if (append) { // split loops
-		for (uint i = 0; i < blen; i++) {
-			state = (state | mask[buf[i]]) << 1ul;
-			// last bit matches
-			if ((state & accept_bit) == 0)
-				matches->append(i + 1 + offset - plen);
-		}
-	} else {
-		uint count = 0;
-		for (uint i = 0; i < blen; i++) {
-			state = (state | mask[buf[i]]) << 1ul;
-			if ((state & accept_bit) == 0)
-				count++;
-		}
-		matches->array[0] += count;
+	if (str_len == 0)
+		return next;
+	const char *end = buf + blen;
+	// the first index that does not overlap the match taken before this segment
+	const char *p = buf + min(next > offset ? next - offset : 0, blen);
+	uint count = 0;
+	while (p < end && (p = (const char*)memmem(p, end - p, string, str_len)) != nullptr) {
+		if (append)
+			matches->append(p - buf + offset);
+		else
+			count++;
+		p += str_len; // non-overlapping
+		next = p - buf + offset;
 	}
+	if (!append)
+		matches->array[0] += count; // one write per segment
+	return next;
 }
 
-// find hello in he_llo given gap length when an occurrence may be split between gap start and gap end
-static void mid_search(const gap_buf *gbuf, dynarray *matches)
+// a match may be in the gap ("he" + "llo" of "hello")
+// returns the index after that match
+static uint gap_search(dynarray *matches, const gap_buf *gbuf, uint from, uint to, uint next)
 {
+	if (str_len < 2) // a match in the gap has at least 1 byte on each side
+		return next;
+	uint gps = gbuf->gps;
 	uint gaplen = gaplen(*gbuf);
 	const char *buf = gbuf->buffer();
-	uint start = gbuf->gps >= str_len ? gbuf->gps - str_len + 1 : 0;
+	// the matches in the gap start in the str_len - 1 bytes before it
+	uint start = max(max(from, next), gps - min(gps, str_len - 1));
 
-	for (uint i = start; i < gbuf->gps; ++i) {
-		int a, b = 1;
-		// start by comparing the first bytes up to the gap start ("he")
-		a = memcmp(buf + i, string, gbuf->gps - i);
-		if (!a) // if those match then compare the rest ("llo")
-			b = memcmp(buf + gbuf->gps + gaplen, string + gbuf->gps - i, str_len - (gbuf->gps - i));
+	for (uint i = start; i < gps && i + str_len <= to + 1; ++i) { // bounded by the range
+		if (memcmp(buf + i, string, gps - i) != 0) // before the gap
+			continue;
+		if (memcmp(buf + gps + gaplen, string + gps - i, str_len - (gps - i)) != 0)
+			continue; // after the gap
 
-		if (a == 0 && b == 0) {
+		if (append)
 			matches->append(i);
-			return; // only one match can fit between the gap
-		}
+		else
+			matches->incr_len();
+		return i + str_len; // only one match can be in the gap
 	}
+	return next;
 }
 
 // search in range [from, to]
@@ -246,10 +240,11 @@ static void ranged_searchstr(dynarray *matches, const gap_buf *buf, uint from, u
 		return;
 	uint from1, from2, to1, to2;
 	prepare_iteration(buf, from, to, from1, to1, from2, to2);
-	bitap_search((uchar*)buf->buffer() + from1, to1 - from1, from, matches);
-	if (from2 > to1 && to2 - from2 >= str_len) {
-		mid_search(buf, matches);
-		bitap_search((uchar*)buf->buffer() + from2, to2 - from2, buf->gps, matches);
+	uint next = 0; // index after the last taken match
+	next = seg_search(matches, buf->buffer() + from1, to1 - from1, from, next);
+	if (to2 > from2) { // the range continues after the gap
+		next = gap_search(matches, buf, from, to, next);
+		seg_search(matches, buf->buffer() + from2, to2 - from2, buf->gps, next);
 	}
 }
 
@@ -302,7 +297,6 @@ static void search_mt_common(uint from, uint to, void *search_fn(void*))
 	for (uint i = 0; i < occ_slots; ++i)
 		occurrences[i].array[0] = 0;
 
-	init_bitap();
 	if (num_chunks == 0) {
 		ranged_searchstr(&occurrences[0], first_line.orig, first_line.offset, last_line.offset + last_line.len() - 1);
 		return;
