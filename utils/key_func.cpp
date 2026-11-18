@@ -136,7 +136,7 @@ void command()
 void delete_line()
 {
 	chunk *ch = it.parent();
-	if (it.global_pos == text.lines) { // last line
+	if (it.global_pos == text.lines) { // last line of file
 		mv_curs(*it.orig, it.offset);
 		it.orig->gpe = it.orig->cpt() - 1; // erase its content
 		insert_c(*it.orig, 0); // emulated end of file remains
@@ -146,7 +146,8 @@ void delete_line()
 		chunk *next = ch->next;
 		bool freed = ch->num_lines == 1; // single line chunks are freed
 		rm_mline(&text, ch, it.relative_pos, &it);
-		if (freed) // line below belongs to next chunk
+		// delete last line of chunk, cursor moves to next
+		if (freed || it.relative_pos == ch->num_lines)
 			point2chunk(&it, next);
 		text.lines--;
 	}
