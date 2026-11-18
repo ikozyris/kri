@@ -66,7 +66,7 @@ void command()
 	else if (strncmp(tmp, "scroll", 6) == 0) {
 		uint a;
 		sscanf(tmp + 7, "%u", &a);
-		if (a <= text.lines) {
+		if (a && a <= text.lines) {
 			scroll2(a);
 			if (a < ry)
 				iterate_bw(&it, ry - a + 1);
@@ -74,7 +74,7 @@ void command()
 				iterate_fw(&it, a - ry - 1);
 		}
 	} else if (strncmp(tmp, "find", 4) == 0) { // example: find string
-		uint from = 1, to = text.lines;
+		uint from = 1, to = text.lines + 1;
 		char mode = 'h';
 		char *pr2 = input_header("range/mode (h/c 1-10): "); // h 1-10
 		sscanf(pr2, "%c %u-%u", &mode, &from, &to);
