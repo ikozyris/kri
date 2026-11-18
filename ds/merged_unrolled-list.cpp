@@ -81,7 +81,7 @@ void rm_mline(llist *list, chunk *ch, uint pos, const iter *it) {
 		free(ch->len);
 		free(ch);
 	} else {
-		mv_curs(ch->merged_lines, it->offset);
+		mv_curs(&ch->merged_lines, it->offset);
 		ch->merged_lines.gpe += it->len();
 		if (pos < ch->num_lines - 1)
 			memmove(&ch->len[pos], &ch->len[pos + 1], ch->num_lines - pos - 1);
@@ -121,11 +121,11 @@ void split_mline(llist *list, chunk *a)
 	next_chunk->len[0] = last_length;
 	next_chunk->num_lines++;
 
-	mv_curs(next_chunk->merged_lines, 0);
+	mv_curs(&next_chunk->merged_lines, 0);
 
 	a->num_lines--;
-	mv_curs(a->merged_lines, a->merged_lines.len() - last_length);
-	insert_s(next_chunk->merged_lines, a->merged_lines.buffer() + a->merged_lines.cpt() - last_length, last_length);
+	mv_curs(&a->merged_lines, a->merged_lines.len() - last_length);
+	insert_s(&next_chunk->merged_lines, a->merged_lines.buffer() + a->merged_lines.cpt() - last_length, last_length);
 	// delete last line
 	a->merged_lines.gpe = a->merged_lines.cpt() - 1;
 }
@@ -135,12 +135,12 @@ void merge_chunks(llist *list, const iter *src, iter *dest, bool append)
 {
 	chunk *dest_ch = dest->parent(), *src_ch = src->parent();
 	if (append) { // append src to dest
-		mv_curs(dest_ch->merged_lines, dest->offset + dest->len());
+		mv_curs(&dest_ch->merged_lines, dest->offset + dest->len());
 		dest_ch->merged_lines.gps--; // delete newline
-		copy_buffer(*src->orig, dest_ch->merged_lines, src->offset, src->offset + src->len());
+		copy_buffer(src->orig, &dest_ch->merged_lines, src->offset, src->offset + src->len());
 	} else { // prepend src to dest
-		mv_curs(dest_ch->merged_lines, dest->offset);
-		copy_buffer(*src->orig, dest_ch->merged_lines, src->offset, src->offset + src->len() - 1);
+		mv_curs(&dest_ch->merged_lines, dest->offset);
+		copy_buffer(src->orig, &dest_ch->merged_lines, src->offset, src->offset + src->len() - 1);
 	}
 	if (dest_ch->len)
 		dest_ch->len[dest->relative_pos] = dest->len() + src->len() - 1;
@@ -175,8 +175,8 @@ void merge_lines(llist *list, iter *a, iter *b)
 			chunk *new_chunk = create_chunk();
 			insc_after(list, a_ch, new_chunk);
 
-			copy_buffer(*a->orig, new_chunk->merged_lines, a->offset, a->offset + len_a - 1);
-			copy_buffer(*b->orig, new_chunk->merged_lines, b->offset, b->offset + len_b);
+			copy_buffer(a->orig, &new_chunk->merged_lines, a->offset, a->offset + len_a - 1);
+			copy_buffer(b->orig, &new_chunk->merged_lines, b->offset, b->offset + len_b);
 
 			rm_mline(list, b_ch, b->relative_pos, b);
 			rm_mline(list, a_ch, a->relative_pos, a);
@@ -207,6 +207,6 @@ chunk *create_chunk()
 	new_chunk->len = nullptr;
 	new_chunk->num_lines = 0; // cannot be 1 as it breaks append_len during reading
 	//*new_chunk = {.len_cpt = 1, .num_lines = 0}; // TODO: use this in C
-	init(new_chunk->merged_lines);
+	init(&new_chunk->merged_lines);
 	return new_chunk;
 }

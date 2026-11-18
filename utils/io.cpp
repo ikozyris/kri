@@ -51,7 +51,7 @@ uint print_line(const iter *i, uint from, uint to, uint y)
 			overflows[y] = false;
 		}
 	}
-	uint rlen = data(*i->orig, from + i->offset, to + i->offset);
+	uint rlen = data(i->orig, from + i->offset, to + i->offset);
 	char last_char = rlen ? lnbuf[rlen - 1] : 0;
 	if (last_char == '\n' || last_char == '\t')
 		--rlen;
@@ -92,13 +92,13 @@ void print_new_mark()
 		return;
 	}
 	print_del_mark(y);
-	char chp = at(*it.orig, char_pos + it.offset);
+	char chp = at(it.orig, char_pos + it.offset);
 	if (chp == '\t')
 		clean_mark(y);
 	else if (chp > 0)
 		mvwaddch(text_win, y, maxx - 2, chp);
 	else if (chp < 0) { // 2 bytes to print
-		char chp2 = at(*it.orig, char_pos + it.offset + 1);
+		char chp2 = at(it.orig, char_pos + it.offset + 1);
 		const char tmp[2] = {chp, chp2};
 		mvwaddnstr(text_win, y, maxx - 2, tmp, 2);
 	}
@@ -177,7 +177,7 @@ void read_file2(FILE *in)
 				text.lines++;
 				ln_sz = 0;
 			}
-			insert_s(chnk->merged_lines, cur_ln, frag_sz); // write the line fragment
+			insert_s(&chnk->merged_lines, cur_ln, frag_sz); // write the line fragment
 
 			cur_ln = new_ln + 1;
 			bytes_read -= frag_sz;
@@ -190,7 +190,7 @@ void read_file2(FILE *in)
 		chnk = new_chunk(chnk);
 	if (ln_sz < MAX_CHUNK_SIZE)
 		append_len(chnk, ln_sz + 1);
-	insert_c(chnk->merged_lines, 0);
+	insert_c(&chnk->merged_lines, 0);
 
 	if (buffer == MAP_FAILED)
 		free(buf);

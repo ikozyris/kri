@@ -46,7 +46,7 @@ typedef struct res_s {
 } res_t;
 
 // helper binary search
-static bool binary_search(const char *arr, const uchar *len_arr, uint size, const char *line, res_t &res, char type, attr_t attr)
+static bool binary_search(const char *arr, const uchar *len_arr, uint size, const char *line, res_t *res, char type, attr_t attr)
 {
 	int lo = 0, hi = size - 1, mid;
 	while (lo <= hi) {
@@ -59,9 +59,9 @@ static bool binary_search(const char *arr, const uchar *len_arr, uint size, cons
 					break;
 				best = mid;
 			}
-			res.len = len_arr[best + 1] - len_arr[best];
-			res.type = type;
-			res.attr = attr;
+			res->len = len_arr[best + 1] - len_arr[best];
+			res->type = type;
+			res->attr = attr;
 			return true;
 		} else if (cmp < 0)
 			lo = mid + 1;
@@ -78,7 +78,7 @@ static inline uint find_marker(const iter *cur_ln, uint start, uint len, const c
 	uint line_end = len + cur_ln->offset, j;
 	for (uint i = start + cur_ln->offset; i + mlen <= line_end; ++i) {
 		for (j = 0; j < mlen; ++j)
-			if (at(*cur_ln->orig, i + j) != mark[j])
+			if (at(cur_ln->orig, i + j) != mark[j])
 				break;
 		if (j == mlen)
 			return i - cur_ln->offset;
@@ -92,7 +92,7 @@ static res_t get_category(const char *line)
 	res_t res = {0, COLOR_WHITE, 0}, tmp;
 
 	for (uchar i = 0; i < lang->wordgr_cnt; ++i)
-		if (binary_search(lang->words[i].words, lang->words[i].lens, lang->words[i].cnt, line, tmp, lang->words[i].color, lang->words[i].attr))
+		if (binary_search(lang->words[i].words, lang->words[i].lens, lang->words[i].cnt, line, &tmp, lang->words[i].color, lang->words[i].attr))
 			if (tmp.len > res.len)
 				res = tmp;
 

@@ -104,13 +104,13 @@ void command()
 		iterate_fw(&tmp_it, from);
 		for (uint i = 0; i < occ_slots; ++i) { // occurrences in each chunk
 			if (offset > 0 && occurrences[i].len() > 0) // pre-allocate
-				resize2fit(*tmp_it.orig, tmp_it.orig->len() + occurrences[i].len() * offset + 2);
+				resize2fit(tmp_it.orig, tmp_it.orig->len() + occurrences[i].len() * offset + 2);
 
 			for (uint j = 1; j <= occurrences[i].len(); ++j) {
 				uint index = occurrences[i].array[j];
-				mv_curs(*tmp_it.orig, index + offset * (int)(j - 1));
+				mv_curs(tmp_it.orig, index + offset * (int)(j - 1));
 				tmp_it.orig->gpe = tmp_it.orig->gpe + old_len;
-				insert_s(*tmp_it.orig, newst, newst_len);
+				insert_s(tmp_it.orig, newst, newst_len);
 
 				if (tmp_it.parent()->len) {
 					uint n = line_pos(tmp_it.parent(), index + offset * (int)(j - 1));
@@ -137,9 +137,9 @@ void delete_line()
 {
 	chunk *ch = it.parent();
 	if (it.global_pos == text.lines) { // last line of file
-		mv_curs(*it.orig, it.offset);
+		mv_curs(it.orig, it.offset);
 		it.orig->gpe = it.orig->cpt() - 1; // erase its content
-		insert_c(*it.orig, 0); // emulated end of file remains
+		insert_c(it.orig, 0); // emulated end of file remains
 		if (ch->len)
 			ch->len[it.relative_pos] = 1;
 	} else {
@@ -173,7 +173,7 @@ void scroll2(uint a)
 void enter()
 {
 	chunk *ch = it.parent();
-	insert_c(*it.orig, '\n');
+	insert_c(it.orig, '\n');
 
 	if (ch->len) { // this chunk has multiple lines; just insert new length
 		resize_len(ch);
@@ -193,8 +193,8 @@ void enter()
 	} else { // worst case; lines > 256B; create new chunk for the new line
 		chunk *t = create_chunk();
 		t->num_lines = 1;
-		data(*it.orig, rx + 1, it.orig->len() + 1);
-		insert_s(t->merged_lines, lnbuf, it.orig->len() - rx - 1);
+		data(it.orig, rx + 1, it.orig->len() + 1);
+		insert_s(&t->merged_lines, lnbuf, it.orig->len() - rx - 1);
 		it.orig->gps = rx + 1;
 		it.orig->gpe = it.orig->cpt() - 1;
 
@@ -226,7 +226,7 @@ void mvr_scurs(uint t_byte)
 			cut.push_back({x, cur_byte - it.offset});
 			x = 0;
 		}
-		get_off(x, cur_byte, *it.orig);
+		get_off(&x, &cur_byte, it.orig);
 	}
 	ofx = (long)t_byte - (long)x;
 	x--;
@@ -361,7 +361,7 @@ void prnxt_word(ushort func(void))
 	do {
 		status = func();
 		x = getcurx(text_win);
-		mv_curs(*it.orig, x + ofx);
+		mv_curs(it.orig, x + ofx);
 	} while ((winch(text_win) & A_CHARTEXT) != ' ' && status == NORMAL);
 }
 

@@ -23,7 +23,6 @@ struct gap_buf {
 	uint gpe; // last gap char (gap end)
 
 	char *buffer() const { return (char*)(ptr & PTR_MASK); } // in userspace bit 47 = 0
-	char &operator[](uint pos) const { return ((char*)(ptr & PTR_MASK))[pos]; }
 	uint cpt() const { uchar x = ptr >> 56; return (x > 29) ? (x * 0x1000000) : (1u << x); }
 	uint len() const { return cpt() - gaplen(*this); } // indirectly calculated, 1-based
 
@@ -33,19 +32,19 @@ struct gap_buf {
 	void set_cpt(ulong n) { ptr = (ptr & PTR_MASK) | (n << 56u); } // from 0-255
 };
 
-void init(gap_buf &a); // initialize the gap buffer (should already be called by constructor)
-void resize2fit(gap_buf &a, uint sz); // resize the buffer to be >= than specified size
-void resize_up(gap_buf &a); // increase
-void mv_curs(gap_buf &a, uint pos); // move the cursor to position
-void insert_c(gap_buf &a, char ch); // insert character at cursor position
-void insert_s(gap_buf &a, const char *str, uint len); // insert string with given length at cursor pos
-void copy_buffer(const gap_buf &src, gap_buf &dest, uint from, uint to); // range copy gap buffer
-void eras(gap_buf &a); // erase the character at current cursor position
-uint data(const gap_buf &src, uint from, uint to); // copy buffer with range to lnbuf
-void prepare_iteration(const gap_buf *src, uint from, uint to, uint &st1, uint &end1, uint &st2, uint &end2);
+void init(gap_buf *a); // initialize the gap buffer (should already be called by constructor)
+void resize2fit(gap_buf *a, uint sz); // resize the buffer to be >= than specified size
+void resize_up(gap_buf *a); // increase
+void mv_curs(gap_buf *a, uint pos); // move the cursor to position
+void insert_c(gap_buf *a, char ch); // insert character at cursor position
+void insert_s(gap_buf *a, const char *str, uint len); // insert string with given length at cursor pos
+void copy_buffer(const gap_buf *src, gap_buf *dest, uint from, uint to); // range copy gap buffer
+void eras(gap_buf *a); // erase the character at current cursor position
+uint data(const gap_buf *src, uint from, uint to); // copy buffer with range to lnbuf
+void prepare_iteration(const gap_buf *src, uint from, uint to, uint *st1, uint *end1, uint *st2, uint *end2);
 // return character at position calculating the gap
-inline char at(const gap_buf &src, uint pos) {
-	if (pos >= src.gps)
-		pos += gaplen(src);
-	return src[pos];
+inline char at(const gap_buf *src, uint pos) {
+	if (pos >= src->gps)
+		pos += gaplen(*src);
+	return src->buffer()[pos];
 }

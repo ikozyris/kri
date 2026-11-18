@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
 		fclose(in);
 	} else {
 init:
-		insert_c(*it.orig, 0);
+		insert_c(it.orig, 0);
 		append_len(it.parent(), 1);
 	}
 
@@ -100,7 +100,7 @@ init:
 		if (x > min(it.len() - 1 - ofx, maxx))
 			wmove(text_win, y, x = min(it.len() - ofx - 1, maxx));
 		rx = x + ofx;
-		mv_curs(*it.orig, rx + it.offset);
+		mv_curs(it.orig, rx + it.offset);
 
 #ifndef RELEASE
 		stats();
@@ -210,7 +210,7 @@ init:
 			if (it.orig->buffer()[it.orig->gpe + 1] == '\n') { // similar to backspace
 				iter b = it;
 				iterate_fw(&b, 1);
-				mv_curs(*it.orig, rx + it.offset + 1);
+				mv_curs(it.orig, rx + it.offset + 1);
 				merge_lines(&text, &it, &b);
 				--text.lines;
 				mvprint_line(y, 0, &it, cut.empty() ? 0 : cut.back().byte, 0);
@@ -303,7 +303,7 @@ init:
 			goto stop;
 
 		case KEY_TAB:
-			insert_c(*it.orig, '\t');
+			insert_c(it.orig, '\t');
 			if (it.parent()->len)
 				it.parent()->len[it.relative_pos] += 1;
 			mvprint_line(y, x, &it, rx, 0);
@@ -333,7 +333,7 @@ init:
 				wmove(text_win, y, x + 1);
 			}
 			uint len = wcstombs(s2, s, 4);
-			insert_s(*it.orig, s2, len);
+			insert_s(it.orig, s2, len);
 			if (len > 1)
 				ofx += len - 1; // UTF-8 character
 			if (it.parent()->len) {

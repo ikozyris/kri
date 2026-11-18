@@ -25,7 +25,7 @@ static uint ln_start(const vector<match> &yx, uint y) {
 }
 
 // convert index of chunk buffer to 2d position relative to the start of chunk
-static match index2yx(uint index, const iter *it, uint &prev_byte, uint &prev_x)
+static match index2yx(uint index, const iter *it, uint *prev_byte, uint *prev_x)
 {
 	uint cbyte = 0;
 	const chunk *ch = it->parent();
@@ -37,13 +37,13 @@ static match index2yx(uint index, const iter *it, uint &prev_byte, uint &prev_x)
 		cbyte += ln_len;
 		ln_len = ch->len[y];
 	}
-	if (prev_byte < cbyte) {
-		prev_byte = cbyte;
-		prev_x = 0;
+	if (*prev_byte < cbyte) {
+		*prev_byte = cbyte;
+		*prev_x = 0;
 	}
-	prev_x = bytes2dchar(index, prev_byte, it, prev_x);
-	prev_byte = index;
-	return {y - 1, prev_x, index - cbyte};
+	*prev_x = bytes2dchar(index, *prev_byte, it, *prev_x);
+	*prev_byte = index;
+	return {y - 1, *prev_x, index - cbyte};
 }
 
 static void highlight_occ(const vector<match> &matches, uint cur_occ)
@@ -114,7 +114,7 @@ void find(const char *str, uint from, uint to, char mode)
 		uint prev_byte = 0, prev_x = 0;
 		for (uint j = 1; j <= occurrences[i].len(); ++j) {
 			uint index = occurrences[i].array[j];
-			matches.emplace_back(index2yx(index, &first_line, prev_byte, prev_x));
+			matches.emplace_back(index2yx(index, &first_line, &prev_byte, &prev_x));
 			if (i != 0 || after_first_chunk == 0)
 				matches.back().y += cline;
 		}
@@ -239,7 +239,7 @@ static void ranged_searchstr(dynarray *matches, const gap_buf *buf, uint from, u
 	if (str_len >= buf->len())
 		return;
 	uint from1, from2, to1, to2;
-	prepare_iteration(buf, from, to, from1, to1, from2, to2);
+	prepare_iteration(buf, from, to, &from1, &to1, &from2, &to2);
 	uint next = 0; // index after the last taken match
 	next = seg_search(matches, buf->buffer() + from1, to1 - from1, from, next);
 	if (to2 > from2) { // the range continues after the gap

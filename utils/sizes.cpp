@@ -22,7 +22,7 @@ uint dchar2bytes(uint disp_x, uint from, const iter *i)
 	uint max_len = i->len() - 1 + i->offset; // without this line's newline
 	uint x = 0;
 	while (x < disp_x && from < max_len)
-		get_off(x, from, *i->orig);
+		get_off(&x, &from, i->orig);
 	flag = x;
 	return from - i->offset;
 }
@@ -34,7 +34,7 @@ uint bytes2dchar(uint bytes, uint from, const iter *i, uint start_x)
 	bytes += i->offset;
 	uint x = start_x;
 	while (from < bytes)
-		get_off(x, from, *i->orig);
+		get_off(&x, &from, i->orig);
 	flag = from - i->offset;
 	return x;
 }
