@@ -32,6 +32,7 @@ int main(int argc, char *argv[])
 		"Go to end of line:	Ctrl-E\n"
 		"Built-in terminal:	Alt-C\n"
 		"Delete line:		Ctrl-D\n"
+		"Move line up/down:	Ctrl-K / Ctrl-L (hold to repeat)\n"
 		"Previous/Next word	Shift + Left/Right arrow\n"
 		"Show debbuging info:	Alt-I (also command stats in built-in terminal)\n\n"
 		"Built-in terminal commands:\n"
@@ -240,6 +241,14 @@ init:
 
 		case DELLINE:
 			delete_line();
+			break;
+
+		case MOVE_UP:
+			move_line(-1);
+			break;
+
+		case MOVE_DOWN:
+			move_line(1);
 			break;
 
 		case ENTER:

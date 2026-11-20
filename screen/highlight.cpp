@@ -104,6 +104,13 @@ const char COMMENT = COLOR_GREEN; // color doesn't really matter
 const char OPER = COLOR_YELLOW; // here it does
 static char continued; // string/comment/directive etc. continued after cut/ in this line
 
+// discard cached ranges after line
+void reset_comments(uint line)
+{
+	while (comment_blocks.size() && comment_blocks.back().second >= line)
+		comment_blocks.pop_back();
+}
+
 // fill comment_block array
 void scan_comments(uint target_line)
 {

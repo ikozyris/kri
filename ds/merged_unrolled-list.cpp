@@ -15,6 +15,15 @@ void append_len(chunk *a, uint len)
 	a->num_lines++;
 }
 
+// a chunk of a single line stores no lengths
+static void promote_standalone(chunk *a)
+{
+	free(a->len);
+	a->len = nullptr;
+	a->len_cpt = 1;
+	a->num_lines = 1;
+}
+
 // given offset find position
 uint line_pos(const chunk *ch, uint offset)
 {
@@ -97,35 +106,33 @@ void rm_mline(llist *list, chunk *ch, uint pos, const iter *it) {
 void split_mline(llist *list, chunk *a)
 {
 	if (a->num_lines <= 1) { // convert to standalone line
-		free(a->len);
-		a->len = nullptr;
-		a->num_lines = 1;
+		promote_standalone(a);
 		return;
 	}
 
-	uint last_length = a->len[a->num_lines - 1];
-	chunk *next_chunk; // may be newly allocated
+	uint last_len = a->len[a->num_lines - 1];
+	chunk *next_ch; // may be newly allocated
 	// create new chunk if last line doesn't fit in next chunk
-	if (a->next == list->tail || a->next->merged_lines.len() + last_length > MAX_CHUNK_SIZE) {
-		next_chunk = create_chunk();
-		insc_after(list, a, next_chunk);
+	if (a->next == list->tail || a->next->merged_lines.len() + last_len > MAX_CHUNK_SIZE) {
+		next_ch = create_chunk();
+		insc_after(list, a, next_ch);
 	} else
-		next_chunk = a->next;
+		next_ch = a->next;
 
-	bool was_standalone = (next_chunk->len == nullptr && next_chunk->num_lines == 1);
-	resize_len(next_chunk);
+	bool was_standalone = (next_ch->len == nullptr && next_ch->num_lines == 1);
+	resize_len(next_ch);
 	if (was_standalone)
-		next_chunk->len[1] = next_chunk->merged_lines.len();
+		next_ch->len[1] = next_ch->merged_lines.len();
 	else
-		memmove(&next_chunk->len[1], &next_chunk->len[0], next_chunk->num_lines);
-	next_chunk->len[0] = last_length;
-	next_chunk->num_lines++;
+		memmove(&next_ch->len[1], &next_ch->len[0], next_ch->num_lines);
+	next_ch->len[0] = last_len;
+	next_ch->num_lines++;
 
-	mv_curs(&next_chunk->merged_lines, 0);
+	mv_curs(&next_ch->merged_lines, 0);
 
 	a->num_lines--;
-	mv_curs(&a->merged_lines, a->merged_lines.len() - last_length);
-	insert_s(&next_chunk->merged_lines, a->merged_lines.buffer() + a->merged_lines.cpt() - last_length, last_length);
+	mv_curs(&a->merged_lines, a->merged_lines.len() - last_len);
+	insert_s(&next_ch->merged_lines, a->merged_lines.buffer() + a->merged_lines.cpt() - last_len, last_len);
 	// delete last line
 	a->merged_lines.gpe = a->merged_lines.cpt() - 1;
 }
@@ -189,6 +196,59 @@ void merge_lines(llist *list, iter *a, iter *b)
 			point2chunk(a, new_chunk);
 		}
 	}
+}
+
+// move lines from n to end of ch to a new chunk inserted after ch
+static chunk *split_chunk(llist *list, chunk *ch, uint n)
+{
+	uint off = 0;
+	for (uint i = 0; i < n; ++i)
+		off += ch->len[i]; // byte where line n starts
+
+	chunk *new_ch = create_chunk();
+	copy_buffer(&ch->merged_lines, &new_ch->merged_lines, off, ch->merged_lines.len()); // before moving gap
+	for (uint i = n; i < ch->num_lines; ++i)
+		append_len(new_ch, ch->len[i]);
+	if (new_ch->num_lines == 1)
+		promote_standalone(new_ch);
+
+	mv_curs(&ch->merged_lines, off); // moved bytes become part of gap
+	ch->merged_lines.gpe = ch->merged_lines.cpt() - 1;
+	if (n == 1)
+		promote_standalone(ch);
+	else
+		ch->num_lines = n;
+	insc_after(list, ch, new_ch);
+	return new_ch;
+}
+
+// split the chunk of *it so that its line is the only line of a chunk
+void isolate_line(llist *list, iter *it)
+{
+	chunk *ch = it->parent();
+	if (ch->num_lines == 1)
+		return;
+	uint pos = it->relative_pos;
+	if (pos + 1 < ch->num_lines)
+		split_chunk(list, ch, pos + 1); // lines after it go to next chunk
+	if (pos) // iterator follows the moved line
+		point2chunk(it, split_chunk(list, ch, pos));
+}
+
+// overwrite last byte of *it line with newline or EOF
+void set_line_end(iter *it)
+{
+	mv_curs(it->orig, it->offset + it->len()); // last used byte
+	it->orig->buffer()[it->orig->gps - 1] = it->global_pos == text.lines ? 0 : '\n';
+}
+
+// swap 2 adjacent chunks, a is one before b
+void swap_chunks(chunk *a, chunk *b)
+{
+	chunk *prev = a->prev, *next = b->next;
+	connect(prev, b);
+	connect(b, a);
+	connect(a, next);
 }
 
 // insert chunk after

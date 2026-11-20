@@ -52,6 +52,9 @@ void rm_mline(llist *list, chunk *ch, uint pos, const iter *it);
 void split_mline(llist *list, chunk *cur_chunk);
 void merge_lines(llist *list, iter *a, iter *b);
 void insc_after(llist *list, chunk *previous, chunk *new_chunk);
+void isolate_line(llist *list, iter *it); // split the chunk of *it so that its line is alone
+void swap_chunks(chunk *a, chunk *b); // swap 2 adjacent chunks
+void set_line_end(iter *it); // set line's last byte
 chunk *create_chunk();
 void append_len(chunk *a, uint len);
 void point2chunk(iter *it, const chunk *a);

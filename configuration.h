@@ -23,6 +23,8 @@
 #define KEY_TAB		9
 #define CMD		'c'
 #define DELLINE		ctrl('D')
+#define MOVE_UP		ctrl('K')
+#define MOVE_DOWN	ctrl('L')
 
 // customization options
 //#define NO_LINES	// disable line numbering

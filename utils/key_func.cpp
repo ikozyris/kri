@@ -154,8 +154,49 @@ void delete_line()
 
 	cut.clear();
 	x = ofx = 0;
+	reset_comments(it.global_pos); // lines below shifted up
 	print_text(y);
 	wmove(text_win, y, 0);
+}
+
+// swap the current line with the adjacent one in direction dir
+void move_line(int dir)
+{
+	if (it.global_pos + dir > text.lines) // no line above/below (overflows)
+		return;
+
+	isolate_line(&text, &it); // only standalone chunks can be swapped
+	iter other = it;
+	if (dir > 0)
+		iterate_fw(&other, 1);
+	else
+		iterate_bw(&other, 1);
+	isolate_line(&text, &other);
+
+	// the 2 chunks are adjacent, swap for swap_chunks parameter order
+	chunk *first = dir > 0 ? it.parent() : other.parent();
+	swap_chunks(first, first->next);
+	it.global_pos += dir;
+	other.global_pos -= dir;
+
+	// terminators belong to rows, not to the content that moved to them
+	set_line_end(&it);
+	set_line_end(&other);
+
+	// reprint all
+	cut.clear();
+	ofx = 0;
+	if (dir < 0 && y == 0)
+		--ofy;
+	else if (dir > 0 && y == maxy - 1)
+		++ofy;
+	else
+		y += dir;
+	reset_comments(min(it.global_pos, other.global_pos)); // ranges above the 2 rows still hold
+	print_text(0);
+	print_lines();
+	wnoutrefresh(ln_win);
+	wmove(text_win, y, x);
 }
 
 void scroll2(uint a)
@@ -204,6 +245,7 @@ void enter()
 
 	it.global_pos++;
 	text.lines++;
+	reset_comments(it.global_pos - 1); // the split line and all lines below it moved down
 	ofx = 0;
 	cut.clear();
 	if (y < maxy - 1)  {

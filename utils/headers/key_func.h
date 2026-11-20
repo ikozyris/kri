@@ -6,6 +6,7 @@ void stats(); // print statistics in header
 void command(); // prompt for command
 void enter();	// insert enter at *it,rx and create new node for line
 void delete_line(); // delete line at *it
+void move_line(int dir); // swap the current line with the previous (-1) or next (+1) one
 void scroll2(uint a);
 void mvl_scurs(uint t_byte);
 void mvr_scurs(uint t_byte); // move right screen cursor
